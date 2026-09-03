@@ -30,6 +30,7 @@ import { FinanceProvider } from '@/context/FinanceContext';
 import { ChromeProvider, useChrome } from '@/context/ChromeContext';
 import { ModalPortalProvider, ModalPortalOutlet } from '@/context/ModalPortalContext';
 import { Header } from '@/components/Header';
+import { Navbar } from '@/components/Navbar';
 import { THEMES } from '@/constants/theme';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
@@ -110,6 +111,12 @@ function RootLayoutInner() {
           floats as an absolute overlay (rule 8) rather than pushing content
           down; see ChromeContext for how screens get clearance padding. */}
       <Header />
+      {/* Same reasoning as Header: rendered as a sibling *after*
+          BlurTargetView, not as (tabs)'s own tabBar slot (which would nest
+          it inside the very content its BlurView needs to blur — see
+          app/(tabs)/_layout.tsx). Navbar reads the active route/navigates
+          itself now instead of receiving BottomTabBarProps. */}
+      <Navbar />
       {/* GlassModal-based sheets render here (via ModalPortalContext) instead
           of wherever they're declared in the tree, so they paint above the
           header/navbar too and their BlurView can share `blurTarget`. */}

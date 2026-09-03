@@ -1,11 +1,12 @@
 import React from 'react';
 import type { LayoutChangeEvent } from 'react-native';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { usePathname, useRouter } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import { CreditCard, Home, Plus, Wallet } from 'lucide-react-native';
-import type { BottomTabBarProps } from 'expo-router/js-tabs';
 
 import { useTheme } from '@/context/ThemeContext';
 import { useLanguage } from '@/context/LanguageContext';
@@ -13,28 +14,43 @@ import { useChrome } from '@/context/ChromeContext';
 import { ANDROID_BLUR_METHOD, GLASS, TEXT } from '@/constants/theme';
 import { CHROME_SURFACE_ALPHA, hexToRgb } from '@/utils/color';
 
-const TAB_META: Record<string, { icon: typeof Home; labelKey: string }> = {
-  index: { icon: Home, labelKey: 'nav.dashboard' },
-  expenses: { icon: CreditCard, labelKey: 'nav.expenses' },
-  debts: { icon: Wallet, labelKey: 'nav.debts' },
-};
+const TABS: { path: '/' | '/expenses' | '/debts'; icon: typeof Home; labelKey: string }[] = [
+  { path: '/', icon: Home, labelKey: 'nav.dashboard' },
+  { path: '/expenses', icon: CreditCard, labelKey: 'nav.expenses' },
+  { path: '/debts', icon: Wallet, labelKey: 'nav.debts' },
+];
 
 /**
  * App-specific bottom glassmorphic tab bar + FAB (FEATURE_SPEC 0.1, rule 8).
- * Supplied to <Tabs screenOptions={{ tabBar: (props) => <Navbar {...props} /> }}>.
+ * Rendered as a root-level sibling in app/_layout.tsx (like Header), *not*
+ * as (tabs)'s own tabBar slot — see app/(tabs)/_layout.tsx for why: a
+ * BlurView rendered as the tabBar would be nested inside the same
+ * BlurTargetView subtree it needs to blur, which silently no-ops to a flat
+ * tint on Android instead of a real blur. Being a plain sibling means it
+ * reads the active route and navigates itself, rather than receiving
+ * react-navigation's BottomTabBarProps.
+ *
  * An absolutely-positioned overlay pinned to the bottom — tab content fills
  * the full screen and scrolls underneath it (what the BlurView blurs)
  * instead of being pushed up to make room for it. Reports its own rendered
  * height via ChromeContext so tab screens know how much bottom padding they
  * need.
  */
-export function Navbar({ state, navigation, insets }: BottomTabBarProps) {
+export function Navbar() {
   const { theme } = useTheme();
   const { t } = useLanguage();
   const { setNavbarHeight, blurTarget, triggerFab } = useChrome();
+  const pathname = usePathname();
+  const router = useRouter();
+  const insets = useSafeAreaInsets();
 
-  const activeRouteName = state.routes[state.index]?.name;
-  const fabHidden = activeRouteName === 'index';
+  // Chrome (this bar + the FAB) only makes sense over the three tab
+  // screens — Settings/About/etc. render their own back+title header and
+  // have no tab bar at all.
+  const isTabRoute = TABS.some((tab) => tab.path === pathname);
+  if (!isTabRoute) return null;
+
+  const fabHidden = pathname === '/';
 
   const onLayout = (e: LayoutChangeEvent) => {
     setNavbarHeight(e.nativeEvent.layout.height);
@@ -140,31 +156,24 @@ export function Navbar({ state, navigation, insets }: BottomTabBarProps) {
               paddingHorizontal: 10,
             }}
           >
-            {state.routes.map((route, index) => {
-              const meta = TAB_META[route.name];
-              if (!meta) return null;
-              const isFocused = state.index === index;
-              const Icon = meta.icon;
+            {TABS.map((tab) => {
+              const isFocused = pathname === tab.path;
+              const Icon = tab.icon;
 
               const onPress = () => {
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                const event = navigation.emit({
-                  type: 'tabPress',
-                  target: route.key,
-                  canPreventDefault: true,
-                });
-                if (!isFocused && !event.defaultPrevented) {
-                  navigation.navigate(route.name);
+                if (!isFocused) {
+                  router.navigate(tab.path);
                 }
               };
 
               return (
                 <Pressable
-                  key={route.key}
+                  key={tab.path}
                   onPress={onPress}
                   accessibilityRole="button"
                   accessibilityState={isFocused ? { selected: true } : {}}
-                  accessibilityLabel={t(meta.labelKey)}
+                  accessibilityLabel={t(tab.labelKey)}
                   style={{ alignItems: 'center', gap: 3, paddingVertical: 2, paddingHorizontal: 6 }}
                 >
                   <Icon
@@ -179,7 +188,7 @@ export function Navbar({ state, navigation, insets }: BottomTabBarProps) {
                       color: isFocused ? TEXT.primary : TEXT.tertiary,
                     }}
                   >
-                    {t(meta.labelKey)}
+                    {t(tab.labelKey)}
                   </Text>
                 </Pressable>
               );
