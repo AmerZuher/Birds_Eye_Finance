@@ -4,6 +4,7 @@ import Constants from 'expo-constants';
 
 import { useTheme } from '@/context/ThemeContext';
 import { useLanguage } from '@/context/LanguageContext';
+import { useChrome } from '@/context/ChromeContext';
 import { FONTS, TEXT } from '@/constants/theme';
 
 const APP_LOGO = require('../../assets/icon.png');
@@ -12,6 +13,7 @@ const APP_LOGO = require('../../assets/icon.png');
 export default function About() {
   const { theme } = useTheme();
   const { t } = useLanguage();
+  const { headerHeight } = useChrome();
   const version = Constants.expoConfig?.version ?? '1.0.0';
 
   return (
@@ -22,6 +24,7 @@ export default function About() {
         justifyContent: 'center',
         gap: 14,
         padding: 24,
+        paddingTop: headerHeight + 24,
         backgroundColor: theme.ground,
       }}
     >

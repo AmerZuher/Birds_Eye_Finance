@@ -3,12 +3,14 @@ import { Text, View } from 'react-native';
 
 import { useLanguage } from '@/context/LanguageContext';
 import { useTheme } from '@/context/ThemeContext';
+import { useChrome } from '@/context/ChromeContext';
 import { FONTS, TEXT } from '@/constants/theme';
 
 // Placeholder — full implementation lands in Phase 3 (FEATURE_SPEC Part 1).
 export default function Debts() {
   const { t } = useLanguage();
   const { theme } = useTheme();
+  const { headerHeight, navbarHeight } = useChrome();
 
   return (
     <View
@@ -18,6 +20,8 @@ export default function Debts() {
         justifyContent: 'center',
         gap: 8,
         padding: 24,
+        paddingTop: headerHeight + 24,
+        paddingBottom: navbarHeight + 24,
         backgroundColor: theme.ground,
       }}
     >

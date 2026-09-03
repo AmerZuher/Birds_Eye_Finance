@@ -1,4 +1,5 @@
 import React from 'react';
+import type { LayoutChangeEvent } from 'react-native';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -8,7 +9,8 @@ import type { BottomTabBarProps } from 'expo-router/js-tabs';
 
 import { useTheme } from '@/context/ThemeContext';
 import { useLanguage } from '@/context/LanguageContext';
-import { GLASS, TEXT } from '@/constants/theme';
+import { useChrome } from '@/context/ChromeContext';
+import { ANDROID_BLUR_METHOD, GLASS, TEXT } from '@/constants/theme';
 
 const TAB_META: Record<string, { icon: typeof Home; labelKey: string }> = {
   index: { icon: Home, labelKey: 'nav.dashboard' },
@@ -19,16 +21,36 @@ const TAB_META: Record<string, { icon: typeof Home; labelKey: string }> = {
 /**
  * App-specific bottom glassmorphic tab bar + FAB (FEATURE_SPEC 0.1, rule 8).
  * Supplied to <Tabs screenOptions={{ tabBar: (props) => <Navbar {...props} /> }}>.
+ * An absolutely-positioned overlay pinned to the bottom — tab content fills
+ * the full screen and scrolls underneath it (what the BlurView blurs)
+ * instead of being pushed up to make room for it. Reports its own rendered
+ * height via ChromeContext so tab screens know how much bottom padding they
+ * need.
  */
 export function Navbar({ state, navigation, insets }: BottomTabBarProps) {
   const { theme } = useTheme();
   const { t } = useLanguage();
+  const { setNavbarHeight, blurTarget } = useChrome();
 
   const activeRouteName = state.routes[state.index]?.name;
   const fabHidden = activeRouteName === 'index';
 
+  const onLayout = (e: LayoutChangeEvent) => {
+    setNavbarHeight(e.nativeEvent.layout.height);
+  };
+
   return (
-    <View style={{ paddingBottom: Math.max(insets.bottom, 8) - 8 }}>
+    <View
+      onLayout={onLayout}
+      style={{
+        position: 'absolute',
+        left: 0,
+        right: 0,
+        bottom: 0,
+        zIndex: 50,
+        paddingBottom: Math.max(insets.bottom, 8) - 8,
+      }}
+    >
       <View
         style={{
           marginHorizontal: 14,
@@ -78,12 +100,24 @@ export function Navbar({ state, navigation, insets }: BottomTabBarProps) {
             borderRadius: 22,
             overflow: 'hidden',
             borderWidth: 1,
-            borderColor: GLASS.navBorder,
+            borderColor: GLASS.border,
           }}
         >
-          <BlurView intensity={30} tint="dark" style={StyleSheet.absoluteFill} />
+          <BlurView
+            intensity={GLASS.blurIntensity}
+            tint="dark"
+            blurMethod={ANDROID_BLUR_METHOD}
+            blurTarget={blurTarget}
+            style={StyleSheet.absoluteFill}
+          />
+          <View
+            style={[
+              StyleSheet.absoluteFill,
+              { backgroundColor: `rgba(${theme.chromeTint},${GLASS.tintAlpha})` },
+            ]}
+          />
           <LinearGradient
-            colors={[GLASS.navGradientTop, GLASS.navGradientBottom]}
+            colors={[GLASS.gradientTop, GLASS.gradientBottom]}
             style={StyleSheet.absoluteFill}
           />
           <View

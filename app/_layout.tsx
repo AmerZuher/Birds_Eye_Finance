@@ -5,6 +5,7 @@ import React, { useCallback, useEffect } from 'react';
 import { BackHandler, View } from 'react-native';
 import { Stack, usePathname, useNavigationContainerRef } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
+import { BlurTargetView } from 'expo-blur';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
@@ -26,6 +27,7 @@ import { LanguageProvider } from '@/context/LanguageContext';
 import { CurrencyProvider } from '@/context/CurrencyContext';
 import { UserProvider } from '@/context/UserContext';
 import { FinanceProvider } from '@/context/FinanceContext';
+import { ChromeProvider, useChrome } from '@/context/ChromeContext';
 import { Header } from '@/components/Header';
 import { THEMES } from '@/constants/theme';
 
@@ -56,6 +58,7 @@ function AndroidBackHandler() {
 
 function RootLayoutInner() {
   const { theme } = useTheme();
+  const { blurTarget } = useChrome();
 
   const [fontsLoaded] = useFonts({
     Fraunces_400Regular,
@@ -84,18 +87,28 @@ function RootLayoutInner() {
   return (
     <View style={{ flex: 1, backgroundColor: theme.ground }}>
       <AndroidBackHandler />
+      {/* On Android, expo-blur's real blur methods need an explicit target to
+          sample — they can't automatically blur "whatever's behind" a view
+          the way iOS's system blur can. This wraps all route content as that
+          shared target; GlassHeader's and Navbar's BlurViews both point at
+          `blurTarget` from ChromeContext. No-ops to a plain View on iOS/web. */}
+      <BlurTargetView ref={blurTarget} style={{ flex: 1 }}>
+        <Stack
+          screenOptions={{
+            headerShown: false,
+            animation: 'slide_from_right',
+            contentStyle: { backgroundColor: theme.ground },
+          }}
+        >
+          <Stack.Screen name="(tabs)" />
+          <Stack.Screen name="settings" />
+          <Stack.Screen name="about" />
+        </Stack>
+      </BlurTargetView>
+      {/* Rendered after Stack so it paints above screen content — GlassHeader
+          floats as an absolute overlay (rule 8) rather than pushing content
+          down; see ChromeContext for how screens get clearance padding. */}
       <Header />
-      <Stack
-        screenOptions={{
-          headerShown: false,
-          animation: 'slide_from_right',
-          contentStyle: { backgroundColor: theme.ground },
-        }}
-      >
-        <Stack.Screen name="(tabs)" />
-        <Stack.Screen name="settings" />
-        <Stack.Screen name="about" />
-      </Stack>
       <StatusBar style="light" />
     </View>
   );
@@ -111,7 +124,9 @@ export default function RootLayout() {
               <CurrencyProvider>
                 <UserProvider>
                   <FinanceProvider>
-                    <RootLayoutInner />
+                    <ChromeProvider>
+                      <RootLayoutInner />
+                    </ChromeProvider>
                   </FinanceProvider>
                 </UserProvider>
               </CurrencyProvider>

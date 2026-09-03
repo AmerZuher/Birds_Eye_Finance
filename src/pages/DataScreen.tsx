@@ -18,6 +18,7 @@ import { useTheme } from '@/context/ThemeContext';
 import { useLanguage } from '@/context/LanguageContext';
 import { useCurrency } from '@/context/CurrencyContext';
 import { useUser } from '@/context/UserContext';
+import { useChrome } from '@/context/ChromeContext';
 import { BORDER, RADII, TEXT } from '@/constants/theme';
 import { DEBTS_PROMPT } from '@/prompts/debtsPrompt';
 import { EXPENSES_PROMPT } from '@/prompts/expensesPrompt';
@@ -41,6 +42,7 @@ export default function DataScreen() {
   const { t } = useLanguage();
   const { baseCurrency } = useCurrency();
   const { profile, updateProfile } = useUser();
+  const { headerHeight } = useChrome();
 
   const [banner, setBanner] = useState<{ kind: BannerKind; message: string } | null>(null);
   const [busy, setBusy] = useState(false);
@@ -192,7 +194,12 @@ export default function DataScreen() {
   return (
     <ScrollView
       style={{ backgroundColor: theme.ground }}
-      contentContainerStyle={{ padding: 16, gap: 14, paddingBottom: 40 }}
+      contentContainerStyle={{
+        padding: 16,
+        paddingTop: headerHeight + 16,
+        gap: 14,
+        paddingBottom: 40,
+      }}
       showsVerticalScrollIndicator={false}
     >
       {banner ? (

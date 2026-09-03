@@ -6,7 +6,6 @@ import type { LucideIcon } from 'lucide-react-native';
 
 import { Avatar } from '@/components/ui/Avatar';
 import { SettingsCard } from '@/components/ui/SettingsCard';
-import { ListRow } from '@/components/ui/ListRow';
 import { CustomSelect } from '@/components/ui/CustomSelect';
 import { AmountInput } from '@/components/ui/AmountInput';
 import { IconButton } from '@/components/ui/IconButton';
@@ -18,6 +17,7 @@ import { useLanguage } from '@/context/LanguageContext';
 import { useCurrency } from '@/context/CurrencyContext';
 import { useUser } from '@/context/UserContext';
 import { useFinance } from '@/context/FinanceContext';
+import { useChrome } from '@/context/ChromeContext';
 import type { FinancialHealthTier } from '@/context/FinanceContext';
 import { BORDER, RADII, TEXT } from '@/constants/theme';
 import type { StartBalance } from '@/constants/initialData';
@@ -48,6 +48,7 @@ export default function EditProfileScreen() {
     removeIncomeSource,
     financialHealth,
   } = useFinance();
+  const { headerHeight } = useChrome();
 
   const [name, setName] = useState(profile.name);
   const [avatarError, setAvatarError] = useState('');
@@ -113,7 +114,12 @@ export default function EditProfileScreen() {
   return (
     <ScrollView
       style={{ backgroundColor: theme.ground }}
-      contentContainerStyle={{ padding: 16, gap: 14, paddingBottom: 40 }}
+      contentContainerStyle={{
+        padding: 16,
+        paddingTop: headerHeight + 16,
+        gap: 14,
+        paddingBottom: 40,
+      }}
       showsVerticalScrollIndicator={false}
     >
       <SettingsCard>
@@ -294,33 +300,48 @@ function EntryManager({
       {entries.length === 0 ? (
         <EmptyState icon={Icon} caption={emptyCaption} />
       ) : (
-        <View>
-          {entries.map((entry, i) => (
-            <ListRow
+        <View style={{ gap: 8 }}>
+          {entries.map((entry) => (
+            <View
               key={entry.id}
-              leading={
-                <IconTile size={30} radius={RADII.tileSm}>
-                  <Icon size={14} color={theme.accent2} />
-                </IconTile>
-              }
-              title={entry.name}
-              subtitle={entry.currency}
-              showBottomBorder={i < entries.length - 1}
-              trailing={
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                  <Text style={{ fontSize: 12.5, fontWeight: '700', color: TEXT.primary }}>
-                    {formatOriginalMoney(entry.amount, entry.currency)}
-                  </Text>
-                  <IconButton
-                    icon={Trash2}
-                    accessibilityLabel={removeLabel}
-                    size={28}
-                    iconSize={13}
-                    onPress={() => onRemove(entry.id)}
-                  />
-                </View>
-              }
-            />
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 11,
+                padding: 12,
+                borderRadius: RADII.field,
+                backgroundColor: theme.surfaceAlt,
+                borderWidth: 1,
+                borderColor: BORDER.hairline,
+              }}
+            >
+              <IconTile size={30} radius={RADII.tileSm}>
+                <Icon size={14} color={theme.accent2} />
+              </IconTile>
+              <View style={{ flex: 1, minWidth: 0 }}>
+                <Text
+                  numberOfLines={1}
+                  style={{ fontSize: 13, fontWeight: '700', color: TEXT.primary }}
+                >
+                  {entry.name}
+                </Text>
+                <Text style={{ fontSize: 10.5, color: TEXT.tertiary, marginTop: 1 }}>
+                  {entry.currency}
+                </Text>
+              </View>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <Text style={{ fontSize: 12.5, fontWeight: '700', color: TEXT.primary }}>
+                  {formatOriginalMoney(entry.amount, entry.currency)}
+                </Text>
+                <IconButton
+                  icon={Trash2}
+                  accessibilityLabel={removeLabel}
+                  size={28}
+                  iconSize={13}
+                  onPress={() => onRemove(entry.id)}
+                />
+              </View>
+            </View>
           ))}
         </View>
       )}

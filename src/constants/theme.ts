@@ -9,44 +9,48 @@ export const THEMES = {
     ground: '#0c0e11',
     surface: '#14171c',
     surfaceAlt: '#1b1f26',
-    accent1: '#9fb0c4',
-    accent2: '#e3e8ee',
-    fab: '#9fb0c4',
+    accent1: '#8ba0b8', // Softened from #9fb0c4
+    accent2: '#b8c4d1', // Tamed down from harsh white-blue #e3e8ee
+    fab: '#8ba0b8',
     buttonText: '#0d1013',
-    glow: { a: '159,176,196', b: '227,232,238' },
+    glow: { a: '115,130,150', b: '160,175,192' }, // Reduced intensity channels
+    chromeTint: '70,80,92', // Header/navbar glass tint only — accent1 darkened ~50% toward black
   },
   emerald: {
     label: { en: 'Emerald', ar: 'زمرد' },
     ground: '#070f0c',
     surface: '#0d1a15',
     surfaceAlt: '#12231c',
-    accent1: '#0f9d6c',
-    accent2: '#4fe3ab',
-    fab: '#14b881',
+    accent1: '#128c62', // Slightly deeper emerald
+    accent2: '#2aa67c', // Tone down harsh mint #4fe3ab to stable jade
+    fab: '#128c62',
     buttonText: '#f3fff9',
-    glow: { a: '15,157,108', b: '79,227,171' },
+    glow: { a: '18,140,98', b: '42,166,124' },
+    chromeTint: '9,70,49', // Header/navbar glass tint only — accent1 darkened ~50% toward black
   },
   obsidian: {
     label: { en: 'Obsidian', ar: 'أوبسيديان' },
     ground: '#040405',
     surface: '#08090b',
     surfaceAlt: '#0e1013',
-    accent1: '#3c4fc4',
-    accent2: '#aebdf5',
-    fab: '#3c4fc4',
+    accent1: '#3747b0', // Softened dark indigo
+    accent2: '#7889cb', // Darkened bright violet #aebdf5
+    fab: '#3747b0',
     buttonText: '#ffffff',
-    glow: { a: '60,79,196', b: '174,189,245' },
+    glow: { a: '55,71,176', b: '120,137,203' },
+    chromeTint: '28,36,88', // Header/navbar glass tint only — accent1 darkened ~50% toward black
   },
   sapphire: {
     label: { en: 'Sapphire', ar: 'سفير' },
     ground: '#060a14',
     surface: '#0c1426',
     surfaceAlt: '#111c34',
-    accent1: '#2f6fff',
-    accent2: '#00e0e0',
-    fab: '#2f6fff',
+    accent1: '#2b5fd9', // Muted deep cobalt
+    accent2: '#2892b0', // Replaced neon cyan #00e0e0 with muted teal-slate
+    fab: '#2b5fd9',
     buttonText: '#ffffff',
-    glow: { a: '47,111,255', b: '0,224,224' },
+    glow: { a: '43,95,217', b: '40,146,176' },
+    chromeTint: '22,48,109', // Header/navbar glass tint only — accent1 darkened ~50% toward black
   },
 } as const;
 
@@ -81,14 +85,26 @@ export const BORDER = {
   hairlineSoft: 'rgba(255,255,255,0.05)',
 };
 
+// expo-blur only renders a real blur on Android when `blurMethod` is passed
+// explicitly — it defaults to 'none' (a flat translucent View, no actual
+// blur). The SDK31+ variant gives a real blur on modern devices and safely
+// falls back to 'none' below API 31. Pass this to every BlurView (rule 8).
+export const ANDROID_BLUR_METHOD = 'dimezisBlurViewSdk31Plus' as const;
+
 // Structural glassmorphism overlays — same across all themes, layered over BlurView (rule 8).
+// GlassHeader and Navbar share this one glass treatment (border, gradient,
+// blur intensity, and — most importantly — `tintAlpha`, the alpha at which
+// each theme's own `chromeTint` washes over the blur) so the two surfaces
+// read as the same material. `chromeTint` is a per-theme RGB triple in
+// THEMES, deliberately separate from `glow` (which many other components
+// already read for unrelated washes/borders/shadows) — tune it per theme
+// there, not here, since each palette needs its own hand-picked value.
 export const GLASS = {
-  headerBorder: 'rgba(255,255,255,0.10)',
-  headerGradientTop: 'rgba(255,255,255,0.09)',
-  headerGradientBottom: 'rgba(255,255,255,0.03)',
-  navBorder: 'rgba(255,255,255,0.09)',
-  navGradientTop: 'rgba(255,255,255,0.07)',
-  navGradientBottom: 'rgba(255,255,255,0.02)',
+  border: 'rgba(255,255,255,0.10)',
+  gradientTop: 'rgba(255,255,255,0.09)',
+  gradientBottom: 'rgba(255,255,255,0.03)',
+  blurIntensity: 35,
+  tintAlpha: 0.35,
   cardGradientTop: 'rgba(255,255,255,0.05)',
   hairline: 'rgba(255,255,255,0.08)',
   hairlineSoft: 'rgba(255,255,255,0.05)',

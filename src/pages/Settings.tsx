@@ -14,6 +14,7 @@ import { useLanguage } from '@/context/LanguageContext';
 import { useCurrency } from '@/context/CurrencyContext';
 import { useUser } from '@/context/UserContext';
 import { useFinance } from '@/context/FinanceContext';
+import { useChrome } from '@/context/ChromeContext';
 import { THEME_IDS, THEMES, TEXT, RADII } from '@/constants/theme';
 import type { ThemeId } from '@/constants/theme';
 import { FONT_SCALE_IDS, FONT_SCALE_LABELS, type FontScaleId } from '@/constants/fontScale';
@@ -26,6 +27,7 @@ export default function Settings() {
   const { baseCurrency, setBaseCurrency, currencies, formatMoney } = useCurrency();
   const { profile } = useUser();
   const { totalMonthlyIncomeBase } = useFinance();
+  const { headerHeight } = useChrome();
 
   const currencyOptions = currencies.map((c) => ({ label: c.code, value: c.code }));
   const languageOptions: { label: string; value: Language }[] = [
@@ -36,7 +38,12 @@ export default function Settings() {
   return (
     <ScrollView
       style={{ backgroundColor: theme.ground }}
-      contentContainerStyle={{ padding: 16, gap: 14, paddingBottom: 40 }}
+      contentContainerStyle={{
+        padding: 16,
+        paddingTop: headerHeight + 16,
+        gap: 14,
+        paddingBottom: 40,
+      }}
       showsVerticalScrollIndicator={false}
     >
       <Pressable onPress={() => router.push('/settings/edit-profile')}>
