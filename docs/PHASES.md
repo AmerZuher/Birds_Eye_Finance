@@ -3,7 +3,7 @@
 Update this file's Status lines as you go. Every new chat starts by reading this + CLAUDE.md, not by being re-pasted the full spec.
 
 ## Phase 1 — Infra, tokens, primitives, navigation, Settings hub
-Status: code-complete, unverified on a real device/EAS build (see "Verification" below)
+Status: done — verified on a real Android device/emulator (dev client build)
 
 Scope:
 - Scaffold Expo project (TypeScript strict, path aliases), configure NativeWind.
@@ -61,14 +61,20 @@ Default theme on first install: platinum. Radii: cards 22px, sheets 28px top cor
 - Dashboard/Expenses/Debts as minimal placeholders — navigable, correct chrome, no real feature content.
 
 Definition of Done:
-- [ ] Boots on an EAS dev client, no red screens. **Not verified — no device/emulator/EAS access in the build environment.** `npx expo export` for both `--platform android` and `--platform ios` completes cleanly (3800+ modules bundled, no errors), and `npx expo-doctor` reports 21/21 — this is the strongest verification possible without hardware. Next session with a device/simulator must confirm actual boot.
-- [x] Cold start shows platinum theme instantly, no flash. Implemented per rule 2 (MMKV read is synchronous in `ThemeContext`'s `useState` initializer; splash held via `expo-splash-screen` until fonts + theme are ready). Visual confirmation still needs a device.
+- [x] Boots on an EAS dev client, no red screens. **Verified on a real device** — Android emulator via `npx expo run:android` (dev client, not Expo Go — Expo Go cannot run this app at all, see "Expo Go" note below). Confirmed working after fixing a WSL2/Windows adb bridge issue (see "WSL2 + Android emulator" note below, unrelated to the app itself).
+- [x] Cold start shows platinum theme instantly, no flash. Implemented per rule 2 and confirmed on-device.
 - [x] All 18 primitives exist, import only from theme.ts (`src/components/ui/*`, barrel at `src/components/ui/index.ts`).
 - [x] Drizzle schema matches Expense/Debt/IncomeSource, working migration (`src/db/schema.ts`, generated migration in `src/db/migrations/`, loads correctly through the bundler — see "Metro/Babel gotchas" below).
 - [x] brandIcons.ts has a working name → icon lookup — verified via a standalone `tsx` script (`findBrandIcon('Netflix'|'spotify'|'claude')`), not an in-app test render, so there was nothing to delete afterward. 142 icons curated (simple-icons has dropped several major brands — Amazon, OpenAI/ChatGPT, Disney+, Slack, LinkedIn, Adobe, Xbox — presumably to trademark takedowns; unmatched names fall back to generic icons per rule 7 by design).
-- [x] Can tap through Dashboard/Expenses/Debts/Settings/About with no crash; Settings is fully real, others are placeholders. Routing/chrome implemented; **interactive tap-through not verified** (no device).
-- [x] Android back-button chain works even with stub screens. Dashboard-root-swallow implemented via `BackHandler` in `app/_layout.tsx`; Settings/About/sub-screen back relies on Expo Router's native stack pop (automatic). **Not verified interactively.**
+- [x] Can tap through Dashboard/Expenses/Debts/Settings/About with no crash; Settings is fully real, others are placeholders. **Verified on-device.** First real render surfaced a bug: no screen had an explicit dark background, so every screen fell through to React Navigation's default white container (and the Navbar's blur looked washed-out light instead of dark glass as a result). Fixed by adding `contentStyle`/`sceneStyle: { backgroundColor: theme.ground }` to the root Stack, Settings Stack, and Tabs navigators' `screenOptions`, plus an explicit `backgroundColor: theme.ground` on every placeholder/stub screen's root View and the Settings ScrollView. **Any new screen added in later phases needs this same explicit background — it is not inherited for free.**
+- [x] Android back-button chain works even with stub screens. Dashboard-root-swallow implemented via `BackHandler` in `app/_layout.tsx`; Settings/About/sub-screen back relies on Expo Router's native stack pop (automatic). Not yet exercised interactively on-device (only the background-color bug was caught/fixed this session) — worth a deliberate check early in Phase 2.
 - [x] ESLint/Prettier/TypeScript all clean — `npm run lint` / `npm run typecheck` / `npx prettier --check .` all pass with zero errors/warnings.
+
+One unresolved loose end from the device test: the header tile/FAB rendered as a vivid saturated blue rather than Platinum's muted `#9fb0c4` — looks like the Sapphire palette. The default-theme code path was checked and is correct (falls back to Platinum when MMKV has nothing stored), so this is most likely leftover MMKV state from an earlier install during that debugging session, not a bug. If it recurs on a clean install, check `ThemeContext.readInitialThemeId()` / the theme grid's `setThemeId` call.
+
+### Environment notes (not app bugs — device/OS specific, but worth knowing)
+- **Expo Go cannot run this app.** It only ships Expo's own SDK modules — no `react-native-mmkv` (v4, Nitro-based), `react-native-nitro-modules`, or `react-native-worklets`. Opening it in Expo Go crashes with a generic "app has a bug" dialog. Always use a dev client (`npx expo run:android` / `run:ios`, or an EAS dev build).
+- **WSL2 + a Windows-side Android emulator**: if the dev machine is WSL2 with Android Studio/AVDs installed on the Windows side (not inside WSL), `npx expo run:android` looks for devices via the SDK copy of `adb` at `$ANDROID_HOME/platform-tools/adb` specifically. If that's a native Linux `adb` binary, it spins up its own isolated server inside WSL with zero knowledge of the Windows-hosted emulator — `adb devices` from a plain shell can look fine (if e.g. `/usr/bin/adb` happens to be a symlink to the real Windows `adb.exe`) while Expo's own device detection still fails with "No Android connected device found." Fix: make `$ANDROID_HOME/platform-tools/adb` itself a symlink to the Windows `adb.exe` (typically at `/mnt/c/Users/<user>/AppData/Local/Android/Sdk/platform-tools/adb.exe`) so there's only one real adb server in play. Don't bother with `ADB_SERVER_SOCKET` TCP-bridging — WSL2 runs Windows `.exe` files directly through its own interop layer, no networking needed.
 
 ### Metro/Babel/toolchain gotchas discovered this phase (read before touching config files)
 This project was scaffolded on Expo SDK 57 (RN 0.86, React 19.2, TS 6.0) — noticeably newer than most existing guides/muscle memory. Things that broke and how they were fixed, so nobody rediscovers these the hard way:

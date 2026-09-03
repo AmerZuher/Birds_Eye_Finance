@@ -85,7 +85,13 @@ function RootLayoutInner() {
     <View style={{ flex: 1, backgroundColor: theme.ground }}>
       <AndroidBackHandler />
       <Header />
-      <Stack screenOptions={{ headerShown: false, animation: 'slide_from_right' }}>
+      <Stack
+        screenOptions={{
+          headerShown: false,
+          animation: 'slide_from_right',
+          contentStyle: { backgroundColor: theme.ground },
+        }}
+      >
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="settings" />
         <Stack.Screen name="about" />

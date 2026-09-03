@@ -35,6 +35,7 @@ export default function Settings() {
 
   return (
     <ScrollView
+      style={{ backgroundColor: theme.ground }}
       contentContainerStyle={{ padding: 16, gap: 14, paddingBottom: 40 }}
       showsVerticalScrollIndicator={false}
     >

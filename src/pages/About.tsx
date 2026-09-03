@@ -13,7 +13,16 @@ export default function About() {
   const version = Constants.expoConfig?.version ?? '1.0.0';
 
   return (
-    <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: 14, padding: 24 }}>
+    <View
+      style={{
+        flex: 1,
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 14,
+        padding: 24,
+        backgroundColor: theme.ground,
+      }}
+    >
       <View
         style={{
           width: 64,
