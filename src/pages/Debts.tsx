@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { BackHandler, Pressable, Text, View } from 'react-native';
+import { useFocusEffect } from 'expo-router';
 import { FlashList } from '@shopify/flash-list';
 import Animated, { SlideInLeft, SlideInRight } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -149,10 +150,16 @@ export default function Debts() {
     setModalOpen(true);
   }, [selectedGroup]);
 
-  useEffect(() => {
-    setFabHandler(openCreateModal);
-    return () => setFabHandler(null);
-  }, [setFabHandler, openCreateModal]);
+  // Registered on focus, not mount — expo-router keeps tab screens mounted
+  // after they've been visited, so a mount-time effect would leave whichever
+  // tab was visited last "owning" the FAB handler forever. The FAB itself is
+  // hidden on tabs other than Debts/Expenses, so there's no need to clear
+  // this on blur.
+  useFocusEffect(
+    useCallback(() => {
+      setFabHandler(openCreateModal);
+    }, [setFabHandler, openCreateModal]),
+  );
 
   const openEditModal = (debt: Debt) => {
     setEditingDebt(debt);

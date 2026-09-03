@@ -8,6 +8,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '@/context/ThemeContext';
 import { useChrome } from '@/context/ChromeContext';
 import { ANDROID_BLUR_METHOD, GLASS } from '@/constants/theme';
+import { CHROME_SURFACE_ALPHA, hexToRgb } from '@/utils/color';
 
 interface GlassHeaderProps {
   children: React.ReactNode;
@@ -57,7 +58,11 @@ export function GlassHeader({ children }: GlassHeaderProps) {
       <View
         style={[
           StyleSheet.absoluteFill,
-          { backgroundColor: `rgba(${theme.chromeTint},${GLASS.tintAlpha})` },
+          // Same color as the cards (theme.surface), washed over the blur —
+          // keeps the header/navbar/modals reading as one material with the
+          // cards instead of the old chromeTint hue, which was a different
+          // (darkened-accent) color from surface.
+          { backgroundColor: `rgba(${hexToRgb(theme.surface)},${CHROME_SURFACE_ALPHA})` },
         ]}
       />
       <LinearGradient

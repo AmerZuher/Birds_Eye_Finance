@@ -30,6 +30,7 @@ import { useTheme } from '@/context/ThemeContext';
 import { useChrome } from '@/context/ChromeContext';
 import { useModalPortal } from '@/context/ModalPortalContext';
 import { ANDROID_BLUR_METHOD, GLASS, RADII, TEXT } from '@/constants/theme';
+import { CHROME_SURFACE_ALPHA, hexToRgb } from '@/utils/color';
 
 const SCREEN_HEIGHT = Dimensions.get('window').height;
 const DISMISS_DISTANCE = 100;
@@ -176,14 +177,22 @@ export function GlassModal({
           <View
             style={[
               StyleSheet.absoluteFill,
-              { backgroundColor: `rgba(${theme.chromeTint},${GLASS.tintAlpha})` },
+              // Same color as the cards (theme.surface) — see GlassHeader.
+              { backgroundColor: `rgba(${hexToRgb(theme.surface)},${CHROME_SURFACE_ALPHA})` },
             ]}
           />
           <LinearGradient
             colors={[GLASS.gradientTop, GLASS.gradientBottom]}
             style={StyleSheet.absoluteFill}
           />
-          <View style={{ paddingTop: 14 }}>
+          {/* flexShrink/minHeight:0 on every link in this chain down to the
+              ScrollView itself — without it, Yoga sizes each View to its
+              content's natural (unbounded) height and only the outermost
+              `overflow:hidden` clips the excess, which *hides* overflow
+              content instead of making it reachable by scrolling. maxHeight
+              on the sheet above only caps the box; these are what let the
+              ScrollView inside actually shrink into that box and scroll. */}
+          <View style={{ paddingTop: 14, flexShrink: 1, minHeight: 0 }}>
             {/* Handle + title share the swipe zone — a bigger, easier target
                 than the 4px pill alone, and the pill's only purpose is to
                 signal that this whole area drags. */}
@@ -216,9 +225,13 @@ export function GlassModal({
                 ) : null}
               </View>
             </GestureDetector>
-            <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+            <KeyboardAvoidingView
+              behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+              style={{ flexShrink: 1, minHeight: 0 }}
+            >
               {scrollable ? (
                 <ScrollView
+                  style={{ flexShrink: 1 }}
                   keyboardShouldPersistTaps="handled"
                   showsVerticalScrollIndicator={false}
                   contentContainerStyle={{

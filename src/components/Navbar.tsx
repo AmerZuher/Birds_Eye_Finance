@@ -11,6 +11,7 @@ import { useTheme } from '@/context/ThemeContext';
 import { useLanguage } from '@/context/LanguageContext';
 import { useChrome } from '@/context/ChromeContext';
 import { ANDROID_BLUR_METHOD, GLASS, TEXT } from '@/constants/theme';
+import { CHROME_SURFACE_ALPHA, hexToRgb } from '@/utils/color';
 
 const TAB_META: Record<string, { icon: typeof Home; labelKey: string }> = {
   index: { icon: Home, labelKey: 'nav.dashboard' },
@@ -78,16 +79,17 @@ export function Navbar({ state, navigation, insets }: BottomTabBarProps) {
                 borderRadius: 24,
                 alignItems: 'center',
                 justifyContent: 'center',
-                // Same dark chromeTint hue as the navbar itself (rather than
-                // the bright accent fill) so the FAB reads as part of it. A
-                // solid color, not a second BlurView — an earlier attempt at
-                // an actual blurred glass FAB, sitting right next to the
-                // navbar's own BlurView on the same blurTarget with elevation
-                // + overflow:hidden layered on top, caused a native SIGSEGV
-                // (HWUI's computeTransformImpl recursing until the
-                // RenderThread's stack overflowed) as soon as the FAB
-                // rendered — i.e. on every screen but Dashboard.
-                backgroundColor: `rgba(${theme.chromeTint},0.94)`,
+                // Same surface color as the cards/navbar (rather than the
+                // bright accent fill) so the FAB reads as part of the same
+                // material. A solid color, not a second BlurView — an
+                // earlier attempt at an actual blurred glass FAB, sitting
+                // right next to the navbar's own BlurView on the same
+                // blurTarget with elevation + overflow:hidden layered on
+                // top, caused a native SIGSEGV (HWUI's computeTransformImpl
+                // recursing until the RenderThread's stack overflowed) as
+                // soon as the FAB rendered — i.e. on every screen but
+                // Dashboard.
+                backgroundColor: `rgba(${hexToRgb(theme.surface)},0.94)`,
                 borderWidth: 1,
                 borderColor: GLASS.border,
                 shadowColor: `rgb(${theme.glow.a})`,
@@ -120,7 +122,8 @@ export function Navbar({ state, navigation, insets }: BottomTabBarProps) {
           <View
             style={[
               StyleSheet.absoluteFill,
-              { backgroundColor: `rgba(${theme.chromeTint},${GLASS.tintAlpha})` },
+              // Same color as the cards (theme.surface) — see GlassHeader.
+              { backgroundColor: `rgba(${hexToRgb(theme.surface)},${CHROME_SURFACE_ALPHA})` },
             ]}
           />
           <LinearGradient

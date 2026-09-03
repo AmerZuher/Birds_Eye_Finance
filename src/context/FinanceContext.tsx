@@ -5,14 +5,17 @@ import { useLiveQuery } from 'drizzle-orm/expo-sqlite';
 
 import { db } from '@/db/client';
 import migrations from '@/db/migrations/migrations';
-import { debts, incomeSources } from '@/db/schema';
-import type { Debt, NewDebt } from '@/db/schema';
+import { debts, expenses, incomeSources } from '@/db/schema';
+import type { Debt, Expense, NewDebt, NewExpense } from '@/db/schema';
 import { useCurrency } from '@/context/CurrencyContext';
+import { getMonthlyEquivalent } from '@/lib/period';
+import type { Period } from '@/lib/period';
 
 // Phase 1-2 scope: DB/migrations wiring + income sources for the Settings
-// profile card's monthly-income line. Phase 3 (this file) adds Debt CRUD +
-// the groupedDebts engine (FEATURE_SPEC Part 1.3). totalExpenses stays 0
-// until Phase 4 (Expenses) lands.
+// profile card's monthly-income line. Phase 3 adds Debt CRUD + the
+// groupedDebts engine (FEATURE_SPEC Part 1.3). Phase 4 (this file) adds
+// Expense CRUD + totalExpenses (FEATURE_SPEC 2.2/0.6), wired into
+// effectiveIncome/netSavings/savingsRate below.
 
 export type FinancialHealthTier = 'excellent' | 'good' | 'fair' | 'critical';
 
@@ -52,6 +55,11 @@ interface FinanceContextValue {
   totalMonthlyIncomeBase: number;
   addIncomeSource: (input: { name: string; amount: number; currency: string }) => Promise<void>;
   removeIncomeSource: (id: number) => Promise<void>;
+  expenses: Expense[];
+  totalExpenses: number;
+  addExpense: (input: Omit<NewExpense, 'id'>) => Promise<void>;
+  updateExpense: (id: number, patch: Partial<NewExpense>) => Promise<void>;
+  deleteExpense: (id: number) => Promise<void>;
   debts: Debt[];
   deletedDebts: Debt[];
   groupedDebts: DebtGroup[];
@@ -106,6 +114,37 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
 
   const removeIncomeSource = useCallback(async (id: number) => {
     await db.delete(incomeSources).where(eq(incomeSources.id, id));
+  }, []);
+
+  // Newest-first, like debts above — "create mode prepends" (FEATURE_SPEC
+  // 2.7) falls out of this ordering for free.
+  const { data: expenseRows } = useLiveQuery(db.select().from(expenses).orderBy(desc(expenses.id)));
+  const expensesSafe = useMemo(() => expenseRows ?? [], [expenseRows]);
+
+  // FEATURE_SPEC 2.2/0.6: every expense's amount is normalized to its
+  // monthly equivalent (any billing period) via getMonthlyEquivalent, then
+  // converted to base currency, and summed.
+  const totalExpenses = useMemo(() => {
+    return expensesSafe.reduce((sum, expense) => {
+      const monthly = getMonthlyEquivalent(
+        expense.amount,
+        (expense.period as Period) ?? 'monthly',
+        expense.customPeriodDays ?? undefined,
+      );
+      return sum + convertToBase(monthly, expense.currency ?? 'SAR');
+    }, 0);
+  }, [expensesSafe, convertToBase]);
+
+  const addExpense = useCallback(async (input: Omit<NewExpense, 'id'>) => {
+    await db.insert(expenses).values(input);
+  }, []);
+
+  const updateExpense = useCallback(async (id: number, patch: Partial<NewExpense>) => {
+    await db.update(expenses).set(patch).where(eq(expenses.id, id));
+  }, []);
+
+  const deleteExpense = useCallback(async (id: number) => {
+    await db.delete(expenses).where(eq(expenses.id, id));
   }, []);
 
   const [debtFilter, setDebtFilter] = useState<DebtFilter>('all');
@@ -192,8 +231,6 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
     await db.delete(debts).where(eq(debts.id, id));
   }, []);
 
-  const totalExpenses = 0; // wired in Phase 4 (Expenses)
-
   const effectiveIncome = totalMonthlyIncomeBase - debtsCalculations.totalNegativeMonthly;
   const netSavings = effectiveIncome - totalExpenses;
   const savingsRate = effectiveIncome > 0 ? (netSavings / effectiveIncome) * 100 : 0;
@@ -207,6 +244,11 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
       totalMonthlyIncomeBase,
       addIncomeSource,
       removeIncomeSource,
+      expenses: expensesSafe,
+      totalExpenses,
+      addExpense,
+      updateExpense,
+      deleteExpense,
       debts: debtRowsSafe,
       deletedDebts: deletedDebtRows ?? [],
       groupedDebts,
@@ -229,6 +271,11 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
       totalMonthlyIncomeBase,
       addIncomeSource,
       removeIncomeSource,
+      expensesSafe,
+      totalExpenses,
+      addExpense,
+      updateExpense,
+      deleteExpense,
       debtRowsSafe,
       deletedDebtRows,
       groupedDebts,
