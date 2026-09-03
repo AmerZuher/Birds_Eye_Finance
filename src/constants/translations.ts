@@ -3,10 +3,13 @@ export type Language = 'en' | 'ar';
 export const TRANSLATIONS: Record<Language, Record<string, string>> = {
   en: {
     'nav.dashboard': 'Dashboard',
+    'nav.analytics': 'Analytics',
     'nav.expenses': 'Expenses',
     'nav.debts': 'Debts',
 
     'app.name': 'BirdsEye Finance',
+    'app.shortName': 'BirdsEye',
+    'app.subtitle': 'Finance',
 
     'settings.title': 'Settings',
     'settings.monthlyIncome': '{{amount}} · Monthly income',
@@ -34,6 +37,8 @@ export const TRANSLATIONS: Record<Language, Record<string, string>> = {
 
     'placeholder.dashboard.title': 'Dashboard',
     'placeholder.dashboard.subtitle': 'A full financial overview is coming in Phase 5.',
+    'placeholder.analytics.title': 'Analytics',
+    'placeholder.analytics.subtitle': 'Spending charts and breakdowns are coming in Phase 5.',
 
     'common.comingSoon': 'Coming soon',
     'common.cancel': 'Cancel',
@@ -214,10 +219,13 @@ export const TRANSLATIONS: Record<Language, Record<string, string>> = {
   },
   ar: {
     'nav.dashboard': 'الرئيسية',
+    'nav.analytics': 'التحليلات',
     'nav.expenses': 'المصروفات',
     'nav.debts': 'الديون',
 
     'app.name': 'بيردز آي فايننس',
+    'app.shortName': 'بيردز آي',
+    'app.subtitle': 'المالية',
 
     'settings.title': 'الإعدادات',
     'settings.monthlyIncome': '{{amount}} · الدخل الشهري',
@@ -245,6 +253,8 @@ export const TRANSLATIONS: Record<Language, Record<string, string>> = {
 
     'placeholder.dashboard.title': 'الرئيسية',
     'placeholder.dashboard.subtitle': 'نظرة مالية شاملة قادمة في المرحلة الخامسة.',
+    'placeholder.analytics.title': 'التحليلات',
+    'placeholder.analytics.subtitle': 'الرسوم البيانية وتحليل المصروفات قادمة في المرحلة الخامسة.',
 
     'common.comingSoon': 'قريباً',
     'common.cancel': 'إلغاء',

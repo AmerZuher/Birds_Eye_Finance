@@ -20,6 +20,7 @@ export default function TabsLayout() {
       tabBar={() => null}
     >
       <Tabs.Screen name="index" />
+      <Tabs.Screen name="analytics" />
       <Tabs.Screen name="expenses" />
       <Tabs.Screen name="debts" />
     </Tabs>

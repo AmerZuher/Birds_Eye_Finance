@@ -23,6 +23,12 @@ interface ChromeContextValue {
   /** The active tab's "create new" handler, invoked by the Navbar FAB (FEATURE_SPEC 0.1). */
   setFabHandler: (handler: (() => void) | null) => void;
   triggerFab: () => void;
+  /** Queues "open the debt create modal" for the Debts screen to pick up once
+   * it gains focus — the FAB is now global (it sits in the navbar's notch on
+   * every tab), so pressing it from Dashboard/Analytics has to navigate to
+   * Debts first and can't just call that screen's already-registered handler. */
+  requestDebtCreate: () => void;
+  consumeDebtCreateRequest: () => boolean;
 }
 
 // Reasonable pre-measurement defaults (safe-area + bar + margin) so content
@@ -37,6 +43,7 @@ export function ChromeProvider({ children }: { children: React.ReactNode }) {
   const [navbarHeight, setNavbarHeightState] = useState(DEFAULT_NAVBAR_HEIGHT);
   const blurTarget = useRef<View>(null);
   const fabHandlerRef = useRef<(() => void) | null>(null);
+  const pendingDebtCreateRef = useRef(false);
 
   const setHeaderHeight = useCallback((height: number) => {
     setHeaderHeightState((prev) => (Math.abs(prev - height) > 0.5 ? height : prev));
@@ -54,6 +61,16 @@ export function ChromeProvider({ children }: { children: React.ReactNode }) {
     fabHandlerRef.current?.();
   }, []);
 
+  const requestDebtCreate = useCallback(() => {
+    pendingDebtCreateRef.current = true;
+  }, []);
+
+  const consumeDebtCreateRequest = useCallback(() => {
+    const pending = pendingDebtCreateRef.current;
+    pendingDebtCreateRef.current = false;
+    return pending;
+  }, []);
+
   const value = useMemo<ChromeContextValue>(
     () => ({
       headerHeight,
@@ -63,6 +80,8 @@ export function ChromeProvider({ children }: { children: React.ReactNode }) {
       blurTarget,
       setFabHandler,
       triggerFab,
+      requestDebtCreate,
+      consumeDebtCreateRequest,
     }),
     [
       headerHeight,
@@ -72,6 +91,8 @@ export function ChromeProvider({ children }: { children: React.ReactNode }) {
       blurTarget,
       setFabHandler,
       triggerFab,
+      requestDebtCreate,
+      consumeDebtCreateRequest,
     ],
   );
 

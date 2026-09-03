@@ -13,3 +13,10 @@ export function hexToRgb(hex: string): string {
 // that the blurred backdrop barely tints the color, unlike the old
 // lower-alpha chromeTint wash which read as a visibly different hue.
 export const CHROME_SURFACE_ALPHA = 0.86;
+
+// Header/navbar only. They wash their blur over `theme.ground` rather than
+// `theme.surface`, and skip the white GLASS gradient entirely, so the floating
+// bars read as the same darkness as the page behind them instead of a lighter
+// slab sitting on top of it. (Modals keep CHROME_SURFACE_ALPHA above — they
+// sit over a dimmed backdrop, where matching the cards is the right call.)
+export const CHROME_GROUND_ALPHA = 0.82;

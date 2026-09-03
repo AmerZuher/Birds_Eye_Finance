@@ -6,6 +6,7 @@
     "@expo-google-fonts/fraunces": "^0.4.1",
     "@expo-google-fonts/ibm-plex-sans-arabic": "^0.4.2",
     "@expo-google-fonts/manrope": "^0.4.2",
+    "@expo-google-fonts/plus-jakarta-sans": "^0.4.2",
     "@hookform/resolvers": "^5.9.1",
     "@shopify/flash-list": "2.0.2",
     "drizzle-orm": "^0.45.2",

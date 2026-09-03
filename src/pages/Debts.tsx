@@ -60,7 +60,7 @@ function netColor(type: DebtGroupType): string {
 
 export default function Debts() {
   const { t } = useLanguage();
-  const { setFabHandler } = useChrome();
+  const { setFabHandler, consumeDebtCreateRequest } = useChrome();
   const { formatMoney, formatOriginalMoney } = useCurrency();
   const { groupedDebts, debtsCalculations, deletedDebts, deleteDebt, permanentlyDeleteDebt } =
     useFinance();
@@ -152,13 +152,16 @@ export default function Debts() {
 
   // Registered on focus, not mount — expo-router keeps tab screens mounted
   // after they've been visited, so a mount-time effect would leave whichever
-  // tab was visited last "owning" the FAB handler forever. The FAB itself is
-  // hidden on tabs other than Debts/Expenses, so there's no need to clear
-  // this on blur.
+  // tab was visited last "owning" the FAB handler forever.
+  //
+  // Debt is the global FAB's default target (it's the notch button on every
+  // tab now), so pressing it from Dashboard/Analytics navigates here and
+  // leaves a request behind for this screen to pick up on arrival.
   useFocusEffect(
     useCallback(() => {
       setFabHandler(openCreateModal);
-    }, [setFabHandler, openCreateModal]),
+      if (consumeDebtCreateRequest()) openCreateModal();
+    }, [setFabHandler, openCreateModal, consumeDebtCreateRequest]),
   );
 
   const openEditModal = (debt: Debt) => {

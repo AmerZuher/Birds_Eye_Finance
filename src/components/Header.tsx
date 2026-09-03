@@ -9,7 +9,7 @@ import { Avatar } from '@/components/ui/Avatar';
 import { useTheme } from '@/context/ThemeContext';
 import { useLanguage } from '@/context/LanguageContext';
 import { useUser } from '@/context/UserContext';
-import { FONTS, TEXT } from '@/constants/theme';
+import { FONTS, SEMANTIC, TEXT } from '@/constants/theme';
 
 const APP_LOGO = require('../../assets/icon.png');
 
@@ -61,40 +61,66 @@ export function Header() {
     <GlassHeader>
       <Pressable
         onPress={() => router.push('/about')}
-        style={{ flexDirection: 'row', alignItems: 'center', gap: 9 }}
+        style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}
       >
         <View
           style={{
-            width: 30,
-            height: 30,
-            borderRadius: 9,
+            width: 32,
+            height: 32,
+            borderRadius: 10,
             overflow: 'hidden',
+            backgroundColor: theme.accent1,
             borderWidth: 1,
             borderColor: `rgba(${theme.glow.a},0.3)`,
           }}
         >
           <Image source={APP_LOGO} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
         </View>
-        <Text style={{ fontFamily: FONTS.bodyBold, fontSize: 13, color: TEXT.primary }}>
-          {t('app.name')}
-        </Text>
+        {/* Stacked lockup: the app name split across two lines rather than one
+            long title. The subtitle reuses the existing name rather than
+            inventing a product tier. */}
+        <View>
+          <Text style={{ fontFamily: FONTS.bodyBold, fontSize: 14, color: TEXT.primary }}>
+            {t('app.shortName')}
+          </Text>
+          <Text style={{ fontSize: 9, fontWeight: '500', color: TEXT.tertiary, marginTop: 1 }}>
+            {t('app.subtitle')}
+          </Text>
+        </View>
       </Pressable>
       <Pressable
         onPress={() => router.push('/settings')}
         accessibilityRole="button"
         accessibilityLabel={t('settings.title')}
         style={{
-          borderRadius: 17,
+          borderRadius: 19,
           padding: 2,
           backgroundColor: settingsActive ? `rgba(${theme.glow.a},0.22)` : 'transparent',
         }}
       >
-        <Avatar
-          name={profile.name || 'You'}
-          photoUri={profile.avatar || undefined}
-          size={24}
-          ring={settingsActive ? 'accent' : 'flat'}
-        />
+        <View>
+          <Avatar
+            name={profile.name || 'You'}
+            photoUri={profile.avatar || undefined}
+            size={32}
+            ring={settingsActive ? 'accent' : 'flat'}
+          />
+          {/* Purely decorative per the approved design — this app is
+              local-first with no account or presence to report. */}
+          <View
+            style={{
+              position: 'absolute',
+              bottom: 0,
+              end: 0,
+              width: 10,
+              height: 10,
+              borderRadius: 5,
+              backgroundColor: SEMANTIC.positive,
+              borderWidth: 2,
+              borderColor: theme.ground,
+            }}
+          />
+        </View>
       </Pressable>
     </GlassHeader>
   );
