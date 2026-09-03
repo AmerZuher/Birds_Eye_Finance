@@ -2,18 +2,21 @@
  * Reanimated shared values are mutated via `.value =` by design (not React
  * state), and this sheet's mount/unmount must lag one animation behind the
  * `visible` prop — both are false positives against the intended pattern. */
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useId, useState } from 'react';
 import {
+  BackHandler,
   Dimensions,
   KeyboardAvoidingView,
-  Modal,
   Platform,
   Pressable,
   ScrollView,
+  StyleSheet,
   Text,
   View,
 } from 'react-native';
-import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
+import { BlurView } from 'expo-blur';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   Easing,
   runOnJS,
@@ -24,7 +27,9 @@ import Animated, {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useTheme } from '@/context/ThemeContext';
-import { GLASS, RADII, TEXT } from '@/constants/theme';
+import { useChrome } from '@/context/ChromeContext';
+import { useModalPortal } from '@/context/ModalPortalContext';
+import { ANDROID_BLUR_METHOD, GLASS, RADII, TEXT } from '@/constants/theme';
 
 const SCREEN_HEIGHT = Dimensions.get('window').height;
 const DISMISS_DISTANCE = 100;
@@ -39,16 +44,35 @@ interface GlassModalProps {
   onClose: () => void;
   title?: string;
   children: React.ReactNode;
+  /** False when children manage their own scrolling (e.g. a FlatList) — skips the internal ScrollView, since nesting a VirtualizedList inside one breaks virtualization. */
+  scrollable?: boolean;
 }
 
 /**
- * Bottom sheet: drag handle, swipe-to-dismiss, backdrop (rule 8 — Reanimated).
- * Callers control `visible`; GlassModal manages its own mount/unmount timing
- * so the close animation can finish before the content unmounts.
+ * Bottom sheet: drag handle, swipe-to-dismiss, backdrop, real glass blur
+ * (rule 8 — Reanimated + expo-blur). Renders via ModalPortalContext instead
+ * of RN's own `Modal` — a Modal's separate native window can't reach the
+ * app's shared `blurTarget`, so this sheet needs to live in the main window
+ * (like the header/navbar) for its blur to actually sample real content.
+ * That also means Android back is handled manually here (Modal normally
+ * does this via onRequestClose) and gestures work through the app's own
+ * root GestureHandlerRootView with no extra wrapper needed.
+ *
+ * Callers control `visible`; GlassModal manages its own mount/unmount
+ * timing so the close animation can finish before content unmounts.
  */
-export function GlassModal({ visible, onClose, title, children }: GlassModalProps) {
+export function GlassModal({
+  visible,
+  onClose,
+  title,
+  children,
+  scrollable = true,
+}: GlassModalProps) {
   const { theme } = useTheme();
   const insets = useSafeAreaInsets();
+  const { blurTarget } = useChrome();
+  const { showModal, hideModal } = useModalPortal();
+  const modalId = useId();
   const [mounted, setMounted] = useState(visible);
   const translateY = useSharedValue(SCREEN_HEIGHT);
   const backdropOpacity = useSharedValue(0);
@@ -66,6 +90,19 @@ export function GlassModal({ visible, onClose, title, children }: GlassModalProp
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visible]);
+
+  // Registered only while visible, so nested sheets (e.g. a currency
+  // CustomSelect opened from inside DebtModal) close innermost-first via
+  // RN's LIFO BackHandler stack — same pattern as the Debts screen's own
+  // person-detail/history back-handling.
+  useEffect(() => {
+    if (!visible) return;
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+      onClose();
+      return true;
+    });
+    return () => sub.remove();
+  }, [visible, onClose]);
 
   const closeNow = () => onClose();
 
@@ -95,36 +132,58 @@ export function GlassModal({ visible, onClose, title, children }: GlassModalProp
     opacity: backdropOpacity.value,
   }));
 
-  if (!mounted) return null;
+  const content = mounted ? (
+    <View style={{ position: 'absolute', inset: 0, zIndex: 100 }}>
+      <View style={{ flex: 1, justifyContent: 'flex-end' }}>
+        <Animated.View
+          style={[
+            { position: 'absolute', inset: 0, backgroundColor: GLASS.overlay },
+            backdropStyle,
+          ]}
+        >
+          <Pressable style={{ flex: 1 }} onPress={onClose} />
+        </Animated.View>
 
-  return (
-    <Modal transparent visible={mounted} animationType="none" onRequestClose={onClose}>
-      {/* RN's Modal renders into its own native window, outside the app's
-          root GestureHandlerRootView — without this nested one, gesture-handler
-          gestures (the pan below) silently never fire inside a Modal at all. */}
-      <GestureHandlerRootView style={{ flex: 1 }}>
-        <View style={{ flex: 1, justifyContent: 'flex-end' }}>
-          <Animated.View
+        <Animated.View
+          style={[
+            {
+              maxHeight: '94%',
+              borderTopLeftRadius: RADII.sheet,
+              borderTopRightRadius: RADII.sheet,
+              borderWidth: 1,
+              borderBottomWidth: 0,
+              borderColor: GLASS.border,
+              overflow: 'hidden',
+              backgroundColor: theme.surface,
+            },
+            sheetStyle,
+          ]}
+        >
+          {/* Same glass material as the header/navbar (rule 8): a real
+              BlurView (now possible — this sheet lives in the main window,
+              sharing `blurTarget`) plus the same chromeTint wash + gradient.
+              Deliberately no `elevation` anywhere on this sheet — combined
+              with BlurView + overflow:hidden, elevation is what caused the
+              FAB's native crash earlier (see Navbar.tsx); the border above
+              carries the visual separation instead. */}
+          <BlurView
+            intensity={GLASS.blurIntensity}
+            tint="dark"
+            blurMethod={ANDROID_BLUR_METHOD}
+            blurTarget={blurTarget}
+            style={StyleSheet.absoluteFill}
+          />
+          <View
             style={[
-              { position: 'absolute', inset: 0, backgroundColor: GLASS.overlay },
-              backdropStyle,
+              StyleSheet.absoluteFill,
+              { backgroundColor: `rgba(${theme.chromeTint},${GLASS.tintAlpha})` },
             ]}
-          >
-            <Pressable style={{ flex: 1 }} onPress={onClose} />
-          </Animated.View>
-
-          <Animated.View
-            style={[
-              {
-                maxHeight: '94%',
-                borderTopLeftRadius: RADII.sheet,
-                borderTopRightRadius: RADII.sheet,
-                backgroundColor: theme.surface,
-                paddingTop: 14,
-              },
-              sheetStyle,
-            ]}
-          >
+          />
+          <LinearGradient
+            colors={[GLASS.gradientTop, GLASS.gradientBottom]}
+            style={StyleSheet.absoluteFill}
+          />
+          <View style={{ paddingTop: 14 }}>
             {/* Handle + title share the swipe zone — a bigger, easier target
                 than the 4px pill alone, and the pill's only purpose is to
                 signal that this whole area drags. */}
@@ -158,21 +217,45 @@ export function GlassModal({ visible, onClose, title, children }: GlassModalProp
               </View>
             </GestureDetector>
             <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-              <ScrollView
-                keyboardShouldPersistTaps="handled"
-                showsVerticalScrollIndicator={false}
-                contentContainerStyle={{
-                  paddingHorizontal: 18,
-                  paddingBottom: insets.bottom + 40,
-                  gap: 14,
-                }}
-              >
-                {children}
-              </ScrollView>
+              {scrollable ? (
+                <ScrollView
+                  keyboardShouldPersistTaps="handled"
+                  showsVerticalScrollIndicator={false}
+                  contentContainerStyle={{
+                    paddingHorizontal: 18,
+                    paddingBottom: insets.bottom + 40,
+                    gap: 14,
+                  }}
+                >
+                  {children}
+                </ScrollView>
+              ) : (
+                <View style={{ paddingHorizontal: 18, paddingBottom: insets.bottom + 40, gap: 14 }}>
+                  {children}
+                </View>
+              )}
             </KeyboardAvoidingView>
-          </Animated.View>
-        </View>
-      </GestureHandlerRootView>
-    </Modal>
-  );
+          </View>
+        </Animated.View>
+      </View>
+    </View>
+  ) : null;
+
+  // Re-syncs the portal's copy of this sheet after every render (no dep
+  // array) so it's never stale — cheap here since GlassModal itself only
+  // re-renders on real prop/state changes, not on animation frames (those
+  // mutate shared values directly, bypassing React entirely).
+  useEffect(() => {
+    if (content) {
+      showModal(modalId, content);
+    } else {
+      hideModal(modalId);
+    }
+  });
+
+  useEffect(() => {
+    return () => hideModal(modalId);
+  }, [modalId, hideModal]);
+
+  return null;
 }

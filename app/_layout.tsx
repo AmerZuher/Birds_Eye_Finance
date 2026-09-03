@@ -28,6 +28,7 @@ import { CurrencyProvider } from '@/context/CurrencyContext';
 import { UserProvider } from '@/context/UserContext';
 import { FinanceProvider } from '@/context/FinanceContext';
 import { ChromeProvider, useChrome } from '@/context/ChromeContext';
+import { ModalPortalProvider, ModalPortalOutlet } from '@/context/ModalPortalContext';
 import { Header } from '@/components/Header';
 import { THEMES } from '@/constants/theme';
 
@@ -109,6 +110,10 @@ function RootLayoutInner() {
           floats as an absolute overlay (rule 8) rather than pushing content
           down; see ChromeContext for how screens get clearance padding. */}
       <Header />
+      {/* GlassModal-based sheets render here (via ModalPortalContext) instead
+          of wherever they're declared in the tree, so they paint above the
+          header/navbar too and their BlurView can share `blurTarget`. */}
+      <ModalPortalOutlet />
       <StatusBar style="light" />
     </View>
   );
@@ -125,7 +130,9 @@ export default function RootLayout() {
                 <UserProvider>
                   <FinanceProvider>
                     <ChromeProvider>
-                      <RootLayoutInner />
+                      <ModalPortalProvider>
+                        <RootLayoutInner />
+                      </ModalPortalProvider>
                     </ChromeProvider>
                   </FinanceProvider>
                 </UserProvider>
