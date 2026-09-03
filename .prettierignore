@@ -1,0 +1,9 @@
+node_modules
+.expo
+dist
+src/db/migrations
+src/constants/brandIcons.ts
+CLAUDE.md
+BOOTSTRAP_PROMPT.md
+theme-studio.html
+docs/

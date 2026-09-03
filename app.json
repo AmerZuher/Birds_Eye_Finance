@@ -1,25 +1,55 @@
 {
   "expo": {
-    "name": "bird_eye_scaffold",
-    "slug": "bird_eye_scaffold",
+    "name": "BirdsEye Finance",
+    "slug": "birdseye-finance",
+    "scheme": "birdseyefinance",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "dark",
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.birdseye.finance",
+      "infoPlist": {
+        "NSContactsUsageDescription": "BirdsEye Finance uses your contacts to quickly link a debt entry to a person's name, phone, and photo."
+      }
     },
     "android": {
+      "package": "com.birdseye.finance",
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/android-icon-foreground.png",
-        "backgroundImage": "./assets/android-icon-background.png",
-        "monochromeImage": "./assets/android-icon-monochrome.png"
+        "backgroundColor": "#0d1e33",
+        "foregroundImage": "./assets/android-icon-foreground.png"
       },
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "permissions": ["READ_CONTACTS"]
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "plugins": [
+      "expo-router",
+      "expo-sqlite",
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#0d1e33",
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 220
+        }
+      ],
+      "expo-font",
+      [
+        "expo-notifications",
+        {
+          "color": "#9fb0c4"
+        }
+      ],
+      [
+        "expo-contacts",
+        {
+          "contactsPermission": "BirdsEye Finance uses your contacts to quickly link a debt entry to a person's name, phone, and photo."
+        }
+      ]
+    ]
   }
 }
