@@ -19,6 +19,11 @@ interface CustomSelectProps<T extends string> {
   searchable?: boolean;
   searchPlaceholder?: string;
   sheetTitle?: string;
+  /** Controlled open state — omit to let CustomSelect manage its own trigger + open state. */
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  /** Suppresses the default label+chevron trigger — for when another element (e.g. AmountInput's currency label) opens this picker instead. */
+  hideTrigger?: boolean;
 }
 
 /** Tap-to-open picker; searchable mode adds a SearchInput above the list. */
@@ -29,10 +34,15 @@ export function CustomSelect<T extends string>({
   searchable = false,
   searchPlaceholder,
   sheetTitle,
+  open: openProp,
+  onOpenChange,
+  hideTrigger = false,
 }: CustomSelectProps<T>) {
   const { theme } = useTheme();
   const { isRTL } = useLanguage();
-  const [open, setOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
+  const open = openProp ?? internalOpen;
+  const setOpen = onOpenChange ?? setInternalOpen;
   const [query, setQuery] = useState('');
 
   const selected = options.find((o) => o.value === value);
@@ -45,15 +55,17 @@ export function CustomSelect<T extends string>({
 
   return (
     <>
-      <Pressable
-        onPress={() => setOpen(true)}
-        style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}
-      >
-        <Text style={{ fontSize: 11.5, color: TEXT.tertiary }}>{selected?.label ?? '—'}</Text>
-        <View style={isRTL ? { transform: [{ scaleX: -1 }] } : undefined}>
-          <ChevronRight size={13} color={TEXT.tertiary} />
-        </View>
-      </Pressable>
+      {hideTrigger ? null : (
+        <Pressable
+          onPress={() => setOpen(true)}
+          style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}
+        >
+          <Text style={{ fontSize: 11.5, color: TEXT.tertiary }}>{selected?.label ?? '—'}</Text>
+          <View style={isRTL ? { transform: [{ scaleX: -1 }] } : undefined}>
+            <ChevronRight size={13} color={TEXT.tertiary} />
+          </View>
+        </Pressable>
+      )}
 
       <Modal visible={open} transparent animationType="fade" onRequestClose={() => setOpen(false)}>
         <Pressable

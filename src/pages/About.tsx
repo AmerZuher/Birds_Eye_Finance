@@ -1,10 +1,12 @@
 import React from 'react';
-import { Text, View } from 'react-native';
+import { Image, Text, View } from 'react-native';
 import Constants from 'expo-constants';
 
 import { useTheme } from '@/context/ThemeContext';
 import { useLanguage } from '@/context/LanguageContext';
 import { FONTS, TEXT } from '@/constants/theme';
+
+const APP_LOGO = require('../../assets/icon.png');
 
 // Stub — no content spec exists for this screen (CLAUDE.md rule 16).
 export default function About() {
@@ -25,17 +27,15 @@ export default function About() {
     >
       <View
         style={{
-          width: 64,
-          height: 64,
-          borderRadius: 18,
-          alignItems: 'center',
-          justifyContent: 'center',
-          backgroundColor: theme.accent1,
+          width: 84,
+          height: 84,
+          borderRadius: 22,
+          overflow: 'hidden',
+          borderWidth: 1,
+          borderColor: `rgba(${theme.glow.a},0.3)`,
         }}
       >
-        <Text style={{ fontFamily: FONTS.displayBold, fontSize: 24, color: theme.buttonText }}>
-          BE
-        </Text>
+        <Image source={APP_LOGO} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
       </View>
       <Text style={{ fontFamily: FONTS.display, fontSize: 18, color: TEXT.primary }}>
         {t('app.name')}

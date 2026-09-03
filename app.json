@@ -49,6 +49,13 @@
         {
           "contactsPermission": "BirdsEye Finance uses your contacts to quickly link a debt entry to a person's name, phone, and photo."
         }
+      ],
+      "expo-sharing",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "BirdsEye Finance uses your photo library to set your profile picture."
+        }
       ]
     ]
   }

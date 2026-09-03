@@ -1,5 +1,5 @@
 import React from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { Image, Pressable, Text, View } from 'react-native';
 import { usePathname, useRouter } from 'expo-router';
 import { ArrowLeft } from 'lucide-react-native';
 
@@ -11,9 +11,11 @@ import { useLanguage } from '@/context/LanguageContext';
 import { useUser } from '@/context/UserContext';
 import { FONTS, TEXT } from '@/constants/theme';
 
+const APP_LOGO = require('../../assets/icon.png');
+
 const SETTINGS_TITLES: Record<string, string> = {
   '/settings': 'settings.title',
-  '/settings/edit-profile': 'settings.title',
+  '/settings/edit-profile': 'settings.editProfile',
   '/settings/data': 'settings.backupData',
 };
 
@@ -66,14 +68,12 @@ export function Header() {
             width: 30,
             height: 30,
             borderRadius: 9,
-            alignItems: 'center',
-            justifyContent: 'center',
-            backgroundColor: theme.accent1,
+            overflow: 'hidden',
+            borderWidth: 1,
+            borderColor: `rgba(${theme.glow.a},0.3)`,
           }}
         >
-          <Text style={{ fontFamily: FONTS.displayBold, fontSize: 13, color: theme.buttonText }}>
-            BE
-          </Text>
+          <Image source={APP_LOGO} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
         </View>
         <Text style={{ fontFamily: FONTS.bodyBold, fontSize: 13, color: TEXT.primary }}>
           {t('app.name')}
@@ -84,12 +84,17 @@ export function Header() {
         accessibilityRole="button"
         accessibilityLabel={t('settings.title')}
         style={{
-          borderRadius: 13,
-          borderWidth: settingsActive ? 1 : 0,
-          borderColor: '#ffffff',
+          borderRadius: 17,
+          padding: 2,
+          backgroundColor: settingsActive ? `rgba(${theme.glow.a},0.22)` : 'transparent',
         }}
       >
-        <Avatar name={profile.name || 'You'} photoUri={profile.avatar || undefined} size={22} />
+        <Avatar
+          name={profile.name || 'You'}
+          photoUri={profile.avatar || undefined}
+          size={24}
+          ring={settingsActive ? 'accent' : 'flat'}
+        />
       </Pressable>
     </GlassHeader>
   );
