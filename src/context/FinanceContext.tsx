@@ -1,5 +1,5 @@
 import React, { createContext, useCallback, useContext, useMemo, useState } from 'react';
-import { eq } from 'drizzle-orm';
+import { desc, eq, isNotNull, isNull } from 'drizzle-orm';
 import { useMigrations } from 'drizzle-orm/expo-sqlite/migrator';
 import { useLiveQuery } from 'drizzle-orm/expo-sqlite';
 
@@ -53,13 +53,17 @@ interface FinanceContextValue {
   addIncomeSource: (input: { name: string; amount: number; currency: string }) => Promise<void>;
   removeIncomeSource: (id: number) => Promise<void>;
   debts: Debt[];
+  deletedDebts: Debt[];
   groupedDebts: DebtGroup[];
   debtFilter: DebtFilter;
   setDebtFilter: (filter: DebtFilter) => void;
   debtsCalculations: DebtsCalculations;
   addDebt: (input: Omit<NewDebt, 'id'>) => Promise<void>;
   updateDebt: (id: number, patch: Partial<NewDebt>) => Promise<void>;
+  /** Soft delete — moves the debt to `deletedDebts` (the history screen). */
   deleteDebt: (id: number) => Promise<void>;
+  /** Hard delete — only ever called from the history screen. */
+  permanentlyDeleteDebt: (id: number) => Promise<void>;
   effectiveIncome: number;
   netSavings: number;
   savingsRate: number;
@@ -73,7 +77,17 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
   const { convertToBase } = useCurrency();
 
   const { data: incomeSourceRows } = useLiveQuery(db.select().from(incomeSources));
-  const { data: debtRows } = useLiveQuery(db.select().from(debts));
+  // Newest-first — "create mode prepends" (FEATURE_SPEC 1.7) falls out for
+  // free from this ordering, both in a person's transaction history and when
+  // groupedDebtsAll merges each group's first-found contact metadata below.
+  // Soft-deleted rows (deletedAt set) are excluded here — they live in
+  // deletedDebtRows below, for the debts history screen.
+  const { data: debtRows } = useLiveQuery(
+    db.select().from(debts).where(isNull(debts.deletedAt)).orderBy(desc(debts.id)),
+  );
+  const { data: deletedDebtRows } = useLiveQuery(
+    db.select().from(debts).where(isNotNull(debts.deletedAt)).orderBy(desc(debts.deletedAt)),
+  );
 
   const totalMonthlyIncomeBase = useMemo(() => {
     if (!incomeSourceRows) return 0;
@@ -96,7 +110,7 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
 
   const [debtFilter, setDebtFilter] = useState<DebtFilter>('all');
 
-  const debtRowsSafe = debtRows ?? [];
+  const debtRowsSafe = useMemo(() => debtRows ?? [], [debtRows]);
 
   const debtsCalculations = useMemo<DebtsCalculations>(() => {
     let totalPositiveAmount = 0;
@@ -146,7 +160,11 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
       .map((name) => groups.get(name)!)
       .map((group) => ({
         ...group,
-        type: group.totalNet > 0 ? 'positive' : group.totalNet < 0 ? 'negative' : 'settled',
+        type: (group.totalNet > 0
+          ? 'positive'
+          : group.totalNet < 0
+            ? 'negative'
+            : 'settled') as DebtGroupType,
       }))
       .sort((a, b) => Math.abs(b.totalNet) - Math.abs(a.totalNet));
   }, [debtRowsSafe, convertToBase]);
@@ -164,7 +182,13 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
     await db.update(debts).set(patch).where(eq(debts.id, id));
   }, []);
 
+  // Soft delete — moves the debt to the history screen instead of erasing it
+  // outright, matching a bank app's transaction history.
   const deleteDebt = useCallback(async (id: number) => {
+    await db.update(debts).set({ deletedAt: new Date().toISOString() }).where(eq(debts.id, id));
+  }, []);
+
+  const permanentlyDeleteDebt = useCallback(async (id: number) => {
     await db.delete(debts).where(eq(debts.id, id));
   }, []);
 
@@ -184,6 +208,7 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
       addIncomeSource,
       removeIncomeSource,
       debts: debtRowsSafe,
+      deletedDebts: deletedDebtRows ?? [],
       groupedDebts,
       debtFilter,
       setDebtFilter,
@@ -191,6 +216,7 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
       addDebt,
       updateDebt,
       deleteDebt,
+      permanentlyDeleteDebt,
       effectiveIncome,
       netSavings,
       savingsRate,
@@ -204,12 +230,14 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
       addIncomeSource,
       removeIncomeSource,
       debtRowsSafe,
+      deletedDebtRows,
       groupedDebts,
       debtFilter,
       debtsCalculations,
       addDebt,
       updateDebt,
       deleteDebt,
+      permanentlyDeleteDebt,
       effectiveIncome,
       netSavings,
       savingsRate,

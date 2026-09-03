@@ -64,7 +64,15 @@ export function ChromeProvider({ children }: { children: React.ReactNode }) {
       setFabHandler,
       triggerFab,
     }),
-    [headerHeight, navbarHeight, setHeaderHeight, setNavbarHeight, blurTarget, setFabHandler, triggerFab],
+    [
+      headerHeight,
+      navbarHeight,
+      setHeaderHeight,
+      setNavbarHeight,
+      blurTarget,
+      setFabHandler,
+      triggerFab,
+    ],
   );
 
   return <ChromeContext.Provider value={value}>{children}</ChromeContext.Provider>;

@@ -3,13 +3,22 @@
  * state), and this sheet's mount/unmount must lag one animation behind the
  * `visible` prop — both are false positives against the intended pattern. */
 import React, { useEffect, useState } from 'react';
-import { Dimensions, Modal, Pressable, Text, View } from 'react-native';
-import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import {
+  Dimensions,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  Pressable,
+  ScrollView,
+  Text,
+  View,
+} from 'react-native';
+import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
 import Animated, {
+  Easing,
   runOnJS,
   useAnimatedStyle,
   useSharedValue,
-  withSpring,
   withTiming,
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -20,6 +29,10 @@ import { GLASS, RADII, TEXT } from '@/constants/theme';
 const SCREEN_HEIGHT = Dimensions.get('window').height;
 const DISMISS_DISTANCE = 100;
 const DISMISS_VELOCITY = 800;
+// Plain timing beats a spring here — a bottom sheet that opens/closes on
+// every tap shouldn't bounce or linger; quick and settled reads faster.
+const OPEN_TIMING = { duration: 180, easing: Easing.out(Easing.cubic) };
+const CLOSE_TIMING = { duration: 140, easing: Easing.in(Easing.cubic) };
 
 interface GlassModalProps {
   visible: boolean;
@@ -43,11 +56,11 @@ export function GlassModal({ visible, onClose, title, children }: GlassModalProp
   useEffect(() => {
     if (visible) {
       setMounted(true);
-      translateY.value = withSpring(0, { damping: 22, stiffness: 220 });
-      backdropOpacity.value = withTiming(1, { duration: 220 });
+      translateY.value = withTiming(0, OPEN_TIMING);
+      backdropOpacity.value = withTiming(1, { duration: 140 });
     } else if (mounted) {
-      translateY.value = withTiming(SCREEN_HEIGHT, { duration: 220 });
-      backdropOpacity.value = withTiming(0, { duration: 200 }, (finished) => {
+      translateY.value = withTiming(SCREEN_HEIGHT, CLOSE_TIMING);
+      backdropOpacity.value = withTiming(0, { duration: 140 }, (finished) => {
         if (finished) runOnJS(setMounted)(false);
       });
     }
@@ -62,15 +75,15 @@ export function GlassModal({ visible, onClose, title, children }: GlassModalProp
     })
     .onEnd((e) => {
       if (e.translationY > DISMISS_DISTANCE || e.velocityY > DISMISS_VELOCITY) {
-        translateY.value = withTiming(SCREEN_HEIGHT, { duration: 200 });
-        backdropOpacity.value = withTiming(0, { duration: 200 }, (finished) => {
+        translateY.value = withTiming(SCREEN_HEIGHT, CLOSE_TIMING);
+        backdropOpacity.value = withTiming(0, { duration: 140 }, (finished) => {
           if (finished) {
             runOnJS(setMounted)(false);
             runOnJS(closeNow)();
           }
         });
       } else {
-        translateY.value = withSpring(0, { damping: 22, stiffness: 220 });
+        translateY.value = withTiming(0, OPEN_TIMING);
       }
     });
 
@@ -86,62 +99,80 @@ export function GlassModal({ visible, onClose, title, children }: GlassModalProp
 
   return (
     <Modal transparent visible={mounted} animationType="none" onRequestClose={onClose}>
-      <View style={{ flex: 1, justifyContent: 'flex-end' }}>
-        <Animated.View
-          style={[
-            { position: 'absolute', inset: 0, backgroundColor: GLASS.overlay },
-            backdropStyle,
-          ]}
-        >
-          <Pressable style={{ flex: 1 }} onPress={onClose} />
-        </Animated.View>
+      {/* RN's Modal renders into its own native window, outside the app's
+          root GestureHandlerRootView — without this nested one, gesture-handler
+          gestures (the pan below) silently never fire inside a Modal at all. */}
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <View style={{ flex: 1, justifyContent: 'flex-end' }}>
+          <Animated.View
+            style={[
+              { position: 'absolute', inset: 0, backgroundColor: GLASS.overlay },
+              backdropStyle,
+            ]}
+          >
+            <Pressable style={{ flex: 1 }} onPress={onClose} />
+          </Animated.View>
 
-        <Animated.View
-          style={[
-            {
-              maxHeight: '90%',
-              borderTopLeftRadius: RADII.sheet,
-              borderTopRightRadius: RADII.sheet,
-              borderTopWidth: 3,
-              borderTopColor: theme.fab,
-              backgroundColor: theme.surface,
-              paddingHorizontal: 18,
-              paddingTop: 14,
-              paddingBottom: insets.bottom + 22,
-              gap: 14,
-            },
-            sheetStyle,
-          ]}
-        >
-          <GestureDetector gesture={pan}>
-            <View style={{ paddingVertical: 6 }}>
-              <View
-                style={{
-                  width: 36,
-                  height: 4,
-                  borderRadius: 4,
-                  backgroundColor: `rgba(${theme.glow.a},0.5)`,
-                  alignSelf: 'center',
+          <Animated.View
+            style={[
+              {
+                maxHeight: '94%',
+                borderTopLeftRadius: RADII.sheet,
+                borderTopRightRadius: RADII.sheet,
+                backgroundColor: theme.surface,
+                paddingTop: 14,
+              },
+              sheetStyle,
+            ]}
+          >
+            {/* Handle + title share the swipe zone — a bigger, easier target
+                than the 4px pill alone, and the pill's only purpose is to
+                signal that this whole area drags. */}
+            <GestureDetector gesture={pan}>
+              <View style={{ width: '100%' }}>
+                <View style={{ paddingVertical: 14 }}>
+                  <View
+                    style={{
+                      width: 36,
+                      height: 4,
+                      borderRadius: 4,
+                      backgroundColor: `rgba(${theme.glow.a},0.5)`,
+                      alignSelf: 'center',
+                    }}
+                  />
+                </View>
+                {title ? (
+                  <Text
+                    style={{
+                      fontSize: 16,
+                      fontWeight: '600',
+                      color: TEXT.primary,
+                      textAlign: 'center',
+                      marginBottom: 8,
+                      paddingHorizontal: 18,
+                    }}
+                  >
+                    {title}
+                  </Text>
+                ) : null}
+              </View>
+            </GestureDetector>
+            <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+              <ScrollView
+                keyboardShouldPersistTaps="handled"
+                showsVerticalScrollIndicator={false}
+                contentContainerStyle={{
+                  paddingHorizontal: 18,
+                  paddingBottom: insets.bottom + 40,
+                  gap: 14,
                 }}
-              />
-            </View>
-          </GestureDetector>
-          {title ? (
-            <Text
-              style={{
-                fontSize: 16,
-                fontWeight: '600',
-                color: TEXT.primary,
-                textAlign: 'center',
-                marginTop: -8,
-              }}
-            >
-              {title}
-            </Text>
-          ) : null}
-          {children}
-        </Animated.View>
-      </View>
+              >
+                {children}
+              </ScrollView>
+            </KeyboardAvoidingView>
+          </Animated.View>
+        </View>
+      </GestureHandlerRootView>
     </Modal>
   );
 }

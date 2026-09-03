@@ -6,7 +6,8 @@ import { TEXT, BORDER } from '@/constants/theme';
 interface ListRowProps {
   leading?: React.ReactNode;
   title: string;
-  subtitle?: string;
+  /** Plain text renders through the default subtitle style; pass a node for richer content (e.g. an icon + text row). */
+  subtitle?: string | React.ReactNode;
   trailing?: React.ReactNode;
   onPress?: () => void;
   showBottomBorder?: boolean;
@@ -42,9 +43,13 @@ export function ListRow({
           {title}
         </Text>
         {subtitle ? (
-          <Text numberOfLines={1} style={{ fontSize: 10.5, color: TEXT.tertiary, marginTop: 1 }}>
-            {subtitle}
-          </Text>
+          typeof subtitle === 'string' ? (
+            <Text numberOfLines={1} style={{ fontSize: 10.5, color: TEXT.tertiary, marginTop: 1 }}>
+              {subtitle}
+            </Text>
+          ) : (
+            subtitle
+          )
         ) : null}
       </View>
       {trailing}

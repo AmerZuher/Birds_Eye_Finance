@@ -4,7 +4,7 @@ import { Image, Text, View } from 'react-native';
 import { useTheme } from '@/context/ThemeContext';
 import { FONTS, SEMANTIC } from '@/constants/theme';
 
-export type AvatarRing = 'positive' | 'negative' | 'flat' | 'accent' | 'none';
+export type AvatarRing = 'positive' | 'negative' | 'settled' | 'flat' | 'accent' | 'none';
 
 interface AvatarProps {
   name?: string;
@@ -26,6 +26,8 @@ function ringColor(ring: AvatarRing, theme: { glow: { a: string } }): string | n
       return 'rgba(52,211,153,0.6)';
     case 'negative':
       return 'rgba(251,113,133,0.6)';
+    case 'settled':
+      return 'rgba(165,154,138,0.55)';
     case 'flat':
       return 'rgba(255,255,255,0.2)';
     case 'accent':

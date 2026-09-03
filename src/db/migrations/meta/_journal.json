@@ -8,6 +8,13 @@
       "when": 1788408902807,
       "tag": "0000_spooky_nocturne",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1788430441945,
+      "tag": "0001_majestic_stryfe",
+      "breakpoints": true
     }
   ]
 }

@@ -30,7 +30,7 @@ const TAB_META: Record<string, { icon: typeof Home; labelKey: string }> = {
 export function Navbar({ state, navigation, insets }: BottomTabBarProps) {
   const { theme } = useTheme();
   const { t } = useLanguage();
-  const { setNavbarHeight, blurTarget } = useChrome();
+  const { setNavbarHeight, blurTarget, triggerFab } = useChrome();
 
   const activeRouteName = state.routes[state.index]?.name;
   const fabHidden = activeRouteName === 'index';
@@ -70,27 +70,34 @@ export function Navbar({ state, navigation, insets }: BottomTabBarProps) {
           >
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel="Add"
-              onPress={() => {
-                // Wired to DebtModal/ExpenseModal in Phases 3-4.
-              }}
+              accessibilityLabel={t('common.add')}
+              onPress={triggerFab}
               style={{
                 width: 48,
                 height: 48,
                 borderRadius: 24,
-                backgroundColor: theme.fab,
                 alignItems: 'center',
                 justifyContent: 'center',
-                borderWidth: 2,
-                borderColor: 'rgba(255,255,255,0.25)',
+                // Same dark chromeTint hue as the navbar itself (rather than
+                // the bright accent fill) so the FAB reads as part of it. A
+                // solid color, not a second BlurView — an earlier attempt at
+                // an actual blurred glass FAB, sitting right next to the
+                // navbar's own BlurView on the same blurTarget with elevation
+                // + overflow:hidden layered on top, caused a native SIGSEGV
+                // (HWUI's computeTransformImpl recursing until the
+                // RenderThread's stack overflowed) as soon as the FAB
+                // rendered — i.e. on every screen but Dashboard.
+                backgroundColor: `rgba(${theme.chromeTint},0.94)`,
+                borderWidth: 1,
+                borderColor: GLASS.border,
                 shadowColor: `rgb(${theme.glow.a})`,
-                shadowOpacity: 0.7,
+                shadowOpacity: 0.5,
                 shadowRadius: 14,
                 shadowOffset: { width: 0, height: 8 },
                 elevation: 8,
               }}
             >
-              <Plus size={22} color={theme.buttonText} strokeWidth={2.6} />
+              <Plus size={22} color={TEXT.primary} strokeWidth={2.6} />
             </Pressable>
           </View>
         )}

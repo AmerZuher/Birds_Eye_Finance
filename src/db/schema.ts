@@ -31,6 +31,10 @@ export const debts = sqliteTable('debts', {
   email: text('email'),
   company: text('company'),
   contactId: text('contact_id'),
+  // Soft-delete: null = active. Deleting from the person/summary views sets
+  // this instead of removing the row, so it surfaces in the debts history
+  // screen (bank-app style) until permanently removed from there.
+  deletedAt: text('deleted_at'),
 });
 
 export const incomeSources = sqliteTable('income_sources', {

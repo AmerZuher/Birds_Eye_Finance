@@ -1,0 +1,1 @@
+ALTER TABLE `debts` ADD `deleted_at` text;
