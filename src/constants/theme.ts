@@ -103,7 +103,7 @@ export const GLASS = {
   border: 'rgba(255,255,255,0.10)',
   gradientTop: 'rgba(255,255,255,0.09)',
   gradientBottom: 'rgba(255,255,255,0.03)',
-  blurIntensity: 35,
+  blurIntensity: 20,
   tintAlpha: 0.35,
   cardGradientTop: 'rgba(255,255,255,0.05)',
   hairline: 'rgba(255,255,255,0.08)',

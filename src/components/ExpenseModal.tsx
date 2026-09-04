@@ -12,6 +12,7 @@ import { AmountInput } from '@/components/ui/AmountInput';
 import { CustomSelect } from '@/components/ui/CustomSelect';
 import { InlineBanner } from '@/components/ui/InlineBanner';
 import { SearchInput } from '@/components/ui/SearchInput';
+import { ListCard } from '@/components/ui/ListCard';
 import { ListRow } from '@/components/ui/ListRow';
 import { Badge, FilterChip } from '@/components/ui/Badge';
 import { IconTile } from '@/components/ui/IconTile';
@@ -475,41 +476,40 @@ export function ExpenseModal({
               {filteredTemplates.length === 0 ? (
                 <EmptyState caption={t('expenseModal.noTemplatesFound')} />
               ) : (
-                <View
-                  style={{
-                    borderRadius: RADII.field,
-                    backgroundColor: theme.surfaceAlt,
-                    borderWidth: 1,
-                    borderColor: BORDER.hairline,
-                    overflow: 'hidden',
-                  }}
-                >
+                // A real View, not a Fragment — this whole group is one slot
+                // in the outer `gap: 14` flex column, exactly like the single
+                // connected box it replaces. A Fragment here would flatten
+                // each ListCard into its own sibling of that column, stacking
+                // the parent's 14px gap on top of ListCard's own 10px
+                // marginBottom between every pair of rows.
+                <View>
                   {filteredTemplates.map((template, index) => (
-                    <ListRow
-                      key={template.name}
-                      leading={
-                        <ExpenseIconTile icon={template.icon} name={template.name} size={34} />
-                      }
-                      title={template.name}
-                      subtitle={
-                        <View
-                          style={{
-                            flexDirection: 'row',
-                            alignItems: 'center',
-                            gap: 6,
-                            marginTop: 3,
-                          }}
-                        >
-                          <Badge
-                            label={t(`expenses.category.${template.category}`)}
-                            variant="accent"
-                          />
-                          <Badge label={t(`expenses.period.${template.defaultPeriod}`)} />
-                        </View>
-                      }
-                      onPress={() => selectTemplate(template)}
-                      showBottomBorder={index < filteredTemplates.length - 1}
-                    />
+                    <ListCard key={template.name} isLast={index === filteredTemplates.length - 1}>
+                      <ListRow
+                        leading={
+                          <ExpenseIconTile icon={template.icon} name={template.name} size={34} />
+                        }
+                        title={template.name}
+                        subtitle={
+                          <View
+                            style={{
+                              flexDirection: 'row',
+                              alignItems: 'center',
+                              gap: 6,
+                              marginTop: 3,
+                            }}
+                          >
+                            <Badge
+                              label={t(`expenses.category.${template.category}`)}
+                              variant="accent"
+                            />
+                            <Badge label={t(`expenses.period.${template.defaultPeriod}`)} />
+                          </View>
+                        }
+                        onPress={() => selectTemplate(template)}
+                        showBottomBorder={false}
+                      />
+                    </ListCard>
                   ))}
                 </View>
               )}
@@ -536,32 +536,26 @@ export function ExpenseModal({
             </View>
 
             {suggestions.length > 0 ? (
-              <View
-                style={{
-                  borderRadius: RADII.field,
-                  backgroundColor: theme.surfaceAlt,
-                  borderWidth: 1,
-                  borderColor: BORDER.hairline,
-                  overflow: 'hidden',
-                }}
-              >
-                {suggestions.map((template) => (
-                  <Pressable
-                    key={template.name}
-                    onPress={() => applyTemplateToForm(template)}
-                    style={{
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      gap: 10,
-                      paddingVertical: 9,
-                      paddingHorizontal: 12,
-                      borderBottomWidth: 1,
-                      borderBottomColor: BORDER.hairlineSoft,
-                    }}
-                  >
-                    <ExpenseIconTile icon={template.icon} name={template.name} size={26} />
-                    <Text style={{ fontSize: 12.5, color: TEXT.primary }}>{template.name}</Text>
-                  </Pressable>
+              // Same reasoning as the templates list above — one View slot,
+              // not a Fragment, so the outer gap doesn't stack with
+              // ListCard's own.
+              <View>
+                {suggestions.map((template, index) => (
+                  <ListCard key={template.name} isLast={index === suggestions.length - 1}>
+                    <Pressable
+                      onPress={() => applyTemplateToForm(template)}
+                      style={{
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        gap: 10,
+                        paddingVertical: 9,
+                        paddingHorizontal: 12,
+                      }}
+                    >
+                      <ExpenseIconTile icon={template.icon} name={template.name} size={26} />
+                      <Text style={{ fontSize: 12.5, color: TEXT.primary }}>{template.name}</Text>
+                    </Pressable>
+                  </ListCard>
                 ))}
               </View>
             ) : null}

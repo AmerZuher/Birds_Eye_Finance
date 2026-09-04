@@ -3,7 +3,6 @@ import { BackHandler, Pressable, Text, View } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import { FlashList } from '@shopify/flash-list';
 import Animated, { SlideInLeft, SlideInRight } from 'react-native-reanimated';
-import { LinearGradient } from 'expo-linear-gradient';
 import {
   ArrowLeft,
   Building2,
@@ -16,7 +15,9 @@ import {
   TrendingUp,
 } from 'lucide-react-native';
 
+import { PageTransition } from '@/components/PageTransition';
 import { Avatar } from '@/components/ui/Avatar';
+import { ListCard } from '@/components/ui/ListCard';
 import { ListRow } from '@/components/ui/ListRow';
 import { SearchInput } from '@/components/ui/SearchInput';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -24,10 +25,10 @@ import { IconButton } from '@/components/ui/IconButton';
 import { IconTile } from '@/components/ui/IconTile';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { InlineBanner } from '@/components/ui/InlineBanner';
-import { Badge } from '@/components/ui/Badge';
 import { DebtModal } from '@/components/DebtModal';
 import type { DebtPrefill } from '@/components/DebtModal';
 import { BrandGlyph } from '@/components/BrandGlyph';
+import { MoneyStatCard } from '@/components/MoneyStatCard';
 import { useLanguage } from '@/context/LanguageContext';
 import { useTheme } from '@/context/ThemeContext';
 import type { ThemeShape } from '@/constants/theme';
@@ -204,41 +205,43 @@ export default function Debts() {
 
   return (
     <>
-      {historyOpen ? (
-        <HistoryView
-          debts={historyDebts}
-          personName={historyPersonName}
-          onBack={() => setHistoryOpen(false)}
-          onForget={setForgetTarget}
-        />
-      ) : selectedGroup ? (
-        <DetailView
-          group={selectedGroup}
-          onBack={() => setSelectedName(null)}
-          onEdit={openEditModal}
-          onDelete={setDeleteTarget}
-          onWhatsApp={handleWhatsApp}
-          whatsAppError={whatsAppError}
-          onDismissWhatsAppError={() => setWhatsAppError('')}
-          onOpenHistory={() => {
-            setHistoryPersonName(selectedGroup.name);
-            setHistoryOpen(true);
-          }}
-        />
-      ) : (
-        <SummaryView
-          groups={filteredGroups}
-          search={search}
-          onSearchChange={setSearch}
-          netBalance={netBalance}
-          totalNegativeMonthly={debtsCalculations.totalNegativeMonthly}
-          onSelect={setSelectedName}
-          onOpenHistory={() => {
-            setHistoryPersonName(null);
-            setHistoryOpen(true);
-          }}
-        />
-      )}
+      <PageTransition>
+        {historyOpen ? (
+          <HistoryView
+            debts={historyDebts}
+            personName={historyPersonName}
+            onBack={() => setHistoryOpen(false)}
+            onForget={setForgetTarget}
+          />
+        ) : selectedGroup ? (
+          <DetailView
+            group={selectedGroup}
+            onBack={() => setSelectedName(null)}
+            onEdit={openEditModal}
+            onDelete={setDeleteTarget}
+            onWhatsApp={handleWhatsApp}
+            whatsAppError={whatsAppError}
+            onDismissWhatsAppError={() => setWhatsAppError('')}
+            onOpenHistory={() => {
+              setHistoryPersonName(selectedGroup.name);
+              setHistoryOpen(true);
+            }}
+          />
+        ) : (
+          <SummaryView
+            groups={filteredGroups}
+            search={search}
+            onSearchChange={setSearch}
+            netBalance={netBalance}
+            totalNegativeMonthly={debtsCalculations.totalNegativeMonthly}
+            onSelect={setSelectedName}
+            onOpenHistory={() => {
+              setHistoryPersonName(null);
+              setHistoryOpen(true);
+            }}
+          />
+        )}
+      </PageTransition>
 
       <DebtModal
         visible={modalOpen}
@@ -324,40 +327,44 @@ function SummaryView({
                 icon={History}
                 accessibilityLabel={t('debts.viewHistory')}
                 onPress={onOpenHistory}
+                variant="tinted"
               />
             </View>
             <View style={{ height: 1, backgroundColor: BORDER.hairline, marginVertical: 14 }} />
 
-            <LinearGradient
-              colors={[theme.surface, theme.surfaceAlt]}
-              style={{
-                borderRadius: RADII.card,
-                paddingVertical: 18,
-                paddingHorizontal: 16,
-                borderWidth: 1,
-                borderColor: BORDER.hairline,
-                alignItems: 'center',
-              }}
-            >
-              <Text style={statLabelStyle}>{t('debts.netBalance')}</Text>
-              <Text
-                style={[
-                  statValueStyle,
-                  { color: netBalance >= 0 ? SEMANTIC.positive : SEMANTIC.negative },
-                ]}
-              >
-                {formatMoney(netBalance)}
-              </Text>
-              {totalNegativeMonthly > 0 ? (
-                <View style={{ marginTop: 12 }}>
-                  <Badge
-                    label={t('debts.monthlyInstallments', {
-                      amount: formatMoney(totalNegativeMonthly),
-                    })}
-                  />
-                </View>
-              ) : null}
-            </LinearGradient>
+            <MoneyStatCard
+              label={t('debts.netBalance')}
+              amount={netBalance}
+              color={netBalance >= 0 ? SEMANTIC.positive : SEMANTIC.negative}
+              footer={
+                totalNegativeMonthly > 0 ? (
+                  // A locally-styled tinted/translucent pill rather than the
+                  // shared Badge primitive here — Badge's variants are tuned
+                  // for the compact category/period chips used everywhere
+                  // else, and this stat card calls for the two-layer
+                  // background+border treatment instead. Uses the theme's own
+                  // accent rather than a fixed color so it stays correct
+                  // across all four palettes.
+                  <View
+                    style={{
+                      alignSelf: 'center',
+                      paddingVertical: 5,
+                      paddingHorizontal: 12,
+                      borderRadius: RADII.pill,
+                      backgroundColor: `rgba(${theme.glow.a},0.12)`,
+                      borderWidth: 1,
+                      borderColor: `rgba(${theme.glow.a},0.28)`,
+                    }}
+                  >
+                    <Text style={{ fontSize: 10.5, fontWeight: '700', color: theme.accent2 }}>
+                      {t('debts.monthlyInstallments', {
+                        amount: formatMoney(totalNegativeMonthly),
+                      })}
+                    </Text>
+                  </View>
+                ) : undefined
+              }
+            />
 
             <View style={{ marginTop: 16 }}>
               <SearchInput
@@ -369,53 +376,24 @@ function SummaryView({
           </View>
         }
         ListEmptyComponent={<EmptyState caption={t('debts.empty')} />}
-        renderItem={({ item, index }) => {
-          const isFirst = index === 0;
-          const isLast = index === groups.length - 1;
-          return (
-            <View
-              style={{
-                backgroundColor: theme.surface,
-                borderColor: BORDER.hairline,
-                borderLeftWidth: 1,
-                borderRightWidth: 1,
-                borderTopWidth: isFirst ? 1 : 0,
-                borderBottomWidth: isLast ? 1 : 0,
-                borderTopLeftRadius: isFirst ? RADII.txList : 0,
-                borderTopRightRadius: isFirst ? RADII.txList : 0,
-                borderBottomLeftRadius: isLast ? RADII.txList : 0,
-                borderBottomRightRadius: isLast ? RADII.txList : 0,
-              }}
-            >
-              <PersonRow
-                group={item}
-                showBottomBorder={!isLast}
-                onPress={() => onSelect(item.name)}
-              />
-            </View>
-          );
-        }}
+        renderItem={({ item, index }) => (
+          <ListCard isLast={index === groups.length - 1}>
+            <PersonRow group={item} onPress={() => onSelect(item.name)} />
+          </ListCard>
+        )}
       />
     </Animated.View>
   );
 }
 
-function PersonRow({
-  group,
-  showBottomBorder,
-  onPress,
-}: {
-  group: DebtGroup;
-  showBottomBorder: boolean;
-  onPress: () => void;
-}) {
+function PersonRow({ group, onPress }: { group: DebtGroup; onPress: () => void }) {
   const { t } = useLanguage();
   const { formatMoney } = useCurrency();
 
   return (
     <ListRow
       onPress={onPress}
-      showBottomBorder={showBottomBorder}
+      showBottomBorder={false}
       leading={<Avatar name={group.name} photoUri={group.avatar} ring={group.type} size={44} />}
       title={group.name}
       subtitle={
@@ -499,11 +477,13 @@ function DetailView({
           accessibilityLabel={t('settings.back')}
           onPress={onBack}
           directional
+          variant="tinted"
         />
         <IconButton
           icon={History}
           accessibilityLabel={t('debts.viewHistory')}
           onPress={onOpenHistory}
+          variant="tinted"
         />
       </View>
 
@@ -761,6 +741,7 @@ function HistoryView({ debts, personName, onBack, onForget }: HistoryViewProps) 
         accessibilityLabel={t('settings.back')}
         onPress={onBack}
         directional
+        variant="tinted"
       />
       <Text style={{ fontFamily: FONTS.display, fontSize: 20, color: TEXT.primary, marginTop: 12 }}>
         {personName ? t('debts.historyTitleFor', { name: personName }) : t('debts.historyTitle')}
@@ -890,17 +871,3 @@ function chipStyle(theme: ThemeShape) {
 }
 
 const chipTextStyle = { fontSize: 10.5, color: TEXT.secondary } as const;
-
-const statLabelStyle = {
-  fontSize: 10.5,
-  fontWeight: '700' as const,
-  letterSpacing: 0.6,
-  textTransform: 'uppercase' as const,
-  color: TEXT.tertiary,
-};
-
-const statValueStyle = {
-  fontFamily: FONTS.display,
-  fontSize: 24,
-  marginTop: 4,
-};

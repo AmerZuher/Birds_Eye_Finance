@@ -98,7 +98,14 @@ function RootLayoutInner() {
         <Stack
           screenOptions={{
             headerShown: false,
-            animation: 'slide_from_right',
+            // `none`, not a native push animation — every screen runs the
+            // shared Fade Rise itself (PageTransition), and a native
+            // slide/fade underneath it would play a second, different
+            // transition on top of that. Settings/About looked unchanged
+            // until this came off. `contentStyle` below means the incoming
+            // screen is already the right ground color on frame one, so
+            // there's nothing to see before the fade starts.
+            animation: 'none',
             contentStyle: { backgroundColor: theme.ground },
           }}
         >

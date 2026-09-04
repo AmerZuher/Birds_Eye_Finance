@@ -2,10 +2,10 @@ import React, { useCallback, useMemo, useState } from 'react';
 import { ScrollView, Text, View } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import { FlashList } from '@shopify/flash-list';
-import Animated, { SlideInLeft, SlideInRight } from 'react-native-reanimated';
-import { LinearGradient } from 'expo-linear-gradient';
 import { ChevronRight } from 'lucide-react-native';
 
+import { PageTransition } from '@/components/PageTransition';
+import { ListCard } from '@/components/ui/ListCard';
 import { ListRow } from '@/components/ui/ListRow';
 import { SearchInput } from '@/components/ui/SearchInput';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -14,13 +14,14 @@ import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { Badge, FilterChip } from '@/components/ui/Badge';
 import { ExpenseModal } from '@/components/ExpenseModal';
 import { ExpenseIconTile } from '@/components/ExpenseIconTile';
+import { MoneyStatCard } from '@/components/MoneyStatCard';
 import { useLanguage } from '@/context/LanguageContext';
 import { useTheme } from '@/context/ThemeContext';
 import { useChrome } from '@/context/ChromeContext';
 import { useCurrency } from '@/context/CurrencyContext';
 import { useFinance } from '@/context/FinanceContext';
 import type { Expense } from '@/db/schema';
-import { BORDER, FONTS, RADII, TEXT } from '@/constants/theme';
+import { BORDER, FONTS, TEXT } from '@/constants/theme';
 import type { ExpenseCategory } from '@/utils/expenseIcon';
 import { EXPENSE_CATEGORIES } from '@/utils/expenseIcon';
 
@@ -32,10 +33,9 @@ function matchesSearch(expense: Expense, query: string): boolean {
 }
 
 export default function Expenses() {
-  const { t, isRTL } = useLanguage();
+  const { t } = useLanguage();
   const { theme } = useTheme();
   const { headerHeight, navbarHeight, setFabHandler } = useChrome();
-  const { formatMoney } = useCurrency();
   const { expenses, totalExpenses, deleteExpense } = useFinance();
 
   const [search, setSearch] = useState('');
@@ -83,10 +83,7 @@ export default function Expenses() {
 
   return (
     <>
-      <Animated.View
-        entering={(isRTL ? SlideInRight : SlideInLeft).duration(280)}
-        style={{ flex: 1 }}
-      >
+      <PageTransition>
         <FlashList
           data={filteredExpenses}
           keyExtractor={(item) => String(item.id)}
@@ -105,22 +102,11 @@ export default function Expenses() {
               </Text>
               <View style={{ height: 1, backgroundColor: BORDER.hairline, marginVertical: 14 }} />
 
-              <LinearGradient
-                colors={[theme.surface, theme.surfaceAlt]}
-                style={{
-                  borderRadius: RADII.card,
-                  paddingVertical: 18,
-                  paddingHorizontal: 16,
-                  borderWidth: 1,
-                  borderColor: BORDER.hairline,
-                  alignItems: 'center',
-                }}
-              >
-                <Text style={statLabelStyle}>{t('expenses.monthlyTotal')}</Text>
-                <Text style={[statValueStyle, { color: theme.accent2 }]}>
-                  {formatMoney(totalExpenses)}
-                </Text>
-              </LinearGradient>
+              <MoneyStatCard
+                label={t('expenses.monthlyTotal')}
+                amount={totalExpenses}
+                color={theme.accent2}
+              />
 
               <View style={{ marginTop: 16 }}>
                 <SearchInput
@@ -152,34 +138,13 @@ export default function Expenses() {
             </View>
           }
           ListEmptyComponent={<EmptyState caption={t('expenses.empty')} />}
-          renderItem={({ item, index }) => {
-            const isFirst = index === 0;
-            const isLast = index === filteredExpenses.length - 1;
-            return (
-              <View
-                style={{
-                  backgroundColor: theme.surface,
-                  borderColor: BORDER.hairline,
-                  borderLeftWidth: 1,
-                  borderRightWidth: 1,
-                  borderTopWidth: isFirst ? 1 : 0,
-                  borderBottomWidth: isLast ? 1 : 0,
-                  borderTopLeftRadius: isFirst ? RADII.txList : 0,
-                  borderTopRightRadius: isFirst ? RADII.txList : 0,
-                  borderBottomLeftRadius: isLast ? RADII.txList : 0,
-                  borderBottomRightRadius: isLast ? RADII.txList : 0,
-                }}
-              >
-                <ExpenseRow
-                  expense={item}
-                  showBottomBorder={!isLast}
-                  onPress={() => openEditModal(item)}
-                />
-              </View>
-            );
-          }}
+          renderItem={({ item, index }) => (
+            <ListCard isLast={index === filteredExpenses.length - 1}>
+              <ExpenseRow expense={item} onPress={() => openEditModal(item)} />
+            </ListCard>
+          )}
         />
-      </Animated.View>
+      </PageTransition>
 
       <ExpenseModal
         visible={modalOpen}
@@ -206,11 +171,10 @@ export default function Expenses() {
 
 interface ExpenseRowProps {
   expense: Expense;
-  showBottomBorder: boolean;
   onPress: () => void;
 }
 
-function ExpenseRow({ expense, showBottomBorder, onPress }: ExpenseRowProps) {
+function ExpenseRow({ expense, onPress }: ExpenseRowProps) {
   const { t } = useLanguage();
   const { formatOriginalMoney } = useCurrency();
   const unconfigured = expense.amount === 0;
@@ -221,8 +185,14 @@ function ExpenseRow({ expense, showBottomBorder, onPress }: ExpenseRowProps) {
     <View>
       <ListRow
         onPress={onPress}
-        showBottomBorder={showBottomBorder && !expense.notes}
-        leading={<ExpenseIconTile icon={expense.icon} name={expense.name} size={38} />}
+        showBottomBorder={!!expense.notes}
+        // 50, not the tile's own 34 default — Debts' PersonRow leading is
+        // Avatar at size=44, but Avatar draws its ring 3px outside the given
+        // size (see Avatar.tsx), so its real footprint is 44+6=50. IconTile
+        // has no such padding: its `size` is the literal rendered box, so
+        // matching Avatar's true footprint here (not its size prop) is what
+        // makes the two rows the same height.
+        leading={<ExpenseIconTile icon={expense.icon} name={expense.name} size={50} />}
         title={expense.name}
         subtitle={
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 3 }}>
@@ -255,6 +225,8 @@ function ExpenseRow({ expense, showBottomBorder, onPress }: ExpenseRowProps) {
         }
       />
       {expense.notes ? (
+        // No bottom border here — the card itself (ListCard) now closes off
+        // the whole item, so there's nothing left below this to divide from.
         <Text
           style={{
             fontSize: 11,
@@ -262,8 +234,6 @@ function ExpenseRow({ expense, showBottomBorder, onPress }: ExpenseRowProps) {
             paddingStart: 50,
             paddingEnd: 12,
             paddingBottom: 12,
-            borderBottomWidth: showBottomBorder ? 1 : 0,
-            borderBottomColor: BORDER.hairlineSoft,
           }}
         >
           {expense.notes}
@@ -272,17 +242,3 @@ function ExpenseRow({ expense, showBottomBorder, onPress }: ExpenseRowProps) {
     </View>
   );
 }
-
-const statLabelStyle = {
-  fontSize: 10.5,
-  fontWeight: '700' as const,
-  letterSpacing: 0.6,
-  textTransform: 'uppercase' as const,
-  color: TEXT.tertiary,
-};
-
-const statValueStyle = {
-  fontFamily: FONTS.display,
-  fontSize: 24,
-  marginTop: 4,
-};

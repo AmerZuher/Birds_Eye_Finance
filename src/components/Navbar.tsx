@@ -4,6 +4,7 @@ import { Pressable, StyleSheet, useWindowDimensions, View } from 'react-native';
 import { usePathname, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BlurView } from 'expo-blur';
+import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Path } from 'react-native-svg';
 import MaskedView from '@react-native-masked-view/masked-view';
 import * as Haptics from 'expo-haptics';
@@ -210,18 +211,13 @@ export function Navbar() {
           accessibilityLabel={t('common.add')}
           onPress={onFabPress}
           style={{
-            width: FAB_SIZE,
-            height: FAB_SIZE,
             borderRadius: FAB_SIZE / 2,
-            alignItems: 'center',
-            justifyContent: 'center',
-            // A solid fill, not a second BlurView — an earlier attempt at an
-            // actual blurred glass FAB, sitting right next to the navbar's
-            // own BlurView on the same blurTarget with elevation +
-            // overflow:hidden layered on top, caused a native SIGSEGV
-            // (HWUI's computeTransformImpl recursing until the RenderThread's
-            // stack overflowed) as soon as the FAB rendered.
-            backgroundColor: theme.fab,
+            // A solid gradient fill, not a second BlurView — an earlier
+            // attempt at an actual blurred glass FAB, sitting right next to
+            // the navbar's own BlurView on the same blurTarget with
+            // elevation + overflow:hidden layered on top, caused a native
+            // SIGSEGV (HWUI's computeTransformImpl recursing until the
+            // RenderThread's stack overflowed) as soon as the FAB rendered.
             shadowColor: `rgb(${theme.glow.a})`,
             shadowOpacity: 0.65,
             shadowRadius: 16,
@@ -229,7 +225,31 @@ export function Navbar() {
             elevation: 10,
           }}
         >
-          <Plus size={26} color={theme.buttonText} strokeWidth={2.2} />
+          <LinearGradient
+            // The exact same two colors, same direction, as MoneyStatCard's
+            // own background gradient — not just "a similar technique" but
+            // the literal fill, so the FAB reads as a piece cut from the
+            // same material as the cards.
+            colors={[theme.surfaceAlt, theme.surface]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={{
+              width: FAB_SIZE,
+              height: FAB_SIZE,
+              borderRadius: FAB_SIZE / 2,
+              alignItems: 'center',
+              justifyContent: 'center',
+              // Same border treatment as the card too.
+              borderWidth: 1,
+              borderColor: `rgba(${theme.glow.a},0.22)`,
+            }}
+          >
+            {/* accent2, not buttonText — buttonText is tuned for contrast
+                against a solid accent fill; against this darker card-toned
+                gradient it's the same bright accent color the card's own
+                numbers use that actually stands out. */}
+            <Plus size={26} color={theme.accent2} strokeWidth={2.2} />
+          </LinearGradient>
         </Pressable>
       </View>
 

@@ -4,6 +4,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { Camera, Coins, Plus, Trash2, Wallet } from 'lucide-react-native';
 import type { LucideIcon } from 'lucide-react-native';
 
+import { PageTransition } from '@/components/PageTransition';
 import { Avatar } from '@/components/ui/Avatar';
 import { SettingsCard } from '@/components/ui/SettingsCard';
 import { CustomSelect } from '@/components/ui/CustomSelect';
@@ -112,136 +113,138 @@ export default function EditProfileScreen() {
   };
 
   return (
-    <ScrollView
-      style={{ backgroundColor: theme.ground }}
-      contentContainerStyle={{
-        padding: 16,
-        paddingTop: headerHeight + 16,
-        gap: 14,
-        paddingBottom: 40,
-      }}
-      showsVerticalScrollIndicator={false}
-    >
-      <SettingsCard>
-        <View style={{ alignItems: 'center', gap: 10 }}>
-          <Pressable
-            onPress={pickAvatar}
-            accessibilityRole="button"
-            accessibilityLabel={t('editProfile.avatar.change')}
-          >
-            <View>
-              <Avatar
-                name={name || 'You'}
-                photoUri={profile.avatar || undefined}
-                size={76}
-                ring="accent"
-              />
-              <View
-                style={{
-                  position: 'absolute',
-                  bottom: -2,
-                  right: -2,
-                  width: 26,
-                  height: 26,
-                  borderRadius: 13,
-                  backgroundColor: theme.accent1,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  borderWidth: 2,
-                  borderColor: theme.surface,
-                }}
-              >
-                <Camera size={13} color={theme.buttonText} />
+    <PageTransition>
+      <ScrollView
+        style={{ backgroundColor: theme.ground }}
+        contentContainerStyle={{
+          padding: 16,
+          paddingTop: headerHeight + 16,
+          gap: 14,
+          paddingBottom: 40,
+        }}
+        showsVerticalScrollIndicator={false}
+      >
+        <SettingsCard>
+          <View style={{ alignItems: 'center', gap: 10 }}>
+            <Pressable
+              onPress={pickAvatar}
+              accessibilityRole="button"
+              accessibilityLabel={t('editProfile.avatar.change')}
+            >
+              <View>
+                <Avatar
+                  name={name || 'You'}
+                  photoUri={profile.avatar || undefined}
+                  size={76}
+                  ring="accent"
+                />
+                <View
+                  style={{
+                    position: 'absolute',
+                    bottom: -2,
+                    right: -2,
+                    width: 26,
+                    height: 26,
+                    borderRadius: 13,
+                    backgroundColor: theme.accent1,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    borderWidth: 2,
+                    borderColor: theme.surface,
+                  }}
+                >
+                  <Camera size={13} color={theme.buttonText} />
+                </View>
               </View>
-            </View>
-          </Pressable>
+            </Pressable>
 
-          <TextInput
-            value={name}
-            onChangeText={commitName}
-            placeholder={t('editProfile.name.placeholder')}
-            placeholderTextColor={TEXT.tertiary}
-            style={{
-              fontSize: 17,
-              fontWeight: '700',
-              color: TEXT.primary,
-              textAlign: 'center',
-              minWidth: 160,
-              padding: 0,
-            }}
-          />
-
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-            <Coins size={12} color={theme.accent2} />
-            <Text style={{ fontSize: 11, color: TEXT.secondary }}>
-              {t('settings.monthlyIncome', { amount: formatMoney(totalMonthlyIncomeBase) })}
-            </Text>
-          </View>
-
-          <View
-            style={{
-              paddingHorizontal: 10,
-              paddingVertical: 4,
-              borderRadius: RADII.pill,
-              backgroundColor: `${HEALTH_COLORS[financialHealth]}22`,
-            }}
-          >
-            <Text
+            <TextInput
+              value={name}
+              onChangeText={commitName}
+              placeholder={t('editProfile.name.placeholder')}
+              placeholderTextColor={TEXT.tertiary}
               style={{
-                fontSize: 10,
+                fontSize: 17,
                 fontWeight: '700',
-                color: HEALTH_COLORS[financialHealth],
-                textTransform: 'uppercase',
-                letterSpacing: 0.5,
+                color: TEXT.primary,
+                textAlign: 'center',
+                minWidth: 160,
+                padding: 0,
+              }}
+            />
+
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              <Coins size={12} color={theme.accent2} />
+              <Text style={{ fontSize: 11, color: TEXT.secondary }}>
+                {t('settings.monthlyIncome', { amount: formatMoney(totalMonthlyIncomeBase) })}
+              </Text>
+            </View>
+
+            <View
+              style={{
+                paddingHorizontal: 10,
+                paddingVertical: 4,
+                borderRadius: RADII.pill,
+                backgroundColor: `${HEALTH_COLORS[financialHealth]}22`,
               }}
             >
-              {t(`editProfile.health.${financialHealth}`)}
-            </Text>
+              <Text
+                style={{
+                  fontSize: 10,
+                  fontWeight: '700',
+                  color: HEALTH_COLORS[financialHealth],
+                  textTransform: 'uppercase',
+                  letterSpacing: 0.5,
+                }}
+              >
+                {t(`editProfile.health.${financialHealth}`)}
+              </Text>
+            </View>
+
+            {avatarError ? (
+              <InlineBanner
+                kind="error"
+                message={avatarError}
+                onDismiss={() => setAvatarError('')}
+                autoDismissMs={3000}
+              />
+            ) : null}
           </View>
+        </SettingsCard>
 
-          {avatarError ? (
-            <InlineBanner
-              kind="error"
-              message={avatarError}
-              onDismiss={() => setAvatarError('')}
-              autoDismissMs={3000}
-            />
-          ) : null}
-        </View>
-      </SettingsCard>
+        <EntryManager
+          title={t('editProfile.balances.title')}
+          icon={Wallet}
+          entries={profile.startBalances ?? []}
+          onAdd={addBalance}
+          onRemove={removeBalance}
+          emptyCaption={t('editProfile.balances.empty')}
+          namePlaceholder={t('editProfile.balances.namePlaceholder')}
+          addLabel={t('editProfile.balances.add')}
+          removeLabel={t('editProfile.balances.remove')}
+          footerLabel={t('editProfile.balances.footer', {
+            count: (profile.startBalances ?? []).length,
+            total: formatMoney(totalBalancesBase),
+          })}
+        />
 
-      <EntryManager
-        title={t('editProfile.balances.title')}
-        icon={Wallet}
-        entries={profile.startBalances ?? []}
-        onAdd={addBalance}
-        onRemove={removeBalance}
-        emptyCaption={t('editProfile.balances.empty')}
-        namePlaceholder={t('editProfile.balances.namePlaceholder')}
-        addLabel={t('editProfile.balances.add')}
-        removeLabel={t('editProfile.balances.remove')}
-        footerLabel={t('editProfile.balances.footer', {
-          count: (profile.startBalances ?? []).length,
-          total: formatMoney(totalBalancesBase),
-        })}
-      />
-
-      <EntryManager
-        title={t('editProfile.income.title')}
-        icon={Coins}
-        entries={incomeSources}
-        onAdd={addIncome}
-        onRemove={removeIncome}
-        emptyCaption={t('editProfile.income.empty')}
-        namePlaceholder={t('editProfile.income.namePlaceholder')}
-        addLabel={t('editProfile.income.add')}
-        removeLabel={t('editProfile.income.remove')}
-        footerLabel={t('editProfile.income.footer', {
-          count: incomeSources.length,
-          total: formatMoney(totalMonthlyIncomeBase),
-        })}
-      />
-    </ScrollView>
+        <EntryManager
+          title={t('editProfile.income.title')}
+          icon={Coins}
+          entries={incomeSources}
+          onAdd={addIncome}
+          onRemove={removeIncome}
+          emptyCaption={t('editProfile.income.empty')}
+          namePlaceholder={t('editProfile.income.namePlaceholder')}
+          addLabel={t('editProfile.income.add')}
+          removeLabel={t('editProfile.income.remove')}
+          footerLabel={t('editProfile.income.footer', {
+            count: incomeSources.length,
+            total: formatMoney(totalMonthlyIncomeBase),
+          })}
+        />
+      </ScrollView>
+    </PageTransition>
   );
 }
 

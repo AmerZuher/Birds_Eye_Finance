@@ -11,6 +11,18 @@ export function readInitialBaseCurrency(): string {
 
 const CODE_LIKE = /^[A-Za-z]+$/;
 
+export interface MoneyParts {
+  /** Digits before the decimal separator (grouped, locale digits). */
+  integer: string;
+  /** Digits after the decimal separator, no leading separator. */
+  decimal: string;
+  symbol: string;
+  isNegative: boolean;
+  /** English shows "SAR 1,234"; Arabic shows "١٬٢٣٤ ر.س" — a caller laying the
+   * symbol out as its own Text node needs to know which side it's on. */
+  symbolFirst: boolean;
+}
+
 interface CurrencyContextValue {
   baseCurrency: string;
   setBaseCurrency: (code: string) => void;
@@ -18,6 +30,9 @@ interface CurrencyContextValue {
   convertToBase: (amount: number, fromCurrency: string) => number;
   formatMoney: (amount: number, currencyCode?: string) => string;
   formatOriginalMoney: (amount: number, currencyCode: string) => string;
+  /** Same formatting as `formatMoney`, split into parts so a caller can give
+   * the symbol/integer/decimal portions different type treatment. */
+  formatMoneyParts: (amount: number, currencyCode?: string) => MoneyParts;
 }
 
 const CurrencyContext = createContext<CurrencyContextValue | null>(null);
@@ -74,6 +89,41 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
     [formatMoneyIn],
   );
 
+  const formatMoneyPartsIn = useCallback(
+    (amount: number, currencyCode: string): MoneyParts => {
+      const currency = getCurrency(currencyCode);
+      const isAr = language === 'ar';
+      const abs = Math.abs(amount);
+      const numberFormatter = new Intl.NumberFormat(isAr ? 'ar-SA-u-nu-arab' : 'en-US', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      });
+      const parts = numberFormatter.formatToParts(abs);
+      const integer = parts
+        .filter((p) => p.type === 'integer' || p.type === 'group')
+        .map((p) => p.value)
+        .join('');
+      const decimal = parts
+        .filter((p) => p.type === 'fraction')
+        .map((p) => p.value)
+        .join('');
+      return {
+        integer,
+        decimal,
+        symbol: isAr ? currency.symbolAr : currency.symbolEn,
+        isNegative: amount < 0,
+        symbolFirst: !isAr,
+      };
+    },
+    [language],
+  );
+
+  const formatMoneyParts = useCallback(
+    (amount: number, currencyCode?: string) =>
+      formatMoneyPartsIn(amount, currencyCode ?? baseCurrency),
+    [formatMoneyPartsIn, baseCurrency],
+  );
+
   const value = useMemo<CurrencyContextValue>(
     () => ({
       baseCurrency,
@@ -82,8 +132,16 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
       convertToBase,
       formatMoney,
       formatOriginalMoney,
+      formatMoneyParts,
     }),
-    [baseCurrency, setBaseCurrency, convertToBase, formatMoney, formatOriginalMoney],
+    [
+      baseCurrency,
+      setBaseCurrency,
+      convertToBase,
+      formatMoney,
+      formatOriginalMoney,
+      formatMoneyParts,
+    ],
   );
 
   return <CurrencyContext.Provider value={value}>{children}</CurrencyContext.Provider>;

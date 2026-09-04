@@ -4,6 +4,7 @@ import { useRouter } from 'expo-router';
 import { Bell, Coins, CreditCard, Globe, Shield } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 
+import { PageTransition } from '@/components/PageTransition';
 import { Avatar } from '@/components/ui/Avatar';
 import { SettingsCard, SettingsRow } from '@/components/ui/SettingsCard';
 import { ToggleSwitch } from '@/components/ui/ToggleSwitch';
@@ -36,187 +37,189 @@ export default function Settings() {
   ];
 
   return (
-    <ScrollView
-      style={{ backgroundColor: theme.ground }}
-      contentContainerStyle={{
-        padding: 16,
-        paddingTop: headerHeight + 16,
-        gap: 14,
-        paddingBottom: 40,
-      }}
-      showsVerticalScrollIndicator={false}
-    >
-      <Pressable onPress={() => router.push('/settings/edit-profile')}>
-        <LinearGradient
-          colors={[`rgba(${theme.glow.a},0.14)`, theme.surface, theme.surfaceAlt]}
-          locations={[0, 0.55, 1]}
-          start={{ x: 0.15, y: 0 }}
-          end={{ x: 0.85, y: 1 }}
-          style={{
-            borderRadius: RADII.card,
-            padding: 20,
-            paddingVertical: 20,
-            flexDirection: 'row',
-            alignItems: 'center',
-            gap: 14,
-          }}
-        >
-          <Avatar
-            name={profile.name || 'You'}
-            photoUri={profile.avatar || undefined}
-            size={60}
-            ring="accent"
-          />
-          <View style={{ flex: 1, gap: 6 }}>
-            <Text style={{ fontSize: 17, fontWeight: '700', color: TEXT.primary }}>
-              {profile.name || '—'}
-            </Text>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-              <CreditCard size={12} color={theme.accent2} />
-              <Text style={{ fontSize: 11, color: TEXT.secondary }}>
-                {t('settings.monthlyIncome', { amount: formatMoney(totalMonthlyIncomeBase) })}
+    <PageTransition>
+      <ScrollView
+        style={{ backgroundColor: theme.ground }}
+        contentContainerStyle={{
+          padding: 16,
+          paddingTop: headerHeight + 16,
+          gap: 14,
+          paddingBottom: 40,
+        }}
+        showsVerticalScrollIndicator={false}
+      >
+        <Pressable onPress={() => router.push('/settings/edit-profile')}>
+          <LinearGradient
+            colors={[`rgba(${theme.glow.a},0.14)`, theme.surface, theme.surfaceAlt]}
+            locations={[0, 0.55, 1]}
+            start={{ x: 0.15, y: 0 }}
+            end={{ x: 0.85, y: 1 }}
+            style={{
+              borderRadius: RADII.card,
+              padding: 20,
+              paddingVertical: 20,
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 14,
+            }}
+          >
+            <Avatar
+              name={profile.name || 'You'}
+              photoUri={profile.avatar || undefined}
+              size={60}
+              ring="accent"
+            />
+            <View style={{ flex: 1, gap: 6 }}>
+              <Text style={{ fontSize: 17, fontWeight: '700', color: TEXT.primary }}>
+                {profile.name || '—'}
               </Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <CreditCard size={12} color={theme.accent2} />
+                <Text style={{ fontSize: 11, color: TEXT.secondary }}>
+                  {t('settings.monthlyIncome', { amount: formatMoney(totalMonthlyIncomeBase) })}
+                </Text>
+              </View>
             </View>
+          </LinearGradient>
+        </Pressable>
+
+        <SettingsCard title={t('settings.appearance')}>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 12 }}>
+            {THEME_IDS.map((id) => (
+              <ThemeTile key={id} id={id} active={id === themeId} onPress={() => setThemeId(id)} />
+            ))}
           </View>
-        </LinearGradient>
-      </Pressable>
 
-      <SettingsCard title={t('settings.appearance')}>
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 12 }}>
-          {THEME_IDS.map((id) => (
-            <ThemeTile key={id} id={id} active={id === themeId} onPress={() => setThemeId(id)} />
-          ))}
-        </View>
+          <SettingsRow
+            showTopBorder
+            icon={
+              <View
+                style={{
+                  width: 25,
+                  height: 25,
+                  borderRadius: RADII.iconTile,
+                  backgroundColor: `rgba(${theme.glow.a},0.16)`,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <Globe size={13} color={theme.accent2} />
+              </View>
+            }
+            label={t('settings.language')}
+            value={
+              <CustomSelect
+                value={language}
+                options={languageOptions}
+                onChange={setLanguage}
+                sheetTitle={t('settings.language')}
+              />
+            }
+          />
 
-        <SettingsRow
-          showTopBorder
-          icon={
-            <View
-              style={{
-                width: 25,
-                height: 25,
-                borderRadius: RADII.iconTile,
-                backgroundColor: `rgba(${theme.glow.a},0.16)`,
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              <Globe size={13} color={theme.accent2} />
-            </View>
-          }
-          label={t('settings.language')}
-          value={
-            <CustomSelect
-              value={language}
-              options={languageOptions}
-              onChange={setLanguage}
-              sheetTitle={t('settings.language')}
-            />
-          }
-        />
+          <SettingsRow
+            icon={
+              <View
+                style={{
+                  width: 25,
+                  height: 25,
+                  borderRadius: RADII.iconTile,
+                  backgroundColor: `rgba(${theme.glow.a},0.16)`,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <Text style={{ fontSize: 9.5, fontWeight: '800', color: theme.accent2 }}>Aa</Text>
+              </View>
+            }
+            label={t('settings.fontSize')}
+            value={
+              <SegmentedControl<FontScaleId>
+                options={FONT_SCALE_IDS.map((id) => ({ label: FONT_SCALE_LABELS[id], value: id }))}
+                value={fontScale}
+                onChange={setFontScale}
+              />
+            }
+          />
+        </SettingsCard>
 
-        <SettingsRow
-          icon={
-            <View
-              style={{
-                width: 25,
-                height: 25,
-                borderRadius: RADII.iconTile,
-                backgroundColor: `rgba(${theme.glow.a},0.16)`,
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              <Text style={{ fontSize: 9.5, fontWeight: '800', color: theme.accent2 }}>Aa</Text>
-            </View>
-          }
-          label={t('settings.fontSize')}
-          value={
-            <SegmentedControl<FontScaleId>
-              options={FONT_SCALE_IDS.map((id) => ({ label: FONT_SCALE_LABELS[id], value: id }))}
-              value={fontScale}
-              onChange={setFontScale}
-            />
-          }
-        />
-      </SettingsCard>
+        <SettingsCard>
+          <SettingsRow
+            icon={
+              <View
+                style={{
+                  width: 25,
+                  height: 25,
+                  borderRadius: RADII.iconTile,
+                  backgroundColor: `rgba(${theme.glow.a},0.16)`,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <Coins size={13} color={theme.accent2} />
+              </View>
+            }
+            label={t('settings.baseCurrency')}
+            value={
+              <CustomSelect
+                value={baseCurrency}
+                options={currencyOptions}
+                onChange={setBaseCurrency}
+                searchable
+                searchPlaceholder="Search currency"
+                sheetTitle={t('settings.baseCurrency')}
+              />
+            }
+          />
 
-      <SettingsCard>
-        <SettingsRow
-          icon={
-            <View
-              style={{
-                width: 25,
-                height: 25,
-                borderRadius: RADII.iconTile,
-                backgroundColor: `rgba(${theme.glow.a},0.16)`,
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              <Coins size={13} color={theme.accent2} />
-            </View>
-          }
-          label={t('settings.baseCurrency')}
-          value={
-            <CustomSelect
-              value={baseCurrency}
-              options={currencyOptions}
-              onChange={setBaseCurrency}
-              searchable
-              searchPlaceholder="Search currency"
-              sheetTitle={t('settings.baseCurrency')}
-            />
-          }
-        />
+          <SettingsRow
+            showTopBorder
+            onPress={() => router.push('/settings/data')}
+            icon={
+              <View
+                style={{
+                  width: 25,
+                  height: 25,
+                  borderRadius: RADII.iconTile,
+                  backgroundColor: `rgba(${theme.glow.a},0.16)`,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <Shield size={13} color={theme.accent2} />
+              </View>
+            }
+            label={t('settings.backupData')}
+            value={
+              <Text style={{ fontSize: 11.5, color: TEXT.tertiary }}>
+                {t('settings.backupDataValue')} ›
+              </Text>
+            }
+          />
 
-        <SettingsRow
-          showTopBorder
-          onPress={() => router.push('/settings/data')}
-          icon={
-            <View
-              style={{
-                width: 25,
-                height: 25,
-                borderRadius: RADII.iconTile,
-                backgroundColor: `rgba(${theme.glow.a},0.16)`,
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              <Shield size={13} color={theme.accent2} />
-            </View>
-          }
-          label={t('settings.backupData')}
-          value={
-            <Text style={{ fontSize: 11.5, color: TEXT.tertiary }}>
-              {t('settings.backupDataValue')} ›
-            </Text>
-          }
-        />
-
-        <SettingsRow
-          showTopBorder
-          icon={
-            <View
-              style={{
-                width: 25,
-                height: 25,
-                borderRadius: RADII.iconTile,
-                backgroundColor: `rgba(${theme.glow.a},0.16)`,
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              <Bell size={13} color={theme.accent2} />
-            </View>
-          }
-          label={t('settings.notifications')}
-          // Decorative placeholder until the notification engine lands (CLAUDE.md rule 10).
-          value={<ToggleSwitch value={true} accessibilityLabel={t('settings.notifications')} />}
-        />
-      </SettingsCard>
-    </ScrollView>
+          <SettingsRow
+            showTopBorder
+            icon={
+              <View
+                style={{
+                  width: 25,
+                  height: 25,
+                  borderRadius: RADII.iconTile,
+                  backgroundColor: `rgba(${theme.glow.a},0.16)`,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <Bell size={13} color={theme.accent2} />
+              </View>
+            }
+            label={t('settings.notifications')}
+            // Decorative placeholder until the notification engine lands (CLAUDE.md rule 10).
+            value={<ToggleSwitch value={true} accessibilityLabel={t('settings.notifications')} />}
+          />
+        </SettingsCard>
+      </ScrollView>
+    </PageTransition>
   );
 }
 

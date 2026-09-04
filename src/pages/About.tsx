@@ -8,6 +8,7 @@ import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { useTheme } from '@/context/ThemeContext';
 import { useLanguage } from '@/context/LanguageContext';
 import { useChrome } from '@/context/ChromeContext';
+import { PageTransition } from '@/components/PageTransition';
 import { ListRow } from '@/components/ui/ListRow';
 import { FONTS, TEXT, RADII, BORDER } from '@/constants/theme';
 
@@ -53,130 +54,139 @@ export default function About() {
   ];
 
   return (
-    <ScrollView
-      style={{ backgroundColor: theme.ground }}
-      contentContainerStyle={{
-        alignItems: 'center',
-        padding: 24,
-        paddingTop: headerHeight + 32,
-        paddingBottom: navbarHeight + 40,
-        gap: 20,
-      }}
-      showsVerticalScrollIndicator={false}
-    >
-      <Animated.View entering={FadeInDown.duration(420)} style={{ alignItems: 'center', gap: 14 }}>
-        <View
-          style={{
-            width: 108,
-            height: 108,
-            borderRadius: 30,
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
+    <PageTransition>
+      <ScrollView
+        style={{ backgroundColor: theme.ground }}
+        contentContainerStyle={{
+          alignItems: 'center',
+          padding: 24,
+          paddingTop: headerHeight + 32,
+          paddingBottom: navbarHeight + 40,
+          gap: 20,
+        }}
+        showsVerticalScrollIndicator={false}
+      >
+        <Animated.View
+          entering={FadeInDown.duration(420)}
+          style={{ alignItems: 'center', gap: 14 }}
         >
-          <LinearGradient
-            colors={[`rgba(${theme.glow.a},0.5)`, `rgba(${theme.glow.b},0)`]}
-            style={{
-              position: 'absolute',
-              width: 140,
-              height: 140,
-              borderRadius: 70,
-            }}
-          />
           <View
             style={{
-              width: 96,
-              height: 96,
-              borderRadius: 26,
-              overflow: 'hidden',
-              borderWidth: 1,
-              borderColor: `rgba(${theme.glow.a},0.35)`,
+              width: 108,
+              height: 108,
+              borderRadius: 30,
+              alignItems: 'center',
+              justifyContent: 'center',
             }}
           >
-            <Image source={APP_LOGO} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
+            <LinearGradient
+              colors={[`rgba(${theme.glow.a},0.5)`, `rgba(${theme.glow.b},0)`]}
+              style={{
+                position: 'absolute',
+                width: 140,
+                height: 140,
+                borderRadius: 70,
+              }}
+            />
+            <View
+              style={{
+                width: 96,
+                height: 96,
+                borderRadius: 26,
+                overflow: 'hidden',
+                borderWidth: 1,
+                borderColor: `rgba(${theme.glow.a},0.35)`,
+              }}
+            >
+              <Image
+                source={APP_LOGO}
+                style={{ width: '100%', height: '100%' }}
+                resizeMode="cover"
+              />
+            </View>
           </View>
-        </View>
 
-        <View style={{ alignItems: 'center', gap: 6 }}>
-          <Text style={{ fontFamily: FONTS.display, fontSize: 22, color: TEXT.primary }}>
-            {t('app.name')}
-          </Text>
-          <Text
-            style={{
-              fontSize: 12.5,
-              color: theme.accent2,
-              textAlign: 'center',
-              maxWidth: 260,
-            }}
-          >
-            {t('about.tagline')}
-          </Text>
-          <Text style={{ fontSize: 11, color: TEXT.tertiary, marginTop: 4 }}>
-            {t('about.version', { version })}
-          </Text>
-        </View>
-      </Animated.View>
+          <View style={{ alignItems: 'center', gap: 6 }}>
+            <Text style={{ fontFamily: FONTS.display, fontSize: 22, color: TEXT.primary }}>
+              {t('app.name')}
+            </Text>
+            <Text
+              style={{
+                fontSize: 12.5,
+                color: theme.accent2,
+                textAlign: 'center',
+                maxWidth: 260,
+              }}
+            >
+              {t('about.tagline')}
+            </Text>
+            <Text style={{ fontSize: 11, color: TEXT.tertiary, marginTop: 4 }}>
+              {t('about.version', { version })}
+            </Text>
+          </View>
+        </Animated.View>
 
-      <Animated.View
-        entering={FadeInUp.duration(420).delay(120)}
-        style={{
-          width: '100%',
-          borderRadius: RADII.card,
-          backgroundColor: theme.surface,
-          borderWidth: 1,
-          borderColor: BORDER.hairline,
-          overflow: 'hidden',
-        }}
-      >
-        <Text
+        <Animated.View
+          entering={FadeInUp.duration(420).delay(120)}
           style={{
-            fontSize: 11,
-            fontWeight: '700',
-            letterSpacing: 1,
-            textTransform: 'uppercase',
-            color: TEXT.tertiary,
-            paddingHorizontal: 16,
-            paddingTop: 14,
-            paddingBottom: 6,
+            width: '100%',
+            borderRadius: RADII.card,
+            backgroundColor: theme.surface,
+            borderWidth: 1,
+            borderColor: BORDER.hairline,
+            overflow: 'hidden',
           }}
         >
-          {t('about.linksTitle')}
-        </Text>
-        {linkRows.map((row, index) => (
-          <ListRow
-            key={row.label}
-            leading={
-              <View
-                style={{
-                  width: 30,
-                  height: 30,
-                  borderRadius: RADII.iconTile,
-                  backgroundColor: `rgba(${theme.glow.a},0.14)`,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
-                {row.icon}
-              </View>
-            }
-            title={row.label}
-            onPress={() => Linking.openURL(row.url)}
-            showBottomBorder={index < linkRows.length - 1}
-          />
-        ))}
-      </Animated.View>
+          <Text
+            style={{
+              fontSize: 11,
+              fontWeight: '700',
+              letterSpacing: 1,
+              textTransform: 'uppercase',
+              color: TEXT.tertiary,
+              paddingHorizontal: 16,
+              paddingTop: 14,
+              paddingBottom: 6,
+            }}
+          >
+            {t('about.linksTitle')}
+          </Text>
+          {linkRows.map((row, index) => (
+            <ListRow
+              key={row.label}
+              leading={
+                <View
+                  style={{
+                    width: 30,
+                    height: 30,
+                    borderRadius: RADII.iconTile,
+                    backgroundColor: `rgba(${theme.glow.a},0.14)`,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  {row.icon}
+                </View>
+              }
+              title={row.label}
+              onPress={() => Linking.openURL(row.url)}
+              showBottomBorder={index < linkRows.length - 1}
+            />
+          ))}
+        </Animated.View>
 
-      <Animated.View
-        entering={FadeInUp.duration(420).delay(200)}
-        style={{ alignItems: 'center', gap: 4 }}
-      >
-        <Text style={{ fontSize: 11.5, color: TEXT.secondary }}>
-          {t('about.credit', { name: DEVELOPER_NAME })}
-        </Text>
-        <Text style={{ fontSize: 10.5, color: TEXT.tertiary }}>
-          {t('about.copyright', { year, name: t('app.name') })}
-        </Text>
-      </Animated.View>
-    </ScrollView>
+        <Animated.View
+          entering={FadeInUp.duration(420).delay(200)}
+          style={{ alignItems: 'center', gap: 4 }}
+        >
+          <Text style={{ fontSize: 11.5, color: TEXT.secondary }}>
+            {t('about.credit', { name: DEVELOPER_NAME })}
+          </Text>
+          <Text style={{ fontSize: 10.5, color: TEXT.tertiary }}>
+            {t('about.copyright', { year, name: t('app.name') })}
+          </Text>
+        </Animated.View>
+      </ScrollView>
+    </PageTransition>
   );
 }

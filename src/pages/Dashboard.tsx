@@ -1,6 +1,7 @@
 import React from 'react';
 import { Text, View } from 'react-native';
 
+import { PageTransition } from '@/components/PageTransition';
 import { useLanguage } from '@/context/LanguageContext';
 import { useTheme } from '@/context/ThemeContext';
 import { useChrome } from '@/context/ChromeContext';
@@ -13,24 +14,26 @@ export default function Dashboard() {
   const { headerHeight, navbarHeight } = useChrome();
 
   return (
-    <View
-      style={{
-        flex: 1,
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: 8,
-        padding: 24,
-        paddingTop: headerHeight + 24,
-        paddingBottom: navbarHeight + 24,
-        backgroundColor: theme.ground,
-      }}
-    >
-      <Text style={{ fontFamily: FONTS.display, fontSize: 20, color: TEXT.primary }}>
-        {t('placeholder.dashboard.title')}
-      </Text>
-      <Text style={{ fontSize: 13, color: TEXT.tertiary, textAlign: 'center' }}>
-        {t('placeholder.dashboard.subtitle')}
-      </Text>
-    </View>
+    <PageTransition>
+      <View
+        style={{
+          flex: 1,
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: 8,
+          padding: 24,
+          paddingTop: headerHeight + 24,
+          paddingBottom: navbarHeight + 24,
+          backgroundColor: theme.ground,
+        }}
+      >
+        <Text style={{ fontFamily: FONTS.display, fontSize: 20, color: TEXT.primary }}>
+          {t('placeholder.dashboard.title')}
+        </Text>
+        <Text style={{ fontSize: 13, color: TEXT.tertiary, textAlign: 'center' }}>
+          {t('placeholder.dashboard.subtitle')}
+        </Text>
+      </View>
+    </PageTransition>
   );
 }

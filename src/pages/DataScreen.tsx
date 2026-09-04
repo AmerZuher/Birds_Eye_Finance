@@ -6,6 +6,7 @@ import * as DocumentPicker from 'expo-document-picker';
 import * as Clipboard from 'expo-clipboard';
 import { Check, Copy, Download, Shield, Upload } from 'lucide-react-native';
 
+import { PageTransition } from '@/components/PageTransition';
 import { SettingsCard } from '@/components/ui/SettingsCard';
 import { SegmentedControl } from '@/components/ui/SegmentedControl';
 import { InlineBanner } from '@/components/ui/InlineBanner';
@@ -192,177 +193,179 @@ export default function DataScreen() {
   const canRestore = frequency !== 'off' && hasSnapshot;
 
   return (
-    <ScrollView
-      style={{ backgroundColor: theme.ground }}
-      contentContainerStyle={{
-        padding: 16,
-        paddingTop: headerHeight + 16,
-        gap: 14,
-        paddingBottom: 40,
-      }}
-      showsVerticalScrollIndicator={false}
-    >
-      {banner ? (
-        <InlineBanner
-          kind={banner.kind}
-          message={banner.message}
-          onDismiss={() => setBanner(null)}
-          autoDismissMs={4000}
-        />
-      ) : null}
+    <PageTransition>
+      <ScrollView
+        style={{ backgroundColor: theme.ground }}
+        contentContainerStyle={{
+          padding: 16,
+          paddingTop: headerHeight + 16,
+          gap: 14,
+          paddingBottom: 40,
+        }}
+        showsVerticalScrollIndicator={false}
+      >
+        {banner ? (
+          <InlineBanner
+            kind={banner.kind}
+            message={banner.message}
+            onDismiss={() => setBanner(null)}
+            autoDismissMs={4000}
+          />
+        ) : null}
 
-      <SettingsCard>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 4 }}>
-          <IconTile size={36} tint="accent">
-            <Shield size={16} color={theme.accent2} />
-          </IconTile>
-          <View style={{ flex: 1 }}>
-            <Text style={{ fontSize: 14, fontWeight: '700', color: TEXT.primary }}>
-              {t('settings.backupData')}
-            </Text>
-            <Text style={{ fontSize: 11, color: TEXT.tertiary, marginTop: 2 }}>
-              {t('data.description')}
-            </Text>
+        <SettingsCard>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 4 }}>
+            <IconTile size={36} tint="accent">
+              <Shield size={16} color={theme.accent2} />
+            </IconTile>
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontSize: 14, fontWeight: '700', color: TEXT.primary }}>
+                {t('settings.backupData')}
+              </Text>
+              <Text style={{ fontSize: 11, color: TEXT.tertiary, marginTop: 2 }}>
+                {t('data.description')}
+              </Text>
+            </View>
           </View>
-        </View>
-      </SettingsCard>
+        </SettingsCard>
 
-      <SettingsCard title={t('data.export.title')}>
-        <View style={{ gap: 10 }}>
-          <Pressable
-            onPress={handleExport}
-            disabled={busy}
-            style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 8,
-              backgroundColor: theme.accent1,
-              borderRadius: RADII.field,
-              paddingVertical: 12,
-              opacity: busy ? 0.6 : 1,
-            }}
-          >
-            <Download size={15} color={theme.buttonText} />
-            <Text style={{ color: theme.buttonText, fontWeight: '700', fontSize: 13 }}>
-              {t('data.export.button')}
-            </Text>
-          </Pressable>
-
-          <Pressable
-            onPress={handleImportFile}
-            disabled={busy}
-            style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 8,
-              backgroundColor: 'rgba(255,255,255,0.05)',
-              borderWidth: 1,
-              borderColor: BORDER.hairline,
-              borderRadius: RADII.field,
-              paddingVertical: 12,
-              opacity: busy ? 0.6 : 1,
-            }}
-          >
-            <Upload size={15} color={TEXT.primary} />
-            <Text style={{ color: TEXT.primary, fontWeight: '700', fontSize: 13 }}>
-              {t('data.import.button')}
-            </Text>
-          </Pressable>
-        </View>
-      </SettingsCard>
-
-      <SettingsCard title={t('data.autoBackup.title')}>
-        <SegmentedControl<BackupFrequency>
-          options={frequencyOptions}
-          value={frequency}
-          onChange={handleFrequencyChange}
-        />
-
-        <Text style={{ fontSize: 11, color: TEXT.tertiary, marginTop: 10 }}>
-          {t('data.autoBackup.status', { time: humanizeLastBackup(lastBackup, t) })}
-        </Text>
-
-        <View style={{ flexDirection: 'row', gap: 10, marginTop: 12 }}>
-          <View style={{ flex: 1 }}>
-            <SecondaryButton
-              label={t('data.autoBackup.now')}
-              onPress={handleBackupNow}
+        <SettingsCard title={t('data.export.title')}>
+          <View style={{ gap: 10 }}>
+            <Pressable
+              onPress={handleExport}
               disabled={busy}
-            />
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 8,
+                backgroundColor: theme.accent1,
+                borderRadius: RADII.field,
+                paddingVertical: 12,
+                opacity: busy ? 0.6 : 1,
+              }}
+            >
+              <Download size={15} color={theme.buttonText} />
+              <Text style={{ color: theme.buttonText, fontWeight: '700', fontSize: 13 }}>
+                {t('data.export.button')}
+              </Text>
+            </Pressable>
+
+            <Pressable
+              onPress={handleImportFile}
+              disabled={busy}
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 8,
+                backgroundColor: 'rgba(255,255,255,0.05)',
+                borderWidth: 1,
+                borderColor: BORDER.hairline,
+                borderRadius: RADII.field,
+                paddingVertical: 12,
+                opacity: busy ? 0.6 : 1,
+              }}
+            >
+              <Upload size={15} color={TEXT.primary} />
+              <Text style={{ color: TEXT.primary, fontWeight: '700', fontSize: 13 }}>
+                {t('data.import.button')}
+              </Text>
+            </Pressable>
           </View>
-          {canRestore ? (
+        </SettingsCard>
+
+        <SettingsCard title={t('data.autoBackup.title')}>
+          <SegmentedControl<BackupFrequency>
+            options={frequencyOptions}
+            value={frequency}
+            onChange={handleFrequencyChange}
+          />
+
+          <Text style={{ fontSize: 11, color: TEXT.tertiary, marginTop: 10 }}>
+            {t('data.autoBackup.status', { time: humanizeLastBackup(lastBackup, t) })}
+          </Text>
+
+          <View style={{ flexDirection: 'row', gap: 10, marginTop: 12 }}>
             <View style={{ flex: 1 }}>
               <SecondaryButton
-                label={t('data.autoBackup.restore')}
-                onPress={() => setRestoreConfirmOpen(true)}
+                label={t('data.autoBackup.now')}
+                onPress={handleBackupNow}
                 disabled={busy}
               />
             </View>
-          ) : null}
-        </View>
-      </SettingsCard>
+            {canRestore ? (
+              <View style={{ flex: 1 }}>
+                <SecondaryButton
+                  label={t('data.autoBackup.restore')}
+                  onPress={() => setRestoreConfirmOpen(true)}
+                  disabled={busy}
+                />
+              </View>
+            ) : null}
+          </View>
+        </SettingsCard>
 
-      <SettingsCard title={t('data.paste.title')}>
-        <TextInput
-          value={pasteText}
-          onChangeText={setPasteText}
-          placeholder={t('data.paste.placeholder')}
-          placeholderTextColor={TEXT.tertiary}
-          multiline
-          numberOfLines={6}
-          textAlignVertical="top"
-          style={{
-            fontSize: 12,
-            color: TEXT.primary,
-            backgroundColor: theme.surfaceAlt,
-            borderRadius: RADII.field,
-            borderWidth: 1,
-            borderColor: BORDER.hairline,
-            padding: 12,
-            minHeight: 110,
-          }}
+        <SettingsCard title={t('data.paste.title')}>
+          <TextInput
+            value={pasteText}
+            onChangeText={setPasteText}
+            placeholder={t('data.paste.placeholder')}
+            placeholderTextColor={TEXT.tertiary}
+            multiline
+            numberOfLines={6}
+            textAlignVertical="top"
+            style={{
+              fontSize: 12,
+              color: TEXT.primary,
+              backgroundColor: theme.surfaceAlt,
+              borderRadius: RADII.field,
+              borderWidth: 1,
+              borderColor: BORDER.hairline,
+              padding: 12,
+              minHeight: 110,
+            }}
+          />
+          <View style={{ marginTop: 10 }}>
+            <GradientButton
+              label={t('data.paste.button')}
+              onPress={handlePasteImport}
+              disabled={!pasteText.trim()}
+            />
+          </View>
+        </SettingsCard>
+
+        <SettingsCard title={t('data.prompts.title')}>
+          <Text style={{ fontSize: 11, color: TEXT.tertiary, marginBottom: 12 }}>
+            {t('data.prompts.caption')}
+          </Text>
+          <View style={{ gap: 8 }}>
+            <PromptCopyRow
+              label={t('data.prompts.copyDebts')}
+              copied={copiedKey === 'debts'}
+              onPress={() => copyPrompt('debts')}
+            />
+            <PromptCopyRow
+              label={t('data.prompts.copyExpenses')}
+              copied={copiedKey === 'expenses'}
+              onPress={() => copyPrompt('expenses')}
+            />
+          </View>
+        </SettingsCard>
+
+        <ConfirmModal
+          visible={restoreConfirmOpen}
+          title={t('data.autoBackup.restoreConfirmTitle')}
+          subtitle={t('data.autoBackup.restoreConfirmSubtitle', {
+            time: humanizeLastBackup(lastBackup, t),
+          })}
+          onCancel={() => setRestoreConfirmOpen(false)}
+          onConfirm={handleRestore}
+          confirmLabel={t('data.autoBackup.restore')}
+          cancelLabel={t('common.cancel')}
         />
-        <View style={{ marginTop: 10 }}>
-          <GradientButton
-            label={t('data.paste.button')}
-            onPress={handlePasteImport}
-            disabled={!pasteText.trim()}
-          />
-        </View>
-      </SettingsCard>
-
-      <SettingsCard title={t('data.prompts.title')}>
-        <Text style={{ fontSize: 11, color: TEXT.tertiary, marginBottom: 12 }}>
-          {t('data.prompts.caption')}
-        </Text>
-        <View style={{ gap: 8 }}>
-          <PromptCopyRow
-            label={t('data.prompts.copyDebts')}
-            copied={copiedKey === 'debts'}
-            onPress={() => copyPrompt('debts')}
-          />
-          <PromptCopyRow
-            label={t('data.prompts.copyExpenses')}
-            copied={copiedKey === 'expenses'}
-            onPress={() => copyPrompt('expenses')}
-          />
-        </View>
-      </SettingsCard>
-
-      <ConfirmModal
-        visible={restoreConfirmOpen}
-        title={t('data.autoBackup.restoreConfirmTitle')}
-        subtitle={t('data.autoBackup.restoreConfirmSubtitle', {
-          time: humanizeLastBackup(lastBackup, t),
-        })}
-        onCancel={() => setRestoreConfirmOpen(false)}
-        onConfirm={handleRestore}
-        confirmLabel={t('data.autoBackup.restore')}
-        cancelLabel={t('common.cancel')}
-      />
-    </ScrollView>
+      </ScrollView>
+    </PageTransition>
   );
 }
 

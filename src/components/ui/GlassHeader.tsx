@@ -9,6 +9,29 @@ import { useChrome } from '@/context/ChromeContext';
 import { ANDROID_BLUR_METHOD, GLASS } from '@/constants/theme';
 import { CHROME_GROUND_ALPHA, hexToRgb } from '@/utils/color';
 
+/**
+ * The content row's `minHeight` — meaning the row's whole box, its own
+ * `paddingVertical: 12` (24px) included, since minHeight is set on that same
+ * node. It has to be at least as tall as the tallest real row ever gets:
+ * Header's settings-avatar Pressable — a 32px Avatar rendered with
+ * `ring="accent"` (draws a 2px ring 3px outside the given size, so a 32px
+ * avatar occupies 38px) inside a Pressable with `padding: 2` for its
+ * active-state tint (38 + 2 + 2 = 42) — plus the row's own 24px of padding
+ * around it: 66.
+ *
+ * The previous two attempts at this constant (36, then 42) both used the
+ * avatar Pressable's own height alone, forgetting it sits *inside* a row
+ * that adds another 24px of padding on top. Since minHeight is a floor, both
+ * values landed below what either row already totalled unaided (66 for the
+ * tab screens' brand row, 56 for Settings/About's back+title row) and so
+ * never actually constrained anything — the two kept their own, still
+ * different, natural heights regardless of what this constant said.
+ *
+ * `minHeight`, not `height`: at a large fontScale a title is allowed to make
+ * the bar taller rather than being clipped by the overflow:hidden below.
+ */
+const ROW_MIN_HEIGHT = 66;
+
 interface GlassHeaderProps {
   children: React.ReactNode;
 }
@@ -46,11 +69,11 @@ export function GlassHeader({ children }: GlassHeaderProps) {
         zIndex: 50,
         paddingTop: insets.top,
         overflow: 'hidden',
-        borderBottomWidth: 1,
+        borderBottomWidth: 0.5,
         // Same accent-tinted stroke as the navbar's top edge (theme.glow.b at
         // 0.32), not GLASS.border's neutral white — the two floating bars
         // need matching borders to read as one material bookending the app.
-        borderBottomColor: `rgba(${theme.glow.b},0.32)`,
+        borderBottomColor: `rgba(${theme.glow.b},0.15)`,
       }}
     >
       <BlurView
@@ -75,6 +98,7 @@ export function GlassHeader({ children }: GlassHeaderProps) {
           alignItems: 'center',
           justifyContent: 'space-between',
           gap: 10,
+          minHeight: ROW_MIN_HEIGHT,
           paddingVertical: 12,
           paddingHorizontal: 18,
         }}

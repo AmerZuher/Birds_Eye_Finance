@@ -2,7 +2,7 @@
  * Reanimated shared values are mutated via `.value =` by design (not React
  * state), and this sheet's mount/unmount must lag one animation behind the
  * `visible` prop — both are false positives against the intended pattern. */
-import React, { useEffect, useId, useState } from 'react';
+import React, { useEffect, useId, useRef, useState } from 'react';
 import {
   BackHandler,
   Dimensions,
@@ -15,7 +15,6 @@ import {
   View,
 } from 'react-native';
 import { BlurView } from 'expo-blur';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   Easing,
@@ -30,15 +29,18 @@ import { useTheme } from '@/context/ThemeContext';
 import { useChrome } from '@/context/ChromeContext';
 import { useModalPortal } from '@/context/ModalPortalContext';
 import { ANDROID_BLUR_METHOD, GLASS, RADII, TEXT } from '@/constants/theme';
-import { CHROME_SURFACE_ALPHA, hexToRgb } from '@/utils/color';
+import { CHROME_GROUND_ALPHA, hexToRgb } from '@/utils/color';
 
 const SCREEN_HEIGHT = Dimensions.get('window').height;
 const DISMISS_DISTANCE = 100;
 const DISMISS_VELOCITY = 800;
-// Plain timing beats a spring here — a bottom sheet that opens/closes on
-// every tap shouldn't bounce or linger; quick and settled reads faster.
-const OPEN_TIMING = { duration: 180, easing: Easing.out(Easing.cubic) };
-const CLOSE_TIMING = { duration: 140, easing: Easing.in(Easing.cubic) };
+// The sheet travels on the same curve and duration in both directions —
+// cubic-bezier(0.22, 1, 0.36, 1) over 350ms — while the backdrop fades on a
+// plain 300ms ease, exactly as the approved motion spec describes it. The
+// curve is shared with the Fade Rise page transition (PageTransition.tsx) so
+// screens and sheets move on one motion language rather than two.
+const SHEET_TIMING = { duration: 350, easing: Easing.bezier(0.22, 1, 0.36, 1) };
+const BACKDROP_TIMING = { duration: 300, easing: Easing.ease };
 
 interface GlassModalProps {
   visible: boolean;
@@ -77,20 +79,62 @@ export function GlassModal({
   const [mounted, setMounted] = useState(visible);
   const translateY = useSharedValue(SCREEN_HEIGHT);
   const backdropOpacity = useSharedValue(0);
+  // Set when an open is armed but the sheet hasn't been laid out yet; the
+  // sheet's own onLayout is what actually starts the travel. See below.
+  const openPending = useRef(false);
 
   useEffect(() => {
-    if (visible) {
+    if (visible && !mounted) {
+      // Deliberately does NOT start the animation here. This sheet doesn't
+      // render itself — it hands `content` to ModalPortalContext, which means
+      // it only reaches the screen after this render, then the portal's
+      // showModal effect, then ModalPortalOutlet's own re-render, then layout
+      // of whatever form it's wrapping (DebtModal/ExpenseModal are big
+      // react-hook-form trees). A timing started here runs on the UI thread
+      // through all of those frames while there's still nothing on screen, so
+      // the sheet first becomes visible already most of the way to 0 and
+      // reads as a pop-in rather than a slide.
+      //
+      // Same hazard the reference implementation solves with `void
+      // modal.offsetWidth` — the initial offscreen state has to be committed
+      // before the transition is allowed to run. Here the honest signal that
+      // the sheet exists at its start position is its own onLayout, so the
+      // travel is armed now and started there.
+      translateY.value = SCREEN_HEIGHT;
+      backdropOpacity.value = 0;
+      openPending.current = true;
       setMounted(true);
-      translateY.value = withTiming(0, OPEN_TIMING);
-      backdropOpacity.value = withTiming(1, { duration: 140 });
+    } else if (visible) {
+      // Already on screen — reopened mid-close, so the view is real and
+      // there's nothing to wait for.
+      openPending.current = false;
+      translateY.value = withTiming(0, SHEET_TIMING);
+      backdropOpacity.value = withTiming(1, BACKDROP_TIMING);
     } else if (mounted) {
-      translateY.value = withTiming(SCREEN_HEIGHT, CLOSE_TIMING);
-      backdropOpacity.value = withTiming(0, { duration: 140 }, (finished) => {
+      // Unmount is gated on the *sheet*, not the backdrop — the sheet is now
+      // the longer of the two (350ms vs 300ms), so hanging it off the
+      // backdrop would cut the slide-out short by its last 50ms.
+      openPending.current = false;
+      translateY.value = withTiming(SCREEN_HEIGHT, SHEET_TIMING, (finished) => {
         if (finished) runOnJS(setMounted)(false);
       });
+      backdropOpacity.value = withTiming(0, BACKDROP_TIMING);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visible]);
+
+  /**
+   * The sheet exists and has been measured at its offscreen start position —
+   * only now can the slide actually be seen, so this is where it starts. The
+   * ref guard means later layout passes (keyboard opening, the form growing)
+   * don't restart it.
+   */
+  const onSheetLayout = () => {
+    if (!openPending.current) return;
+    openPending.current = false;
+    translateY.value = withTiming(0, SHEET_TIMING);
+    backdropOpacity.value = withTiming(1, BACKDROP_TIMING);
+  };
 
   // Registered only while visible, so nested sheets (e.g. a currency
   // CustomSelect opened from inside DebtModal) close innermost-first via
@@ -113,15 +157,15 @@ export function GlassModal({
     })
     .onEnd((e) => {
       if (e.translationY > DISMISS_DISTANCE || e.velocityY > DISMISS_VELOCITY) {
-        translateY.value = withTiming(SCREEN_HEIGHT, CLOSE_TIMING);
-        backdropOpacity.value = withTiming(0, { duration: 140 }, (finished) => {
+        translateY.value = withTiming(SCREEN_HEIGHT, SHEET_TIMING, (finished) => {
           if (finished) {
             runOnJS(setMounted)(false);
             runOnJS(closeNow)();
           }
         });
+        backdropOpacity.value = withTiming(0, BACKDROP_TIMING);
       } else {
-        translateY.value = withTiming(0, OPEN_TIMING);
+        translateY.value = withTiming(0, SHEET_TIMING);
       }
     });
 
@@ -146,14 +190,22 @@ export function GlassModal({
         </Animated.View>
 
         <Animated.View
+          onLayout={onSheetLayout}
           style={[
             {
-              maxHeight: '94%',
+              maxHeight: '96%',
               borderTopLeftRadius: RADII.sheet,
               borderTopRightRadius: RADII.sheet,
               borderWidth: 1,
               borderBottomWidth: 0,
-              borderColor: GLASS.border,
+              // theme.glow.b, not GLASS.border's neutral white — matches
+              // GlassHeader's edge stroke so the sheet reads as the same
+              // material as the header/navbar rather than a separate one.
+              // (Navbar's own edge is still at 0.32, not yet brought down to
+              // this 0.15 — the three aren't fully reconciled with each
+              // other yet, this just stops the modal from being the one
+              // most different of the three.)
+              borderColor: `rgba(${theme.glow.b},0.15)`,
               overflow: 'hidden',
               backgroundColor: theme.surface,
             },
@@ -162,11 +214,11 @@ export function GlassModal({
         >
           {/* Same glass material as the header/navbar (rule 8): a real
               BlurView (now possible — this sheet lives in the main window,
-              sharing `blurTarget`) plus the same chromeTint wash + gradient.
-              Deliberately no `elevation` anywhere on this sheet — combined
-              with BlurView + overflow:hidden, elevation is what caused the
-              FAB's native crash earlier (see Navbar.tsx); the border above
-              carries the visual separation instead. */}
+              sharing `blurTarget`) washed the same way. Deliberately no
+              `elevation` anywhere on this sheet — combined with BlurView +
+              overflow:hidden, elevation is what caused the FAB's native
+              crash earlier (see Navbar.tsx); the border above carries the
+              visual separation instead. */}
           <BlurView
             intensity={GLASS.blurIntensity}
             tint="dark"
@@ -174,16 +226,20 @@ export function GlassModal({
             blurTarget={blurTarget}
             style={StyleSheet.absoluteFill}
           />
+          {/* theme.ground at CHROME_GROUND_ALPHA — the exact wash Header and
+              Navbar use (see GlassHeader.tsx), not theme.surface: this sheet
+              is meant to read as the same material as those two floating
+              bars, not as a lighter panel sitting on top of the page. No
+              LinearGradient layered on top either, for the same reason —
+              Header/Navbar skip that white gradient entirely (see the
+              CHROME_GROUND_ALPHA comment in utils/color.ts); adding it here
+              was what made this sheet look like a visibly different,
+              lighter material even with the wash color itself matching. */}
           <View
             style={[
               StyleSheet.absoluteFill,
-              // Same color as the cards (theme.surface) — see GlassHeader.
-              { backgroundColor: `rgba(${hexToRgb(theme.surface)},${CHROME_SURFACE_ALPHA})` },
+              { backgroundColor: `rgba(${hexToRgb(theme.ground)},${CHROME_GROUND_ALPHA})` },
             ]}
-          />
-          <LinearGradient
-            colors={[GLASS.gradientTop, GLASS.gradientBottom]}
-            style={StyleSheet.absoluteFill}
           />
           {/* flexShrink/minHeight:0 on every link in this chain down to the
               ScrollView itself — without it, Yoga sizes each View to its
@@ -201,9 +257,9 @@ export function GlassModal({
                 <View style={{ paddingVertical: 14 }}>
                   <View
                     style={{
-                      width: 36,
+                      width: 50,
                       height: 4,
-                      borderRadius: 4,
+                      borderRadius: 50,
                       backgroundColor: `rgba(${theme.glow.a},0.5)`,
                       alignSelf: 'center',
                     }}

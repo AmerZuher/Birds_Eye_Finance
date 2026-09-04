@@ -1,6 +1,7 @@
 import React from 'react';
 import { Image, Pressable, Text, View } from 'react-native';
 import { usePathname, useRouter } from 'expo-router';
+import * as Haptics from 'expo-haptics';
 import { ArrowLeft } from 'lucide-react-native';
 
 import { GlassHeader } from '@/components/ui/GlassHeader';
@@ -9,7 +10,7 @@ import { Avatar } from '@/components/ui/Avatar';
 import { useTheme } from '@/context/ThemeContext';
 import { useLanguage } from '@/context/LanguageContext';
 import { useUser } from '@/context/UserContext';
-import { FONTS, SEMANTIC, TEXT } from '@/constants/theme';
+import { FONTS, TEXT } from '@/constants/theme';
 
 const APP_LOGO = require('../../assets/icon.png');
 
@@ -42,10 +43,14 @@ export function Header() {
           <IconButton
             icon={ArrowLeft}
             accessibilityLabel={t('settings.back')}
-            onPress={() => router.back()}
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              router.back();
+            }}
             directional
             size={32}
             iconSize={16}
+            variant="tinted"
           />
           <Text style={{ fontFamily: FONTS.display, fontSize: 14.5, color: TEXT.primary }}>
             {t(titleKey)}
@@ -60,7 +65,10 @@ export function Header() {
   return (
     <GlassHeader>
       <Pressable
-        onPress={() => router.push('/about')}
+        onPress={() => {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          router.push('/about');
+        }}
         style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}
       >
         <View
@@ -89,7 +97,10 @@ export function Header() {
         </View>
       </Pressable>
       <Pressable
-        onPress={() => router.push('/settings')}
+        onPress={() => {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          router.push('/settings');
+        }}
         accessibilityRole="button"
         accessibilityLabel={t('settings.title')}
         style={{
