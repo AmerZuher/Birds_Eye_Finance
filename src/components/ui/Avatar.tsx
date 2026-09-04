@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Image, Text, View } from 'react-native';
 
 import { useTheme } from '@/context/ThemeContext';
@@ -43,11 +43,21 @@ function ringColor(
   }
 }
 
-/** Photo or initials, circular, with an optional status ring — used for people and the profile. */
+/** Photo or initials, circular, with an optional status ring — used for people and the profile.
+ * A remote `photoUri` (e.g. a GitHub avatar URL) that fails to load — offline,
+ * most likely, for an offline-first app — falls back to initials instead of
+ * a blank circle. Local/data-URI photos essentially never hit this; it's
+ * specifically for the remote case. */
 export function Avatar({ name, photoUri, size = 44, ring = 'none' }: AvatarProps) {
   const { theme } = useTheme();
   const ringRgba = ringColor(ring, theme);
   const outerSize = size + 6;
+  // Which uri last failed to load, not a plain boolean — comparing against
+  // the *current* photoUri means a changed prop clears the failure on its
+  // own during render, no effect (and no set-state-in-effect cascade)
+  // needed to "reset" anything.
+  const [erroredUri, setErroredUri] = useState<string | null>(null);
+  const showPhoto = !!photoUri && photoUri !== erroredUri;
 
   return (
     <View
@@ -72,8 +82,12 @@ export function Avatar({ name, photoUri, size = 44, ring = 'none' }: AvatarProps
           overflow: 'hidden',
         }}
       >
-        {photoUri ? (
-          <Image source={{ uri: photoUri }} style={{ width: '100%', height: '100%' }} />
+        {showPhoto ? (
+          <Image
+            source={{ uri: photoUri }}
+            style={{ width: '100%', height: '100%' }}
+            onError={() => setErroredUri(photoUri ?? null)}
+          />
         ) : (
           <Text
             style={{

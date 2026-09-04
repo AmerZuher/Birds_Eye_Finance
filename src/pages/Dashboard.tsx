@@ -1,20 +1,11 @@
 import React, { useMemo } from 'react';
 import { ScrollView, Text, View } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
-import {
-  ArrowDownToLine,
-  ArrowUpFromLine,
-  Landmark,
-  TrendingUp,
-  Sparkles,
-} from 'lucide-react-native';
+import { ArrowDownToLine, ArrowUpFromLine, Landmark, TrendingUp } from 'lucide-react-native';
 import type { LucideIcon } from 'lucide-react-native';
 
 import { PageTransition } from '@/components/PageTransition';
-import { RingGauge } from '@/components/ui/RingGauge';
 import { StatTile } from '@/components/ui/StatTile';
-import { GlowBlob } from '@/components/ui/GlowBlob';
 import { BalanceRevealCard } from '@/components/ui/BalanceRevealCard';
 import { useTheme } from '@/context/ThemeContext';
 import { useLanguage } from '@/context/LanguageContext';
@@ -22,8 +13,7 @@ import { useCurrency } from '@/context/CurrencyContext';
 import { useUser } from '@/context/UserContext';
 import { useFinance } from '@/context/FinanceContext';
 import { useChrome } from '@/context/ChromeContext';
-import { FONTS, RADII, SEMANTIC } from '@/constants/theme';
-import { healthTierColor } from '@/utils/color';
+import { FONTS, SEMANTIC } from '@/constants/theme';
 
 function greetingKey(hour: number): string {
   if (hour < 12) return 'dashboard.greeting.morning';
@@ -35,19 +25,11 @@ export default function Dashboard() {
   const { theme } = useTheme();
   const { t } = useLanguage();
   const { headerHeight, navbarHeight } = useChrome();
-  const { formatPercent, convertToBase } = useCurrency();
+  const { convertToBase } = useCurrency();
   const { profile } = useUser();
-  const {
-    totalMonthlyIncomeBase,
-    totalExpenses,
-    debtsCalculations,
-    netSavings,
-    savingsRate,
-    financialHealth,
-  } = useFinance();
+  const { totalMonthlyIncomeBase, totalExpenses, debtsCalculations, netSavings } = useFinance();
 
   const hour = new Date().getHours();
-  const healthColor = healthTierColor(financialHealth, theme);
 
   const totalBalancesBase = useMemo(
     () =>
@@ -57,9 +39,6 @@ export default function Dashboard() {
       ),
     [profile.startBalances, convertToBase],
   );
-
-  // Clamp the gauge to 0..1 while the center text shows the true % value.
-  const gaugeProgress = Math.min(1, Math.max(0, savingsRate / 100));
 
   const statTiles: { icon: LucideIcon; label: string; amount: number; color: string }[] = [
     {

@@ -4,7 +4,6 @@ import Constants from 'expo-constants';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
   CircleQuestionMark,
-  Coffee,
   CreditCard,
   ExternalLink,
   Gift,
@@ -26,22 +25,17 @@ import { SettingsCard } from '@/components/ui/SettingsCard';
 import { BrandGlyph } from '@/components/BrandGlyph';
 import { FONTS, RADII } from '@/constants/theme';
 
-// Two brand marks — LightLOGO is the light-colored mark (reads on dark
-// theme surfaces), DarkLOGO is the dark-colored mark (reads on light theme
-// surfaces). Picked per-render off theme.isLight, not a static require.
-const APP_LOGO_LIGHT = require('../../assets/icon.png');
-const APP_LOGO_DARK = require('../../assets/icon.png');
 
-const DEVELOPER_NAME = 'Amer Zuher';
 // TODO real values — see chat: repo URL is a placeholder (unknown actual
-// repo name/owner), buyMeCoffee/githubSponsor/paypal are placeholders built
 // from the GitHub handle (not confirmed real), and the email domain looks
 // like a typo for "outlook.com" — confirm before shipping.
 const DEVELOPER_EMAIL = 'amerzuher@oultook.com';
 const DEVELOPER_WEBSITE = 'https://github.com/AmerZuher';
+// GitHub always redirects this to whatever avatar is currently set on the
+// profile — no re-uploading to assets/ every time it changes.
+const DEVELOPER_AVATAR = 'https://github.com/AmerZuher.png';
 const LINKS = {
-  repo: 'https://github.com/AmerZuher/birdseye-finance',
-  buyMeCoffee: 'https://buymeacoffee.com/amerzuher',
+  repo: 'https://github.com/AmerZuher/BirdEyeFinance',
   githubSponsor: 'https://github.com/sponsors/AmerZuher',
   paypal: 'https://paypal.me/amerzuher',
 };
@@ -107,66 +101,25 @@ function SupportButton({ icon: Icon, label, tint, onPress }: SupportButtonProps)
   );
 }
 
-function ContactRow({
-  label,
-  value,
-  icon: Icon,
-  onPress,
-  showTopBorder,
-}: {
-  label: string;
-  value: string;
-  icon: LucideIcon;
-  onPress: () => void;
-  showTopBorder?: boolean;
-}) {
-  const { theme } = useTheme();
-  return (
-    <Pressable
-      onPress={onPress}
-      accessibilityRole="button"
-      accessibilityLabel={label}
-      style={{
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        gap: 10,
-        paddingVertical: 12,
-        borderTopWidth: showTopBorder ? 1 : 0,
-        borderTopColor: theme.borderSoft,
-      }}
-    >
-      <Text
-        style={{ fontSize: 12.5, fontWeight: '700', color: theme.textPrimary, flexShrink: 1 }}
-        numberOfLines={1}
-      >
-        {label}
-      </Text>
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexShrink: 1 }}>
-        <Text
-          style={{ fontSize: 11.5, color: theme.textTertiary, flexShrink: 1 }}
-          numberOfLines={1}
-        >
-          {value}
-        </Text>
-        <Icon size={14} color={theme.textTertiary} />
-      </View>
-    </Pressable>
-  );
-}
-
 export default function About() {
   const { theme } = useTheme();
   const { t } = useLanguage();
   const { headerHeight, navbarHeight } = useChrome();
   const version = Constants.expoConfig?.version ?? '1.0.0';
   const year = new Date().getFullYear();
-  const appLogo = theme.isLight ? APP_LOGO_DARK : APP_LOGO_LIGHT;
+  const appLogo = require('../../assets/icon.png');
 
   const supportTints = {
-    coffee: { bg: 'rgba(251,191,36,0.14)', border: 'rgba(251,191,36,0.3)', fg: '#fbbf24' },
     sponsor: { bg: 'rgba(236,72,153,0.14)', border: 'rgba(236,72,153,0.3)', fg: '#ec4899' },
     paypal: { bg: 'rgba(96,165,250,0.14)', border: 'rgba(96,165,250,0.3)', fg: '#60a5fa' },
+  };
+  // Not brand-tinted like the support buttons above — email/website aren't
+  // tied to a third-party service's own color, so this uses the theme's own
+  // accent instead, same convention as the version pill.
+  const contactTint = {
+    bg: `rgba(${theme.glow.a},0.14)`,
+    border: `rgba(${theme.glow.a},0.3)`,
+    fg: theme.accent2,
   };
 
   return (
@@ -174,10 +127,10 @@ export default function About() {
       <ScrollView
         style={{ backgroundColor: theme.ground }}
         contentContainerStyle={{
-          padding: 24,
-          paddingTop: headerHeight + 32,
-          paddingBottom: navbarHeight + 40,
-          gap: 20,
+          padding: 16,
+          paddingTop: headerHeight + 16,
+          gap: 14,
+          paddingBottom: 40,
         }}
         showsVerticalScrollIndicator={false}
       >
@@ -253,7 +206,12 @@ export default function About() {
                   padding: 14,
                 }}
               >
-                <Avatar name={t('about.developerName')} size={56} ring="accent" />
+                <Avatar
+                  name={t('about.developerName')}
+                  photoUri={DEVELOPER_AVATAR}
+                  size={56}
+                  ring="accent"
+                />
                 <View style={{ flex: 1, gap: 3 }}>
                   <Text style={{ fontSize: 14, fontWeight: '700', color: theme.textPrimary }}>
                     {t('about.developerName')}
@@ -267,53 +225,20 @@ export default function About() {
                 </View>
               </View>
 
-              <View>
-                <ContactRow
-                  label={t('about.emailRow')}
-                  value={DEVELOPER_EMAIL}
-                  icon={Mail}
-                  onPress={() => Linking.openURL(`mailto:${DEVELOPER_EMAIL}`)}
-                  showTopBorder
-                />
-                <ContactRow
-                  label={t('about.websiteRow')}
-                  value={DEVELOPER_WEBSITE}
-                  icon={Globe}
-                  onPress={() => Linking.openURL(DEVELOPER_WEBSITE)}
-                />
-              </View>
-            </View>
-          </SettingsCard>
-        </Animated.View>
-
-        {/* Support development */}
-        <Animated.View entering={FadeInUp.duration(420).delay(160)}>
-          <SettingsCard>
-            <CardTitle icon={Heart} label={t('about.supportTitle')} />
-            <View style={{ gap: 14 }}>
-              <Text style={{ fontSize: 12.5, lineHeight: 19, color: theme.textSecondary }}>
-                {t('about.supportDescription')}
-              </Text>
               <View style={{ flexDirection: 'row', gap: 10 }}>
                 <SupportButton
-                  icon={Coffee}
-                  label={t('about.buyMeCoffee')}
-                  tint={supportTints.coffee}
-                  onPress={() => Linking.openURL(LINKS.buyMeCoffee)}
+                  icon={Globe}
+                  label={t('about.websiteButton')}
+                  tint={contactTint}
+                  onPress={() => Linking.openURL(DEVELOPER_WEBSITE)}
                 />
                 <SupportButton
-                  icon={Gift}
-                  label={t('about.githubSponsor')}
-                  tint={supportTints.sponsor}
-                  onPress={() => Linking.openURL(LINKS.githubSponsor)}
+                  icon={Mail}
+                  label={t('about.emailButton')}
+                  tint={contactTint}
+                  onPress={() => Linking.openURL(`mailto:${DEVELOPER_EMAIL}`)}
                 />
               </View>
-              <SupportButton
-                icon={CreditCard}
-                label={t('about.paypalSupport')}
-                tint={supportTints.paypal}
-                onPress={() => Linking.openURL(LINKS.paypal)}
-              />
             </View>
           </SettingsCard>
         </Animated.View>
@@ -354,30 +279,42 @@ export default function About() {
           </SettingsCard>
         </Animated.View>
 
+        {/* Support development */}
+        <Animated.View entering={FadeInUp.duration(420).delay(160)}>
+          <SettingsCard>
+            <CardTitle icon={Heart} label={t('about.supportTitle')} />
+            <View style={{ gap: 14 }}>
+              <Text style={{ fontSize: 12.5, lineHeight: 19, color: theme.textSecondary }}>
+                {t('about.supportDescription')}
+              </Text>
+              <View style={{ flexDirection: 'row', gap: 10 }}>
+                <SupportButton
+                  icon={Gift}
+                  label={t('about.githubSponsor')}
+                  tint={supportTints.sponsor}
+                  onPress={() => Linking.openURL(LINKS.githubSponsor)}
+                />
+              </View>
+              <SupportButton
+                icon={CreditCard}
+                label={t('about.paypalSupport')}
+                tint={supportTints.paypal}
+                onPress={() => Linking.openURL(LINKS.paypal)}
+              />
+            </View>
+          </SettingsCard>
+        </Animated.View>
+
         {/* Footer */}
         <Animated.View
           entering={FadeInUp.duration(420).delay(280)}
           style={{ alignItems: 'center', gap: 8, paddingTop: 4 }}
         >
-          <View
-            style={{
-              width: 40,
-              height: 40,
-              borderRadius: 20,
-              backgroundColor: `rgba(${theme.glow.a},0.12)`,
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            <Heart size={18} color={theme.accent2} />
-          </View>
-          <Text style={{ fontSize: 11.5, color: theme.textSecondary }}>
-            {t('about.credit', { name: DEVELOPER_NAME })}
-          </Text>
           <Text style={{ fontSize: 10.5, color: theme.textTertiary }}>
             {t('about.copyright', { year, name: t('app.name') })}
           </Text>
         </Animated.View>
+
       </ScrollView>
     </PageTransition>
   );
