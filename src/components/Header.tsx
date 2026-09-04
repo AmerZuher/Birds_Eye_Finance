@@ -103,22 +103,7 @@ export function Header() {
             name={profile.name || 'You'}
             photoUri={profile.avatar || undefined}
             size={32}
-            ring={settingsActive ? 'accent' : 'flat'}
-          />
-          {/* Purely decorative per the approved design — this app is
-              local-first with no account or presence to report. */}
-          <View
-            style={{
-              position: 'absolute',
-              bottom: 0,
-              end: 0,
-              width: 10,
-              height: 10,
-              borderRadius: 5,
-              backgroundColor: SEMANTIC.positive,
-              borderWidth: 2,
-              borderColor: theme.ground,
-            }}
+            ring={settingsActive ? 'accent' : 'accent'}
           />
         </View>
       </Pressable>

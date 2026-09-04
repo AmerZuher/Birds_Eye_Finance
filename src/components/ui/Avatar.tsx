@@ -41,7 +41,7 @@ function ringColor(ring: AvatarRing, theme: { glow: { a: string } }): string | n
 export function Avatar({ name, photoUri, size = 44, ring = 'none' }: AvatarProps) {
   const { theme } = useTheme();
   const ringRgba = ringColor(ring, theme);
-  const outerSize = size + 8;
+  const outerSize = size + 6;
 
   return (
     <View

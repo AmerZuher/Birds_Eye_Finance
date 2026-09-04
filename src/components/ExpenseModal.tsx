@@ -4,7 +4,7 @@ import { useForm } from 'react-hook-form';
 import type { SubmitErrorHandler, SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { LayoutGrid, Pencil } from 'lucide-react-native';
+import { LayoutGrid, Pencil, Trash2 } from 'lucide-react-native';
 
 import { GlassModal } from '@/components/ui/GlassModal';
 import { GradientButton } from '@/components/ui/GradientButton';
@@ -22,7 +22,7 @@ import { useLanguage } from '@/context/LanguageContext';
 import { useCurrency } from '@/context/CurrencyContext';
 import { useFinance } from '@/context/FinanceContext';
 import type { Expense, NewExpense } from '@/db/schema';
-import { BORDER, RADII, TEXT } from '@/constants/theme';
+import { BORDER, RADII, SEMANTIC, TEXT } from '@/constants/theme';
 import type { Period } from '@/lib/period';
 import type { ExpenseTemplate } from '@/utils/expenseIcon';
 import {
@@ -98,6 +98,11 @@ interface ExpenseModalProps {
   visible: boolean;
   onClose: () => void;
   editingExpense: Expense | null;
+  /** Edit mode only — the expense row no longer carries its own delete icon
+   * (it opens straight into edit, like the Debts person row), so this is now
+   * the only path to deleting an expense. The caller owns the actual
+   * ConfirmModal/deleteExpense call; this just hands back the request. */
+  onRequestDelete?: () => void;
 }
 
 /**
@@ -109,7 +114,12 @@ interface ExpenseModalProps {
  * already-existing record. Mirrors DebtModal's watch()/setValue() pattern
  * (CLAUDE.md rule 5) — every field here is a controlled primitive too.
  */
-export function ExpenseModal({ visible, onClose, editingExpense }: ExpenseModalProps) {
+export function ExpenseModal({
+  visible,
+  onClose,
+  editingExpense,
+  onRequestDelete,
+}: ExpenseModalProps) {
   const { theme } = useTheme();
   const { t } = useLanguage();
   const { currencies, baseCurrency, convertToBase } = useCurrency();
@@ -587,6 +597,26 @@ export function ExpenseModal({ visible, onClose, editingExpense }: ExpenseModalP
         label={editingExpense ? t('expenseModal.saveButton') : t('expenseModal.createButton')}
         onPress={handleSubmit(onValid, onInvalid)}
       />
+
+      {editingExpense && onRequestDelete ? (
+        <Pressable
+          onPress={onRequestDelete}
+          accessibilityRole="button"
+          accessibilityLabel={t('expenses.deleteExpense')}
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 6,
+            paddingVertical: 4,
+          }}
+        >
+          <Trash2 size={14} color={SEMANTIC.negative} />
+          <Text style={{ fontSize: 12.5, fontWeight: '700', color: SEMANTIC.negative }}>
+            {t('expenseModal.deleteButton')}
+          </Text>
+        </Pressable>
+      ) : null}
     </GlassModal>
   );
 }

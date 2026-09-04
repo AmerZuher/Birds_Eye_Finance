@@ -4,7 +4,7 @@ import { useFocusEffect } from 'expo-router';
 import { FlashList } from '@shopify/flash-list';
 import Animated, { SlideInLeft, SlideInRight } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Pencil, Trash2 } from 'lucide-react-native';
+import { ChevronRight } from 'lucide-react-native';
 
 import { ListRow } from '@/components/ui/ListRow';
 import { SearchInput } from '@/components/ui/SearchInput';
@@ -173,8 +173,7 @@ export default function Expenses() {
                 <ExpenseRow
                   expense={item}
                   showBottomBorder={!isLast}
-                  onEdit={() => openEditModal(item)}
-                  onDelete={() => setDeleteTarget(item)}
+                  onPress={() => openEditModal(item)}
                 />
               </View>
             );
@@ -186,6 +185,10 @@ export default function Expenses() {
         visible={modalOpen}
         onClose={() => setModalOpen(false)}
         editingExpense={editingExpense}
+        onRequestDelete={() => {
+          setModalOpen(false);
+          setDeleteTarget(editingExpense);
+        }}
       />
 
       <ConfirmModal
@@ -204,11 +207,10 @@ export default function Expenses() {
 interface ExpenseRowProps {
   expense: Expense;
   showBottomBorder: boolean;
-  onEdit: () => void;
-  onDelete: () => void;
+  onPress: () => void;
 }
 
-function ExpenseRow({ expense, showBottomBorder, onEdit, onDelete }: ExpenseRowProps) {
+function ExpenseRow({ expense, showBottomBorder, onPress }: ExpenseRowProps) {
   const { t } = useLanguage();
   const { formatOriginalMoney } = useCurrency();
   const unconfigured = expense.amount === 0;
@@ -218,6 +220,7 @@ function ExpenseRow({ expense, showBottomBorder, onEdit, onDelete }: ExpenseRowP
   return (
     <View>
       <ListRow
+        onPress={onPress}
         showBottomBorder={showBottomBorder && !expense.notes}
         leading={<ExpenseIconTile icon={expense.icon} name={expense.name} size={38} />}
         title={expense.name}
@@ -238,19 +241,15 @@ function ExpenseRow({ expense, showBottomBorder, onEdit, onDelete }: ExpenseRowP
                 {formatOriginalMoney(expense.amount, expense.currency ?? 'SAR')}
               </Text>
             )}
+            {/* Decorative, like the Debts person row's chevron — the row
+                itself (via `onPress` above) is what's tappable, opening this
+                expense in edit mode. */}
             <IconButton
-              icon={Pencil}
+              icon={ChevronRight}
               accessibilityLabel={t('expenses.editExpense')}
-              size={28}
-              iconSize={12}
-              onPress={onEdit}
-            />
-            <IconButton
-              icon={Trash2}
-              accessibilityLabel={t('expenses.deleteExpense')}
-              size={28}
-              iconSize={12}
-              onPress={onDelete}
+              directional
+              size={22}
+              iconSize={11}
             />
           </View>
         }

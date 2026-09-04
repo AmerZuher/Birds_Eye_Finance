@@ -47,7 +47,10 @@ export function GlassHeader({ children }: GlassHeaderProps) {
         paddingTop: insets.top,
         overflow: 'hidden',
         borderBottomWidth: 1,
-        borderBottomColor: GLASS.border,
+        // Same accent-tinted stroke as the navbar's top edge (theme.glow.b at
+        // 0.32), not GLASS.border's neutral white — the two floating bars
+        // need matching borders to read as one material bookending the app.
+        borderBottomColor: `rgba(${theme.glow.b},0.32)`,
       }}
     >
       <BlurView

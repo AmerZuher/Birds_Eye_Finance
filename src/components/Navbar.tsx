@@ -7,7 +7,7 @@ import { BlurView } from 'expo-blur';
 import Svg, { Path } from 'react-native-svg';
 import MaskedView from '@react-native-masked-view/masked-view';
 import * as Haptics from 'expo-haptics';
-import { ChartPie, HandCoins, LayoutDashboard, Plus, ReceiptText } from 'lucide-react-native';
+import { ChartPie, CreditCard, House, Plus, Wallet } from 'lucide-react-native';
 
 import { useTheme } from '@/context/ThemeContext';
 import { useLanguage } from '@/context/LanguageContext';
@@ -19,62 +19,66 @@ import { CHROME_GROUND_ALPHA, hexToRgb } from '@/utils/color';
 // brown-grey from the original palette that reads muddy against these cool
 // (indigo/teal) themes.
 const ICON_INACTIVE = 'rgba(255,255,255,0.42)';
-const ICON_ACTIVE = '#ffffff';
 
 type TabPath = '/' | '/analytics' | '/expenses' | '/debts';
 
 interface TabDef {
   path: TabPath;
-  icon: typeof LayoutDashboard;
+  icon: typeof House;
   labelKey: string;
 }
 
-// Two tabs each side of the centre notch. Icons picked for what each screen
-// actually is rather than FEATURE_SPEC 0.1's originals: a dashboard grid for
-// the overview, an itemised receipt for spending, and coins changing hands for
-// debts — a Wallet implied "my money", which is the wrong idea for a screen
-// about who owes whom.
+// Two tabs each side of the centre notch. `House`/`ChartPie` are lucide's
+// current names for the same glyphs FEATURE_SPEC 0.1 called Home/PieChart —
+// identical artwork, just not the deprecated aliases.
 const LEFT_TABS: TabDef[] = [
-  { path: '/', icon: LayoutDashboard, labelKey: 'nav.dashboard' },
+  { path: '/', icon: House, labelKey: 'nav.dashboard' },
   { path: '/analytics', icon: ChartPie, labelKey: 'nav.analytics' },
 ];
 
 const RIGHT_TABS: TabDef[] = [
-  { path: '/expenses', icon: ReceiptText, labelKey: 'nav.expenses' },
-  { path: '/debts', icon: HandCoins, labelKey: 'nav.debts' },
+  { path: '/expenses', icon: CreditCard, labelKey: 'nav.expenses' },
+  { path: '/debts', icon: Wallet, labelKey: 'nav.debts' },
 ];
 
 const TABS = [...LEFT_TABS, ...RIGHT_TABS];
 
-// Notch geometry, derived from the approved spec's SVG mask (viewBox width
-// 390) and then tightened: the dip is deeper (34 vs 28) and narrower
-// (x=145→245 vs 135→255) so it grips the button harder from the sides.
+// Notch geometry (viewBox width 390), derived from the approved spec's SVG
+// mask and then tuned against the button's arc. Depth and span move together:
+// deepening the dip alone would pull the shoulders inward and squeeze the
+// clearance either side of the button, so the span widens to compensate.
 const VB_WIDTH = 390;
-const NOTCH_DEPTH = 34;
-const NOTCH_LEFT = 145;
-const NOTCH_RIGHT = 245;
+const NOTCH_DEPTH = 45;
 const NOTCH_CENTER = 195;
+const NOTCH_SPAN = 110;
+const NOTCH_LEFT = NOTCH_CENTER - NOTCH_SPAN / 2;
+const NOTCH_RIGHT = NOTCH_CENTER + NOTCH_SPAN / 2;
+// Bezier control offsets: `shoulder` sets how fast the curve leaves the flat
+// edge, `base` how wide the floor of the dip is.
+const NOTCH_SHOULDER = 20;
+const NOTCH_BASE = 40;
+
+/** The dip, shared by the mask and the stroked edge so they can't diverge. */
+const NOTCH_CURVE =
+  `C${NOTCH_LEFT + NOTCH_SHOULDER},0 ${NOTCH_CENTER - NOTCH_BASE},${NOTCH_DEPTH} ` +
+  `${NOTCH_CENTER},${NOTCH_DEPTH} ` +
+  `C${NOTCH_CENTER + NOTCH_BASE},${NOTCH_DEPTH} ${NOTCH_RIGHT - NOTCH_SHOULDER},0 ` +
+  `${NOTCH_RIGHT},0`;
 
 /** The bar's silhouette: flat top edge interrupted by the dip, square sides. */
 function barMaskPath(height: number) {
   return (
-    `M0,0 L${NOTCH_LEFT},0 ` +
-    `C159,0 165,${NOTCH_DEPTH} ${NOTCH_CENTER},${NOTCH_DEPTH} ` +
-    `C225,${NOTCH_DEPTH} 231,0 ${NOTCH_RIGHT},0 ` +
-    `L${VB_WIDTH},0 L${VB_WIDTH},${height} L0,${height} Z`
+    `M0,0 L${NOTCH_LEFT},0 ${NOTCH_CURVE} ` + `L${VB_WIDTH},0 L${VB_WIDTH},${height} L0,${height} Z`
   );
 }
 
 /** Just the top edge, stroked so the hairline follows the curve. */
-const NOTCH_EDGE_PATH =
-  `M0,0 L${NOTCH_LEFT},0 ` +
-  `C159,0 165,${NOTCH_DEPTH} ${NOTCH_CENTER},${NOTCH_DEPTH} ` +
-  `C225,${NOTCH_DEPTH} 231,0 ${NOTCH_RIGHT},0 ` +
-  `L${VB_WIDTH},0`;
+const NOTCH_EDGE_PATH = `M0,0 L${NOTCH_LEFT},0 ${NOTCH_CURVE} L${VB_WIDTH},0`;
 
-const FAB_SIZE = 58;
-// Clearance between the button's arc and the notch curve.
-const FAB_GAP = 7;
+const FAB_SIZE = 50;
+// Clearance between the button's arc and the notch curve — even the whole way
+// round at this depth/span, so the cradle reads as concentric.
+const FAB_GAP = 10;
 // Sits the button's lower arc `FAB_GAP` above the floor of the dip. The mask
 // is drawn at a fixed 1:1 vertical scale precisely so this stays constant —
 // letting it scale with the safe-area inset would swing the button's exposed
@@ -82,10 +86,7 @@ const FAB_GAP = 7;
 const FAB_OFFSET = NOTCH_DEPTH - FAB_GAP - FAB_SIZE;
 
 const ICON_SIZE = 26;
-const INDICATOR_HEIGHT = 3;
-const INDICATOR_GAP = 5;
-// Icon + gap + active-underline, i.e. the full height of one tab's content.
-const TAB_CONTENT_HEIGHT = ICON_SIZE + INDICATOR_GAP + INDICATOR_HEIGHT;
+const TAB_CONTENT_HEIGHT = ICON_SIZE;
 const BAR_PADDING_TOP = 18;
 const BAR_PADDING_BOTTOM_MIN = 16;
 
@@ -164,23 +165,15 @@ export function Navbar() {
         // captions), so the translated name moves here — screen readers still
         // announce every tab by name (rule 12).
         accessibilityLabel={t(tab.labelKey)}
-        style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: INDICATOR_GAP }}
+        style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}
       >
-        {/* Active tab is white with the accent underline beneath it; inactive
-            tabs are neutral translucent white. */}
+        {/* Selection is carried by colour and stroke weight alone — no shape
+            behind the glyph. A filled pill/underline reads as a hard slab
+            against thin-stroked icons on this dark glass. */}
         <Icon
           size={ICON_SIZE}
-          color={isFocused ? ICON_ACTIVE : ICON_INACTIVE}
-          strokeWidth={isFocused ? 1.5 : 1.2}
-        />
-        {/* Always rendered so the row's spacing doesn't shift between tabs. */}
-        <View
-          style={{
-            height: INDICATOR_HEIGHT,
-            width: 16,
-            borderRadius: 2,
-            backgroundColor: isFocused ? theme.accent1 : 'transparent',
-          }}
+          color={isFocused ? theme.accent2 : ICON_INACTIVE}
+          strokeWidth={isFocused ? 1.3 : 1.05}
         />
       </Pressable>
     );
