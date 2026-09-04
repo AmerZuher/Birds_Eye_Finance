@@ -4,7 +4,6 @@ import { Pressable, StyleSheet, useWindowDimensions, View } from 'react-native';
 import { usePathname, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BlurView } from 'expo-blur';
-import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Path } from 'react-native-svg';
 import MaskedView from '@react-native-masked-view/masked-view';
 import * as Haptics from 'expo-haptics';
@@ -71,7 +70,7 @@ function barMaskPath(height: number) {
 /** Just the top edge, stroked so the hairline follows the curve. */
 const NOTCH_EDGE_PATH = `M0,0 L${NOTCH_LEFT},0 ${NOTCH_CURVE} L${VB_WIDTH},0`;
 
-const FAB_SIZE = 50;
+const FAB_SIZE = 65;
 // Clearance between the button's arc and the notch curve — even the whole way
 // round at this depth/span, so the cradle reads as concentric.
 const FAB_GAP = 10;
@@ -87,8 +86,8 @@ const FAB_OFFSET = NOTCH_DEPTH - FAB_GAP - FAB_SIZE;
 // icon buttons moving up the same way (see IconButton.tsx).
 const ICON_SIZE = 28;
 const TAB_CONTENT_HEIGHT = ICON_SIZE;
-const BAR_PADDING_TOP = 18;
-const BAR_PADDING_BOTTOM_MIN = 16;
+const BAR_PADDING_TOP = 22;
+const BAR_PADDING_BOTTOM_MIN = 20;
 
 /**
  * App-specific bottom glassmorphic tab bar + notched FAB (FEATURE_SPEC 0.1,
@@ -221,49 +220,62 @@ export function Navbar() {
           onPress={onFabPress}
           style={{
             borderRadius: FAB_SIZE / 2,
-            // A solid gradient fill, not a second BlurView — an earlier
-            // attempt at an actual blurred glass FAB, sitting right next to
-            // the navbar's own BlurView on the same blurTarget with
-            // elevation + overflow:hidden layered on top, caused a native
-            // SIGSEGV (HWUI's computeTransformImpl recursing until the
-            // RenderThread's stack overflowed) as soon as the FAB rendered.
+            // iOS shadow only, deliberately no Android `elevation` here — an
+            // earlier attempt at an actual blurred glass FAB, with a
+            // BlurView + overflow:hidden on the same node as `elevation`,
+            // caused a native SIGSEGV (HWUI's computeTransformImpl
+            // recursing until the RenderThread's stack overflowed) as soon
+            // as the FAB rendered. Same trade GlassModal already made for
+            // this exact crash (see its own `elevation` comment) — the
+            // border on the blurred layer below carries depth on Android
+            // instead of a cast shadow.
             shadowColor: `rgb(${theme.glow.a})`,
             shadowOpacity: 0.65,
             shadowRadius: 16,
             shadowOffset: { width: 0, height: 6 },
-            elevation: 10,
           }}
         >
-          <LinearGradient
-            // The exact same two colors, same direction, as MoneyStatCard's
-            // own background gradient — not just "a similar technique" but
-            // the literal fill, so the FAB reads as a piece cut from the
-            // same material as the cards.
-            colors={[theme.surfaceAlt, theme.surface]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
+          <View
             style={{
               width: FAB_SIZE,
               height: FAB_SIZE,
               borderRadius: FAB_SIZE / 2,
-              alignItems: 'center',
-              justifyContent: 'center',
-              // Same border treatment as the card too.
+              overflow: 'hidden',
               borderWidth: 1,
-              borderColor: `rgba(${theme.glow.a},0.22)`,
+              borderColor: `rgba(${theme.glow.a},0.28)`,
             }}
           >
-            {/* accent2, not buttonText — buttonText is tuned for contrast
-                against a solid accent fill; against this darker card-toned
-                gradient it's the same bright accent color the card's own
-                numbers use that actually stands out. */}
-            {/* ICON_SIZE, not a separate hardcoded number — was independently
-                set to 26 (the old tab icon size) before, which silently fell
-                out of sync when the tabs moved to 28. Referencing the same
-                constant means the FAB (meant to be the boldest glyph on the
-                bar) can't end up smaller than the tabs around it again. */}
-            <Plus size={ICON_SIZE} color={theme.accent2} strokeWidth={2.2} />
-          </LinearGradient>
+            {/* Same glass recipe as GlassHeader/Navbar's own bar/GlassModal
+                (rule 8): real BlurView sampling blurTarget, washed with the
+                same theme.ground-at-CHROME_GROUND_ALPHA overlay — so the FAB
+                reads as cut from the same material as the rest of the
+                chrome instead of its own solid card. */}
+            <BlurView
+              intensity={GLASS_BLUR_INTENSITY}
+              tint={theme.isLight ? 'light' : 'dark'}
+              blurMethod={ANDROID_BLUR_METHOD}
+              blurTarget={blurTarget}
+              style={StyleSheet.absoluteFill}
+            />
+            <View
+              style={[
+                StyleSheet.absoluteFill,
+                { backgroundColor: `rgba(${hexToRgb(theme.ground)},${CHROME_GROUND_ALPHA})` },
+              ]}
+            />
+            <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+              {/* accent2, not buttonText — buttonText is tuned for contrast
+                  against a solid accent fill; against this translucent glass
+                  it's the same bright accent color the rest of the chrome's
+                  icons use that actually stands out. */}
+              {/* ICON_SIZE, not a separate hardcoded number — was independently
+                  set to 26 (the old tab icon size) before, which silently fell
+                  out of sync when the tabs moved to 28. Referencing the same
+                  constant means the FAB (meant to be the boldest glyph on the
+                  bar) can't end up smaller than the tabs around it again. */}
+              <Plus size={ICON_SIZE} color={theme.accent2} strokeWidth={2.2} />
+            </View>
+          </View>
         </Pressable>
       </View>
 
