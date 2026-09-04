@@ -10,7 +10,7 @@ import { useLanguage } from '@/context/LanguageContext';
 import { useChrome } from '@/context/ChromeContext';
 import { PageTransition } from '@/components/PageTransition';
 import { ListRow } from '@/components/ui/ListRow';
-import { FONTS, TEXT, RADII, BORDER } from '@/constants/theme';
+import { FONTS, RADII } from '@/constants/theme';
 
 const APP_LOGO = require('../../assets/icon.png');
 const DEVELOPER_NAME = 'AmerZuher';
@@ -107,7 +107,7 @@ export default function About() {
           </View>
 
           <View style={{ alignItems: 'center', gap: 6 }}>
-            <Text style={{ fontFamily: FONTS.display, fontSize: 22, color: TEXT.primary }}>
+            <Text style={{ fontFamily: FONTS.display, fontSize: 22, color: theme.textPrimary }}>
               {t('app.name')}
             </Text>
             <Text
@@ -120,7 +120,7 @@ export default function About() {
             >
               {t('about.tagline')}
             </Text>
-            <Text style={{ fontSize: 11, color: TEXT.tertiary, marginTop: 4 }}>
+            <Text style={{ fontSize: 11, color: theme.textTertiary, marginTop: 4 }}>
               {t('about.version', { version })}
             </Text>
           </View>
@@ -133,7 +133,7 @@ export default function About() {
             borderRadius: RADII.card,
             backgroundColor: theme.surface,
             borderWidth: 1,
-            borderColor: BORDER.hairline,
+            borderColor: theme.border,
             overflow: 'hidden',
           }}
         >
@@ -143,7 +143,7 @@ export default function About() {
               fontWeight: '700',
               letterSpacing: 1,
               textTransform: 'uppercase',
-              color: TEXT.tertiary,
+              color: theme.textTertiary,
               paddingHorizontal: 16,
               paddingTop: 14,
               paddingBottom: 6,
@@ -179,10 +179,10 @@ export default function About() {
           entering={FadeInUp.duration(420).delay(200)}
           style={{ alignItems: 'center', gap: 4 }}
         >
-          <Text style={{ fontSize: 11.5, color: TEXT.secondary }}>
+          <Text style={{ fontSize: 11.5, color: theme.textSecondary }}>
             {t('about.credit', { name: DEVELOPER_NAME })}
           </Text>
-          <Text style={{ fontSize: 10.5, color: TEXT.tertiary }}>
+          <Text style={{ fontSize: 10.5, color: theme.textTertiary }}>
             {t('about.copyright', { year, name: t('app.name') })}
           </Text>
         </Animated.View>

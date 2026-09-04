@@ -21,7 +21,7 @@ import { useChrome } from '@/context/ChromeContext';
 import { useCurrency } from '@/context/CurrencyContext';
 import { useFinance } from '@/context/FinanceContext';
 import type { Expense } from '@/db/schema';
-import { BORDER, FONTS, TEXT } from '@/constants/theme';
+import { FONTS } from '@/constants/theme';
 import type { ExpenseCategory } from '@/utils/expenseIcon';
 import { EXPENSE_CATEGORIES } from '@/utils/expenseIcon';
 
@@ -94,13 +94,13 @@ export default function Expenses() {
           }}
           ListHeaderComponent={
             <View style={{ marginBottom: 16 }}>
-              <Text style={{ fontFamily: FONTS.display, fontSize: 22, color: TEXT.primary }}>
+              <Text style={{ fontFamily: FONTS.display, fontSize: 22, color: theme.textPrimary }}>
                 {t('expenses.title')}
               </Text>
-              <Text style={{ fontSize: 12, color: TEXT.tertiary, marginTop: 4 }}>
+              <Text style={{ fontSize: 12, color: theme.textTertiary, marginTop: 4 }}>
                 {t('expenses.subtitle')}
               </Text>
-              <View style={{ height: 1, backgroundColor: BORDER.hairline, marginVertical: 14 }} />
+              <View style={{ height: 1, backgroundColor: theme.border, marginVertical: 14 }} />
 
               <MoneyStatCard
                 label={t('expenses.monthlyTotal')}
@@ -176,6 +176,7 @@ interface ExpenseRowProps {
 
 function ExpenseRow({ expense, onPress }: ExpenseRowProps) {
   const { t } = useLanguage();
+  const { theme } = useTheme();
   const { formatOriginalMoney } = useCurrency();
   const unconfigured = expense.amount === 0;
   // FEATURE_SPEC 2.5: period Badge only when amount > 0.
@@ -207,7 +208,7 @@ function ExpenseRow({ expense, onPress }: ExpenseRowProps) {
                 {t('expenses.setupCost')}
               </Text>
             ) : (
-              <Text style={{ fontFamily: FONTS.display, fontSize: 14, color: TEXT.primary }}>
+              <Text style={{ fontFamily: FONTS.display, fontSize: 14, color: theme.textPrimary }}>
                 {formatOriginalMoney(expense.amount, expense.currency ?? 'SAR')}
               </Text>
             )}
@@ -230,7 +231,7 @@ function ExpenseRow({ expense, onPress }: ExpenseRowProps) {
         <Text
           style={{
             fontSize: 11,
-            color: TEXT.tertiary,
+            color: theme.textTertiary,
             paddingStart: 50,
             paddingEnd: 12,
             paddingBottom: 12,

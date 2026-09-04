@@ -10,7 +10,7 @@ import { Avatar } from '@/components/ui/Avatar';
 import { useTheme } from '@/context/ThemeContext';
 import { useLanguage } from '@/context/LanguageContext';
 import { useUser } from '@/context/UserContext';
-import { FONTS, TEXT } from '@/constants/theme';
+import { FONTS } from '@/constants/theme';
 
 const APP_LOGO = require('../../assets/icon.png');
 
@@ -48,11 +48,9 @@ export function Header() {
               router.back();
             }}
             directional
-            size={32}
-            iconSize={16}
             variant="tinted"
           />
-          <Text style={{ fontFamily: FONTS.display, fontSize: 14.5, color: TEXT.primary }}>
+          <Text style={{ fontFamily: FONTS.display, fontSize: 14.5, color: theme.textPrimary }}>
             {t(titleKey)}
           </Text>
         </View>
@@ -73,9 +71,13 @@ export function Header() {
       >
         <View
           style={{
-            width: 32,
-            height: 32,
-            borderRadius: 10,
+            // 40, matching the back arrow's IconButton size (see
+            // IconButton.tsx) — the two "pics" either side of GlassHeader
+            // should read as the same size regardless of which row they're
+            // on. Radius scaled proportionally with it (10/32 → 12.5, ~13).
+            width: 40,
+            height: 40,
+            borderRadius: 13,
             overflow: 'hidden',
             backgroundColor: theme.accent1,
             borderWidth: 1,
@@ -88,10 +90,10 @@ export function Header() {
             long title. The subtitle reuses the existing name rather than
             inventing a product tier. */}
         <View>
-          <Text style={{ fontFamily: FONTS.bodyBold, fontSize: 14, color: TEXT.primary }}>
+          <Text style={{ fontFamily: FONTS.bodyBold, fontSize: 14, color: theme.textPrimary }}>
             {t('app.shortName')}
           </Text>
-          <Text style={{ fontSize: 9, fontWeight: '500', color: TEXT.tertiary, marginTop: 1 }}>
+          <Text style={{ fontSize: 9, fontWeight: '500', color: theme.textTertiary, marginTop: 1 }}>
             {t('app.subtitle')}
           </Text>
         </View>
@@ -110,10 +112,14 @@ export function Header() {
         }}
       >
         <View>
+          {/* size=34, not 32 — Avatar draws its ring 3px outside the given
+              size (see Avatar.tsx), so this renders a 34+6=40 circle: the
+              same visible size as the logo tile above and the back arrow's
+              IconButton, not 32. */}
           <Avatar
             name={profile.name || 'You'}
             photoUri={profile.avatar || undefined}
-            size={32}
+            size={34}
             ring={settingsActive ? 'accent' : 'accent'}
           />
         </View>

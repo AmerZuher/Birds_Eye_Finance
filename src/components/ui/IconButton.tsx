@@ -4,7 +4,6 @@ import type { LucideIcon } from 'lucide-react-native';
 
 import { useLanguage } from '@/context/LanguageContext';
 import { useTheme } from '@/context/ThemeContext';
-import { TEXT } from '@/constants/theme';
 
 interface IconButtonProps {
   icon: LucideIcon;
@@ -58,15 +57,24 @@ export function IconButton({
   const { isRTL } = useLanguage();
   const { theme } = useTheme();
 
+  // 'surface' was a flat white-alpha regardless of theme — invisible-ish on
+  // a light theme's own light surface, same problem as every other
+  // component in this pass. isLight flips both to black-based alpha, same
+  // magnitude, so the chip keeps reading as "a faint neutral surface" on
+  // either kind of theme instead of "barely-there" on light ones.
   const background =
     variant === 'surface'
-      ? 'rgba(255,255,255,0.08)'
+      ? theme.isLight
+        ? 'rgba(0,0,0,0.05)'
+        : 'rgba(255,255,255,0.08)'
       : variant === 'tinted'
         ? `rgba(${theme.glow.a},0.16)`
         : 'transparent';
   const border =
     variant === 'surface'
-      ? 'rgba(255,255,255,0.12)'
+      ? theme.isLight
+        ? 'rgba(0,0,0,0.08)'
+        : 'rgba(255,255,255,0.12)'
       : variant === 'tinted'
         ? `rgba(${theme.glow.a},0.28)`
         : 'transparent';
@@ -91,7 +99,7 @@ export function IconButton({
       <View style={directional && isRTL ? { transform: [{ scaleX: -1 }] } : undefined}>
         <Icon
           size={iconSize}
-          color={color ?? (variant === 'tinted' ? theme.accent2 : TEXT.primary)}
+          color={color ?? (variant === 'tinted' ? theme.accent2 : theme.textPrimary)}
           strokeWidth={2.4}
         />
       </View>

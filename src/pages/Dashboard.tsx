@@ -5,7 +5,7 @@ import { PageTransition } from '@/components/PageTransition';
 import { useLanguage } from '@/context/LanguageContext';
 import { useTheme } from '@/context/ThemeContext';
 import { useChrome } from '@/context/ChromeContext';
-import { FONTS, TEXT } from '@/constants/theme';
+import { FONTS } from '@/constants/theme';
 
 // Rule 15: intentionally minimal until Phase 5 — no rich data, no forecasting.
 export default function Dashboard() {
@@ -27,10 +27,10 @@ export default function Dashboard() {
           backgroundColor: theme.ground,
         }}
       >
-        <Text style={{ fontFamily: FONTS.display, fontSize: 20, color: TEXT.primary }}>
+        <Text style={{ fontFamily: FONTS.display, fontSize: 20, color: theme.textPrimary }}>
           {t('placeholder.dashboard.title')}
         </Text>
-        <Text style={{ fontSize: 13, color: TEXT.tertiary, textAlign: 'center' }}>
+        <Text style={{ fontSize: 13, color: theme.textTertiary, textAlign: 'center' }}>
           {t('placeholder.dashboard.subtitle')}
         </Text>
       </View>

@@ -21,7 +21,7 @@ import { useLanguage } from '@/context/LanguageContext';
 import { useCurrency } from '@/context/CurrencyContext';
 import { useFinance } from '@/context/FinanceContext';
 import type { Debt, NewDebt } from '@/db/schema';
-import { BORDER, RADII, SEMANTIC, TEXT } from '@/constants/theme';
+import { RADII, SEMANTIC } from '@/constants/theme';
 
 // Built from local Date components (never toISOString/UTC parsing) — a
 // timezone with a positive UTC offset would otherwise shift "today" or a
@@ -282,11 +282,11 @@ export function DebtModal({ visible, onClose, editingDebt, prefill }: DebtModalP
 
   const inputStyle = {
     fontSize: 13,
-    color: TEXT.primary,
+    color: theme.textPrimary,
     backgroundColor: theme.surfaceAlt,
     borderRadius: RADII.field,
     borderWidth: 1,
-    borderColor: BORDER.hairline,
+    borderColor: theme.border,
     paddingHorizontal: 12,
     paddingVertical: 10,
   } as const;
@@ -317,7 +317,7 @@ export function DebtModal({ visible, onClose, editingDebt, prefill }: DebtModalP
               borderRadius: RADII.field,
               backgroundColor: theme.surfaceAlt,
               borderWidth: 1,
-              borderColor: BORDER.hairline,
+              borderColor: theme.border,
             }}
           >
             <Avatar
@@ -328,12 +328,12 @@ export function DebtModal({ visible, onClose, editingDebt, prefill }: DebtModalP
             <View style={{ flex: 1, minWidth: 0 }}>
               <Text
                 numberOfLines={1}
-                style={{ fontSize: 12.5, fontWeight: '700', color: TEXT.primary }}
+                style={{ fontSize: 12.5, fontWeight: '700', color: theme.textPrimary }}
               >
                 {values.name}
               </Text>
               {values.phone ? (
-                <Text style={{ fontSize: 10.5, color: TEXT.tertiary }}>{values.phone}</Text>
+                <Text style={{ fontSize: 10.5, color: theme.textTertiary }}>{values.phone}</Text>
               ) : null}
             </View>
             <IconButton
@@ -356,7 +356,7 @@ export function DebtModal({ visible, onClose, editingDebt, prefill }: DebtModalP
               borderRadius: RADII.field,
               borderWidth: 1,
               borderStyle: 'dashed',
-              borderColor: BORDER.hairline,
+              borderColor: theme.border,
             }}
           >
             <Users size={14} color={theme.accent2} />
@@ -373,7 +373,7 @@ export function DebtModal({ visible, onClose, editingDebt, prefill }: DebtModalP
             onFocus={() => setNameFocused(true)}
             onBlur={() => setTimeout(() => setNameFocused(false), 120)}
             placeholder={t('debtModal.namePlaceholder')}
-            placeholderTextColor={TEXT.tertiary}
+            placeholderTextColor={theme.textTertiary}
             style={inputStyle}
           />
           {suggestions.length > 0 ? (
@@ -383,7 +383,7 @@ export function DebtModal({ visible, onClose, editingDebt, prefill }: DebtModalP
                 borderRadius: RADII.field,
                 backgroundColor: theme.surfaceAlt,
                 borderWidth: 1,
-                borderColor: BORDER.hairline,
+                borderColor: theme.border,
                 overflow: 'hidden',
               }}
             >
@@ -398,10 +398,10 @@ export function DebtModal({ visible, onClose, editingDebt, prefill }: DebtModalP
                     paddingVertical: 9,
                     paddingHorizontal: 12,
                     borderBottomWidth: 1,
-                    borderBottomColor: BORDER.hairlineSoft,
+                    borderBottomColor: theme.borderSoft,
                   }}
                 >
-                  <Text style={{ fontSize: 12.5, color: TEXT.primary }}>{name}</Text>
+                  <Text style={{ fontSize: 12.5, color: theme.textPrimary }}>{name}</Text>
                 </Pressable>
               ))}
             </View>
@@ -434,15 +434,15 @@ export function DebtModal({ visible, onClose, editingDebt, prefill }: DebtModalP
                   borderRadius: RADII.field,
                   backgroundColor: active ? `${color}22` : theme.surfaceAlt,
                   borderWidth: 1.5,
-                  borderColor: active ? color : BORDER.hairline,
+                  borderColor: active ? color : theme.border,
                 }}
               >
-                <Icon size={16} color={active ? color : TEXT.tertiary} strokeWidth={2.4} />
+                <Icon size={16} color={active ? color : theme.textTertiary} strokeWidth={2.4} />
                 <Text
                   style={{
                     fontSize: 13.5,
                     fontWeight: '800',
-                    color: active ? color : TEXT.secondary,
+                    color: active ? color : theme.textSecondary,
                   }}
                 >
                   {t(`debts.type.${type}`)}
@@ -486,7 +486,7 @@ export function DebtModal({ visible, onClose, editingDebt, prefill }: DebtModalP
               clearError();
             }}
             placeholder="YYYY-MM-DD"
-            placeholderTextColor={TEXT.tertiary}
+            placeholderTextColor={theme.textTertiary}
             style={inputStyle}
           />
         </FormField>
@@ -496,7 +496,7 @@ export function DebtModal({ visible, onClose, editingDebt, prefill }: DebtModalP
             value={values.notes}
             onChangeText={(v) => setValue('notes', v)}
             placeholder={t('debtModal.notesPlaceholder')}
-            placeholderTextColor={TEXT.tertiary}
+            placeholderTextColor={theme.textTertiary}
             multiline
             numberOfLines={3}
             textAlignVertical="top"
@@ -519,7 +519,7 @@ export function DebtModal({ visible, onClose, editingDebt, prefill }: DebtModalP
                 }}
                 keyboardType="decimal-pad"
                 placeholder="0.00"
-                placeholderTextColor={TEXT.tertiary}
+                placeholderTextColor={theme.textTertiary}
                 style={inputStyle}
               />
             </FormField>
@@ -540,7 +540,7 @@ export function DebtModal({ visible, onClose, editingDebt, prefill }: DebtModalP
                       clearError();
                     }}
                     placeholder="YYYY-MM-DD"
-                    placeholderTextColor={TEXT.tertiary}
+                    placeholderTextColor={theme.textTertiary}
                     style={inputStyle}
                   />
                 </FormField>
@@ -554,7 +554,7 @@ export function DebtModal({ visible, onClose, editingDebt, prefill }: DebtModalP
                       clearError();
                     }}
                     placeholder="YYYY-MM-DD"
-                    placeholderTextColor={TEXT.tertiary}
+                    placeholderTextColor={theme.textTertiary}
                     style={inputStyle}
                   />
                 </FormField>
@@ -568,7 +568,7 @@ export function DebtModal({ visible, onClose, editingDebt, prefill }: DebtModalP
               onChangeText={(v) => setValue('phone', v)}
               keyboardType="phone-pad"
               placeholder={t('debtModal.phonePlaceholder')}
-              placeholderTextColor={TEXT.tertiary}
+              placeholderTextColor={theme.textTertiary}
               style={[inputStyle, { textAlign: 'left', writingDirection: 'ltr' }]}
             />
           </FormField>
@@ -582,7 +582,7 @@ export function DebtModal({ visible, onClose, editingDebt, prefill }: DebtModalP
                   keyboardType="email-address"
                   autoCapitalize="none"
                   placeholder={t('debtModal.emailPlaceholder')}
-                  placeholderTextColor={TEXT.tertiary}
+                  placeholderTextColor={theme.textTertiary}
                   style={inputStyle}
                 />
               </FormField>
@@ -593,7 +593,7 @@ export function DebtModal({ visible, onClose, editingDebt, prefill }: DebtModalP
                   value={values.company}
                   onChangeText={(v) => setValue('company', v)}
                   placeholder={t('debtModal.companyPlaceholder')}
-                  placeholderTextColor={TEXT.tertiary}
+                  placeholderTextColor={theme.textTertiary}
                   style={inputStyle}
                 />
               </FormField>
@@ -617,6 +617,8 @@ export function DebtModal({ visible, onClose, editingDebt, prefill }: DebtModalP
 }
 
 function FormField({ label, children }: { label: string; children: React.ReactNode }) {
+  const { theme } = useTheme();
+
   return (
     <View style={{ gap: 6 }}>
       <Text
@@ -625,7 +627,7 @@ function FormField({ label, children }: { label: string; children: React.ReactNo
           fontWeight: '700',
           letterSpacing: 0.6,
           textTransform: 'uppercase',
-          color: TEXT.tertiary,
+          color: theme.textTertiary,
         }}
       >
         {label}

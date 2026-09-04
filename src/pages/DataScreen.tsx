@@ -20,7 +20,7 @@ import { useLanguage } from '@/context/LanguageContext';
 import { useCurrency } from '@/context/CurrencyContext';
 import { useUser } from '@/context/UserContext';
 import { useChrome } from '@/context/ChromeContext';
-import { BORDER, RADII, TEXT } from '@/constants/theme';
+import { RADII } from '@/constants/theme';
 import { DEBTS_PROMPT } from '@/prompts/debtsPrompt';
 import { EXPENSES_PROMPT } from '@/prompts/expensesPrompt';
 import {
@@ -219,10 +219,10 @@ export default function DataScreen() {
               <Shield size={16} color={theme.accent2} />
             </IconTile>
             <View style={{ flex: 1 }}>
-              <Text style={{ fontSize: 14, fontWeight: '700', color: TEXT.primary }}>
+              <Text style={{ fontSize: 14, fontWeight: '700', color: theme.textPrimary }}>
                 {t('settings.backupData')}
               </Text>
-              <Text style={{ fontSize: 11, color: TEXT.tertiary, marginTop: 2 }}>
+              <Text style={{ fontSize: 11, color: theme.textTertiary, marginTop: 2 }}>
                 {t('data.description')}
               </Text>
             </View>
@@ -259,16 +259,19 @@ export default function DataScreen() {
                 alignItems: 'center',
                 justifyContent: 'center',
                 gap: 8,
-                backgroundColor: 'rgba(255,255,255,0.05)',
+                // Same light/dark split as SecondaryButton's ghost fill — a
+                // flat white wash would sit invisibly flush with a light
+                // surface instead of reading as a distinct button.
+                backgroundColor: theme.isLight ? 'rgba(0,0,0,0.03)' : 'rgba(255,255,255,0.05)',
                 borderWidth: 1,
-                borderColor: BORDER.hairline,
+                borderColor: theme.border,
                 borderRadius: RADII.field,
                 paddingVertical: 12,
                 opacity: busy ? 0.6 : 1,
               }}
             >
-              <Upload size={15} color={TEXT.primary} />
-              <Text style={{ color: TEXT.primary, fontWeight: '700', fontSize: 13 }}>
+              <Upload size={15} color={theme.textPrimary} />
+              <Text style={{ color: theme.textPrimary, fontWeight: '700', fontSize: 13 }}>
                 {t('data.import.button')}
               </Text>
             </Pressable>
@@ -282,7 +285,7 @@ export default function DataScreen() {
             onChange={handleFrequencyChange}
           />
 
-          <Text style={{ fontSize: 11, color: TEXT.tertiary, marginTop: 10 }}>
+          <Text style={{ fontSize: 11, color: theme.textTertiary, marginTop: 10 }}>
             {t('data.autoBackup.status', { time: humanizeLastBackup(lastBackup, t) })}
           </Text>
 
@@ -311,17 +314,17 @@ export default function DataScreen() {
             value={pasteText}
             onChangeText={setPasteText}
             placeholder={t('data.paste.placeholder')}
-            placeholderTextColor={TEXT.tertiary}
+            placeholderTextColor={theme.textTertiary}
             multiline
             numberOfLines={6}
             textAlignVertical="top"
             style={{
               fontSize: 12,
-              color: TEXT.primary,
+              color: theme.textPrimary,
               backgroundColor: theme.surfaceAlt,
               borderRadius: RADII.field,
               borderWidth: 1,
-              borderColor: BORDER.hairline,
+              borderColor: theme.border,
               padding: 12,
               minHeight: 110,
             }}
@@ -336,7 +339,7 @@ export default function DataScreen() {
         </SettingsCard>
 
         <SettingsCard title={t('data.prompts.title')}>
-          <Text style={{ fontSize: 11, color: TEXT.tertiary, marginBottom: 12 }}>
+          <Text style={{ fontSize: 11, color: theme.textTertiary, marginBottom: 12 }}>
             {t('data.prompts.caption')}
           </Text>
           <View style={{ gap: 8 }}>
@@ -391,12 +394,12 @@ function PromptCopyRow({
         backgroundColor: theme.surfaceAlt,
         borderRadius: RADII.field,
         borderWidth: 1,
-        borderColor: BORDER.hairline,
+        borderColor: theme.border,
         paddingVertical: 11,
         paddingHorizontal: 14,
       }}
     >
-      <Text style={{ fontSize: 12.5, fontWeight: '600', color: TEXT.primary }}>{label}</Text>
+      <Text style={{ fontSize: 12.5, fontWeight: '600', color: theme.textPrimary }}>{label}</Text>
       {copied ? (
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
           <Check size={13} color={theme.accent2} />
@@ -405,7 +408,7 @@ function PromptCopyRow({
           </Text>
         </View>
       ) : (
-        <Copy size={14} color={TEXT.tertiary} />
+        <Copy size={14} color={theme.textTertiary} />
       )}
     </Pressable>
   );

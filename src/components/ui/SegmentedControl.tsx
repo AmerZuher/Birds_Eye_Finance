@@ -2,7 +2,6 @@ import React from 'react';
 import { Pressable, Text, View } from 'react-native';
 
 import { useTheme } from '@/context/ThemeContext';
-import { TEXT } from '@/constants/theme';
 
 export interface SegmentOption<T extends string> {
   label: string;
@@ -38,14 +37,14 @@ export function SegmentedControl<T extends string>({
               borderRadius: 8,
               backgroundColor: active ? theme.accent1 : theme.surfaceAlt,
               borderWidth: active ? 0 : 1,
-              borderColor: 'rgba(255,255,255,0.08)',
+              borderColor: theme.border,
             }}
           >
             <Text
               style={{
                 fontSize: 10,
                 fontWeight: '700',
-                color: active ? theme.buttonText : TEXT.tertiary,
+                color: active ? theme.buttonText : theme.textTertiary,
               }}
             >
               {opt.label}

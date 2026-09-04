@@ -2,7 +2,7 @@ import React from 'react';
 import { Pressable, Text, TextInput, View } from 'react-native';
 
 import { useTheme } from '@/context/ThemeContext';
-import { RADII, TEXT, BORDER, SEMANTIC } from '@/constants/theme';
+import { RADII, SEMANTIC } from '@/constants/theme';
 
 interface AmountInputProps {
   value: string;
@@ -33,7 +33,7 @@ export function AmountInput({
         padding: 12,
         backgroundColor: theme.surfaceAlt,
         borderWidth: 1,
-        borderColor: tintColor ? `${tintColor}55` : BORDER.hairline,
+        borderColor: tintColor ? `${tintColor}55` : theme.border,
         gap: 2,
       }}
     >
@@ -43,7 +43,7 @@ export function AmountInput({
           fontWeight: '700',
           letterSpacing: 0.6,
           textTransform: 'uppercase',
-          color: TEXT.tertiary,
+          color: theme.textTertiary,
         }}
       >
         {label}
@@ -59,8 +59,8 @@ export function AmountInput({
           onChangeText={onChangeValue}
           keyboardType="decimal-pad"
           placeholder="0.00"
-          placeholderTextColor={TEXT.tertiary}
-          style={{ flex: 1, fontSize: 16, fontWeight: '600', color: TEXT.primary, padding: 0 }}
+          placeholderTextColor={theme.textTertiary}
+          style={{ flex: 1, fontSize: 16, fontWeight: '600', color: theme.textPrimary, padding: 0 }}
         />
       </View>
     </View>

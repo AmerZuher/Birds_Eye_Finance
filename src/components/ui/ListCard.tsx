@@ -2,7 +2,7 @@ import React from 'react';
 import { View } from 'react-native';
 
 import { useTheme } from '@/context/ThemeContext';
-import { BORDER, RADII } from '@/constants/theme';
+import { RADII } from '@/constants/theme';
 
 const GAP = 10;
 
@@ -30,7 +30,7 @@ export function ListCard({ children, isLast = false }: ListCardProps) {
       style={{
         backgroundColor: theme.surface,
         borderWidth: 1,
-        borderColor: BORDER.hairline,
+        borderColor: theme.border,
         borderRadius: RADII.txList,
         overflow: 'hidden',
         marginBottom: isLast ? 0 : GAP,

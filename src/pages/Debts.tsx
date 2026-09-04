@@ -37,7 +37,7 @@ import { useCurrency } from '@/context/CurrencyContext';
 import { useFinance } from '@/context/FinanceContext';
 import type { DebtGroup, DebtGroupType } from '@/context/FinanceContext';
 import type { Debt } from '@/db/schema';
-import { BORDER, FONTS, RADII, SEMANTIC, TEXT } from '@/constants/theme';
+import { FONTS, RADII, SEMANTIC } from '@/constants/theme';
 import { openWhatsApp } from '@/utils/whatsapp';
 
 function matchesSearch(group: DebtGroup, query: string): boolean {
@@ -53,10 +53,10 @@ function matchesSearch(group: DebtGroup, query: string): boolean {
   );
 }
 
-function netColor(type: DebtGroupType): string {
+function netColor(type: DebtGroupType, theme: ThemeShape): string {
   if (type === 'positive') return SEMANTIC.positive;
   if (type === 'negative') return SEMANTIC.negative;
-  return TEXT.secondary;
+  return theme.textSecondary;
 }
 
 export default function Debts() {
@@ -316,10 +316,10 @@ function SummaryView({
           <View style={{ marginBottom: 16 }}>
             <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
               <View style={{ flex: 1 }}>
-                <Text style={{ fontFamily: FONTS.display, fontSize: 22, color: TEXT.primary }}>
+                <Text style={{ fontFamily: FONTS.display, fontSize: 22, color: theme.textPrimary }}>
                   {t('debts.title')}
                 </Text>
-                <Text style={{ fontSize: 12, color: TEXT.tertiary, marginTop: 4 }}>
+                <Text style={{ fontSize: 12, color: theme.textTertiary, marginTop: 4 }}>
                   {t('debts.subtitle')}
                 </Text>
               </View>
@@ -330,7 +330,7 @@ function SummaryView({
                 variant="tinted"
               />
             </View>
-            <View style={{ height: 1, backgroundColor: BORDER.hairline, marginVertical: 14 }} />
+            <View style={{ height: 1, backgroundColor: theme.border, marginVertical: 14 }} />
 
             <MoneyStatCard
               label={t('debts.netBalance')}
@@ -388,6 +388,7 @@ function SummaryView({
 
 function PersonRow({ group, onPress }: { group: DebtGroup; onPress: () => void }) {
   const { t } = useLanguage();
+  const { theme } = useTheme();
   const { formatMoney } = useCurrency();
 
   return (
@@ -401,10 +402,10 @@ function PersonRow({ group, onPress }: { group: DebtGroup; onPress: () => void }
           {group.phone ? (
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
               <BrandGlyph slug="whatsapp" size={10} />
-              <Text style={{ fontSize: 10.5, color: TEXT.tertiary }}>{group.phone}</Text>
+              <Text style={{ fontSize: 10.5, color: theme.textTertiary }}>{group.phone}</Text>
             </View>
           ) : null}
-          <Text style={{ fontSize: 10.5, color: TEXT.tertiary }}>
+          <Text style={{ fontSize: 10.5, color: theme.textTertiary }}>
             {t('debts.transactionCount', { count: group.transactions.length })}
           </Text>
         </View>
@@ -415,7 +416,7 @@ function PersonRow({ group, onPress }: { group: DebtGroup; onPress: () => void }
             style={{
               fontFamily: FONTS.display,
               fontSize: 14,
-              color: netColor(group.type),
+              color: netColor(group.type, theme),
             }}
           >
             {formatMoney(group.totalNet)}
@@ -489,7 +490,7 @@ function DetailView({
 
       <View style={{ alignItems: 'center', gap: 10, marginTop: 4 }}>
         <Avatar name={group.name} photoUri={group.avatar} ring={group.type} size={96} />
-        <Text style={{ fontFamily: FONTS.display, fontSize: 18, color: TEXT.primary }}>
+        <Text style={{ fontFamily: FONTS.display, fontSize: 18, color: theme.textPrimary }}>
           {group.name}
         </Text>
 
@@ -500,19 +501,19 @@ function DetailView({
             {group.phone ? (
               <Pressable onPress={onWhatsApp} style={chipStyle(theme)}>
                 <BrandGlyph slug="whatsapp" size={11} />
-                <Text style={chipTextStyle}>{group.phone}</Text>
+                <Text style={chipTextStyle(theme)}>{group.phone}</Text>
               </Pressable>
             ) : null}
             {group.email ? (
               <View style={chipStyle(theme)}>
-                <Mail size={11} color={TEXT.tertiary} />
-                <Text style={chipTextStyle}>{group.email}</Text>
+                <Mail size={11} color={theme.textTertiary} />
+                <Text style={chipTextStyle(theme)}>{group.email}</Text>
               </View>
             ) : null}
             {group.company ? (
               <View style={chipStyle(theme)}>
-                <Building2 size={11} color={TEXT.tertiary} />
-                <Text style={chipTextStyle}>{group.company}</Text>
+                <Building2 size={11} color={theme.textTertiary} />
+                <Text style={chipTextStyle(theme)}>{group.company}</Text>
               </View>
             ) : null}
           </View>
@@ -533,7 +534,7 @@ function DetailView({
             borderRadius: RADII.statCard,
             padding: 18,
             alignItems: 'center',
-            backgroundColor: `${netColor(group.type)}1A`,
+            backgroundColor: `${netColor(group.type, theme)}1A`,
           }}
         >
           <Text
@@ -542,7 +543,7 @@ function DetailView({
               fontWeight: '700',
               letterSpacing: 0.8,
               textTransform: 'uppercase',
-              color: netColor(group.type),
+              color: netColor(group.type, theme),
             }}
           >
             {group.type === 'settled' ? t('debts.status.settled') : t(`debts.type.${group.type}`)}
@@ -552,7 +553,7 @@ function DetailView({
               fontFamily: FONTS.display,
               fontSize: 26,
               marginTop: 6,
-              color: netColor(group.type),
+              color: netColor(group.type, theme),
             }}
           >
             {formatMoney(group.totalNet)}
@@ -566,7 +567,7 @@ function DetailView({
           fontWeight: '700',
           letterSpacing: 1,
           textTransform: 'uppercase',
-          color: TEXT.tertiary,
+          color: theme.textTertiary,
           marginTop: 18,
           marginBottom: 10,
         }}
@@ -597,7 +598,7 @@ function DetailView({
             <View
               style={{
                 backgroundColor: theme.surface,
-                borderColor: BORDER.hairline,
+                borderColor: theme.border,
                 borderLeftWidth: 1,
                 borderRightWidth: 1,
                 borderTopWidth: isFirst ? 1 : 0,
@@ -642,6 +643,7 @@ function TransactionRow({
   onDelete,
 }: TransactionRowProps) {
   const { t } = useLanguage();
+  const { theme } = useTheme();
   const { formatOriginalMoney } = useCurrency();
   const isPositive = debt.type === 'positive';
   const hasInstallment = debt.type === 'negative' && debt.monthlyPayment > 0;
@@ -653,7 +655,7 @@ function TransactionRow({
       style={{
         padding: 12,
         borderBottomWidth: showBottomBorder ? 1 : 0,
-        borderBottomColor: BORDER.hairlineSoft,
+        borderBottomColor: theme.borderSoft,
       }}
     >
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
@@ -668,10 +670,12 @@ function TransactionRow({
           )}
         </IconTile>
         <View style={{ flex: 1, minWidth: 0 }}>
-          <Text style={{ fontSize: 12.5, fontWeight: '700', color: TEXT.primary }}>
+          <Text style={{ fontSize: 12.5, fontWeight: '700', color: theme.textPrimary }}>
             {t(isPositive ? 'debts.type.positive' : 'debts.type.negative')}
           </Text>
-          <Text style={{ fontSize: 10.5, color: TEXT.tertiary, marginTop: 1 }}>{debt.date}</Text>
+          <Text style={{ fontSize: 10.5, color: theme.textTertiary, marginTop: 1 }}>
+            {debt.date}
+          </Text>
         </View>
         <Text
           style={{
@@ -701,10 +705,10 @@ function TransactionRow({
       {expanded ? (
         <View style={{ marginTop: 10, gap: 4, paddingStart: 44 }}>
           {debt.notes ? (
-            <Text style={{ fontSize: 11.5, color: TEXT.secondary }}>{debt.notes}</Text>
+            <Text style={{ fontSize: 11.5, color: theme.textSecondary }}>{debt.notes}</Text>
           ) : null}
           {hasInstallment ? (
-            <Text style={{ fontSize: 11.5, color: TEXT.secondary }}>
+            <Text style={{ fontSize: 11.5, color: theme.textSecondary }}>
               {t('debts.installmentDetails', {
                 amount: formatOriginalMoney(debt.monthlyPayment, debt.currency ?? 'SAR'),
               })}
@@ -743,10 +747,12 @@ function HistoryView({ debts, personName, onBack, onForget }: HistoryViewProps) 
         directional
         variant="tinted"
       />
-      <Text style={{ fontFamily: FONTS.display, fontSize: 20, color: TEXT.primary, marginTop: 12 }}>
+      <Text
+        style={{ fontFamily: FONTS.display, fontSize: 20, color: theme.textPrimary, marginTop: 12 }}
+      >
         {personName ? t('debts.historyTitleFor', { name: personName }) : t('debts.historyTitle')}
       </Text>
-      <Text style={{ fontSize: 12, color: TEXT.tertiary, marginTop: 4 }}>
+      <Text style={{ fontSize: 12, color: theme.textTertiary, marginTop: 4 }}>
         {t('debts.historySubtitle')}
       </Text>
     </View>
@@ -774,7 +780,7 @@ function HistoryView({ debts, personName, onBack, onForget }: HistoryViewProps) 
             <View
               style={{
                 backgroundColor: theme.surface,
-                borderColor: BORDER.hairline,
+                borderColor: theme.border,
                 borderLeftWidth: 1,
                 borderRightWidth: 1,
                 borderTopWidth: isFirst ? 1 : 0,
@@ -804,6 +810,7 @@ function HistoryRow({
   onForget: () => void;
 }) {
   const { t } = useLanguage();
+  const { theme } = useTheme();
   const { formatOriginalMoney } = useCurrency();
   const isPositive = debt.type === 'positive';
 
@@ -815,7 +822,7 @@ function HistoryRow({
         gap: 10,
         padding: 12,
         borderBottomWidth: showBottomBorder ? 1 : 0,
-        borderBottomColor: BORDER.hairlineSoft,
+        borderBottomColor: theme.borderSoft,
       }}
     >
       <IconTile
@@ -829,10 +836,13 @@ function HistoryRow({
         )}
       </IconTile>
       <View style={{ flex: 1, minWidth: 0 }}>
-        <Text numberOfLines={1} style={{ fontSize: 12.5, fontWeight: '700', color: TEXT.primary }}>
+        <Text
+          numberOfLines={1}
+          style={{ fontSize: 12.5, fontWeight: '700', color: theme.textPrimary }}
+        >
           {debt.name}
         </Text>
-        <Text style={{ fontSize: 10.5, color: TEXT.tertiary, marginTop: 1 }}>
+        <Text style={{ fontSize: 10.5, color: theme.textTertiary, marginTop: 1 }}>
           {t('debts.deletedOn', { date: (debt.deletedAt ?? '').slice(0, 10) })}
         </Text>
       </View>
@@ -866,8 +876,10 @@ function chipStyle(theme: ThemeShape) {
     borderRadius: RADII.pill,
     backgroundColor: theme.surfaceAlt,
     borderWidth: 1,
-    borderColor: BORDER.hairline,
+    borderColor: theme.border,
   };
 }
 
-const chipTextStyle = { fontSize: 10.5, color: TEXT.secondary } as const;
+function chipTextStyle(theme: ThemeShape) {
+  return { fontSize: 10.5, color: theme.textSecondary } as const;
+}

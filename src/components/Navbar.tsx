@@ -13,13 +13,8 @@ import { ChartPie, CreditCard, House, Plus, Wallet } from 'lucide-react-native';
 import { useTheme } from '@/context/ThemeContext';
 import { useLanguage } from '@/context/LanguageContext';
 import { useChrome } from '@/context/ChromeContext';
-import { ANDROID_BLUR_METHOD, GLASS } from '@/constants/theme';
+import { ANDROID_BLUR_METHOD, GLASS_BLUR_INTENSITY } from '@/constants/theme';
 import { CHROME_GROUND_ALPHA, hexToRgb } from '@/utils/color';
-
-// Neutral white-alpha icon greys rather than TEXT.tertiary (`#6b6255`), a warm
-// brown-grey from the original palette that reads muddy against these cool
-// (indigo/teal) themes.
-const ICON_INACTIVE = 'rgba(255,255,255,0.42)';
 
 type TabPath = '/' | '/analytics' | '/expenses' | '/debts';
 
@@ -86,7 +81,11 @@ const FAB_GAP = 10;
 // height by ~10% between devices.
 const FAB_OFFSET = NOTCH_DEPTH - FAB_GAP - FAB_SIZE;
 
-const ICON_SIZE = 26;
+// 28, not the original 26 — still within the typical 24-28px range for a
+// bare tab-bar glyph (iOS/Material both land around there), just nudged to
+// the upper end so it reads a touch more substantial, matching the header's
+// icon buttons moving up the same way (see IconButton.tsx).
+const ICON_SIZE = 28;
 const TAB_CONTENT_HEIGHT = ICON_SIZE;
 const BAR_PADDING_TOP = 18;
 const BAR_PADDING_BOTTOM_MIN = 16;
@@ -120,6 +119,16 @@ export function Navbar() {
   // Settings/About render their own back+title header and have no tab bar.
   const isTabRoute = TABS.some((tab) => tab.path === pathname);
   if (!isTabRoute) return null;
+
+  // Was a flat 'rgba(255,255,255,0.42)' regardless of theme — a neutral
+  // white-alpha grey, deliberately not theme.textTertiary (which read muddy
+  // against the original cool indigo/teal themes). That reasoning holds for
+  // dark themes, but the same white-alpha reads as a near-invisible pale
+  // icon on a light navbar — same problem as everything else in this pass,
+  // just for an inactive-icon color instead of body text. isLight flips it
+  // to a black-based alpha instead, keeping the same "neutral grey, not the
+  // theme's own muted text color" intent on either kind of theme.
+  const iconInactive = theme.isLight ? 'rgba(15,23,42,0.35)' : 'rgba(255,255,255,0.42)';
 
   // Computed rather than measured: the mask's SVG needs a concrete height on
   // the very first frame, and every term here is under this component's
@@ -173,7 +182,7 @@ export function Navbar() {
             against thin-stroked icons on this dark glass. */}
         <Icon
           size={ICON_SIZE}
-          color={isFocused ? theme.accent2 : ICON_INACTIVE}
+          color={isFocused ? theme.accent2 : iconInactive}
           strokeWidth={isFocused ? 1.3 : 1.05}
         />
       </Pressable>
@@ -248,7 +257,12 @@ export function Navbar() {
                 against a solid accent fill; against this darker card-toned
                 gradient it's the same bright accent color the card's own
                 numbers use that actually stands out. */}
-            <Plus size={26} color={theme.accent2} strokeWidth={2.2} />
+            {/* ICON_SIZE, not a separate hardcoded number — was independently
+                set to 26 (the old tab icon size) before, which silently fell
+                out of sync when the tabs moved to 28. Referencing the same
+                constant means the FAB (meant to be the boldest glyph on the
+                bar) can't end up smaller than the tabs around it again. */}
+            <Plus size={ICON_SIZE} color={theme.accent2} strokeWidth={2.2} />
           </LinearGradient>
         </Pressable>
       </View>
@@ -276,8 +290,8 @@ export function Navbar() {
           }
         >
           <BlurView
-            intensity={GLASS.blurIntensity}
-            tint="dark"
+            intensity={GLASS_BLUR_INTENSITY}
+            tint={theme.isLight ? 'light' : 'dark'}
             blurMethod={ANDROID_BLUR_METHOD}
             blurTarget={blurTarget}
             style={StyleSheet.absoluteFill}

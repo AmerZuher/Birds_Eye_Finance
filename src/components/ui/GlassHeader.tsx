@@ -6,31 +6,33 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useTheme } from '@/context/ThemeContext';
 import { useChrome } from '@/context/ChromeContext';
-import { ANDROID_BLUR_METHOD, GLASS } from '@/constants/theme';
+import { ANDROID_BLUR_METHOD, GLASS_BLUR_INTENSITY } from '@/constants/theme';
 import { CHROME_GROUND_ALPHA, hexToRgb } from '@/utils/color';
 
 /**
  * The content row's `minHeight` — meaning the row's whole box, its own
  * `paddingVertical: 12` (24px) included, since minHeight is set on that same
  * node. It has to be at least as tall as the tallest real row ever gets:
- * Header's settings-avatar Pressable — a 32px Avatar rendered with
- * `ring="accent"` (draws a 2px ring 3px outside the given size, so a 32px
- * avatar occupies 38px) inside a Pressable with `padding: 2` for its
- * active-state tint (38 + 2 + 2 = 42) — plus the row's own 24px of padding
- * around it: 66.
+ * Header's settings-avatar Pressable — a 34px Avatar rendered with
+ * `ring="accent"` (draws a 2px ring 3px outside the given size, so a 34px
+ * avatar occupies 40px, matching the back arrow's IconButton — see
+ * Header.tsx) inside a Pressable with `padding: 2` for its active-state tint
+ * (40 + 2 + 2 = 44) — plus the row's own 24px of padding around it: 68.
  *
- * The previous two attempts at this constant (36, then 42) both used the
- * avatar Pressable's own height alone, forgetting it sits *inside* a row
- * that adds another 24px of padding on top. Since minHeight is a floor, both
- * values landed below what either row already totalled unaided (66 for the
- * tab screens' brand row, 56 for Settings/About's back+title row) and so
- * never actually constrained anything — the two kept their own, still
+ * This number moves whenever that avatar's rendered size does (it has twice
+ * already — 66 when the avatar was 32, this 68 now that it's 34 to match the
+ * arrow) since it isn't derived from Header.tsx automatically, just kept in
+ * sync by hand. The two prior attempts before that (36, then 42) both used
+ * the avatar Pressable's own height alone, forgetting it sits *inside* a row
+ * that adds another 24px of padding on top — since minHeight is a floor,
+ * both landed below what either row already totalled unaided and so never
+ * actually constrained anything, leaving the two rows their own, still
  * different, natural heights regardless of what this constant said.
  *
  * `minHeight`, not `height`: at a large fontScale a title is allowed to make
  * the bar taller rather than being clipped by the overflow:hidden below.
  */
-const ROW_MIN_HEIGHT = 66;
+const ROW_MIN_HEIGHT = 68;
 
 interface GlassHeaderProps {
   children: React.ReactNode;
@@ -77,8 +79,12 @@ export function GlassHeader({ children }: GlassHeaderProps) {
       }}
     >
       <BlurView
-        intensity={GLASS.blurIntensity}
-        tint="dark"
+        intensity={GLASS_BLUR_INTENSITY}
+        // expo-blur's own tint, not just the color wash below it — a "dark"
+        // tint on a light theme fights the light wash and muddies it. This
+        // is the one BlurView prop that can't be expressed as a theme color
+        // at all, so it has to branch on isLight directly.
+        tint={theme.isLight ? 'light' : 'dark'}
         blurMethod={ANDROID_BLUR_METHOD}
         blurTarget={blurTarget}
         style={StyleSheet.absoluteFill}

@@ -43,7 +43,7 @@ export function ToggleSwitch({
         borderRadius: 999,
         backgroundColor: value ? theme.accent1 : theme.surfaceAlt,
         borderWidth: value ? 0 : 1,
-        borderColor: 'rgba(255,255,255,0.08)',
+        borderColor: theme.border,
         opacity: disabled ? 0.5 : 1,
       }}
     >

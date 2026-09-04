@@ -4,7 +4,6 @@ import { Check, ChevronRight } from 'lucide-react-native';
 
 import { useTheme } from '@/context/ThemeContext';
 import { useLanguage } from '@/context/LanguageContext';
-import { BORDER, TEXT } from '@/constants/theme';
 import { GlassModal } from '@/components/ui/GlassModal';
 import { SearchInput } from '@/components/ui/SearchInput';
 
@@ -71,9 +70,11 @@ export function CustomSelect<T extends string>({
           onPress={() => setOpen(true)}
           style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}
         >
-          <Text style={{ fontSize: 11.5, color: TEXT.tertiary }}>{selected?.label ?? '—'}</Text>
+          <Text style={{ fontSize: 11.5, color: theme.textTertiary }}>
+            {selected?.label ?? '—'}
+          </Text>
           <View style={isRTL ? { transform: [{ scaleX: -1 }] } : undefined}>
-            <ChevronRight size={13} color={TEXT.tertiary} />
+            <ChevronRight size={13} color={theme.textTertiary} />
           </View>
         </Pressable>
       )}
@@ -100,10 +101,10 @@ export function CustomSelect<T extends string>({
                   justifyContent: 'space-between',
                   paddingVertical: 12,
                   borderBottomWidth: 1,
-                  borderBottomColor: BORDER.hairlineSoft,
+                  borderBottomColor: theme.borderSoft,
                 }}
               >
-                <Text style={{ fontSize: 13, fontWeight: '600', color: TEXT.primary }}>
+                <Text style={{ fontSize: 13, fontWeight: '600', color: theme.textPrimary }}>
                   {item.label}
                 </Text>
                 {isSelected ? (

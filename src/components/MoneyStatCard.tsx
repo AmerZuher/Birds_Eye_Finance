@@ -5,14 +5,16 @@ import Svg, { Circle, Defs, RadialGradient, Stop } from 'react-native-svg';
 
 import { useTheme } from '@/context/ThemeContext';
 import { useCurrency } from '@/context/CurrencyContext';
-import { FONTS, RADII, TEXT } from '@/constants/theme';
+import { FONTS, RADII } from '@/constants/theme';
 
+// Color isn't here — this is a module-level constant (computed once, outside
+// any component), so it has no theme to read. `theme.textTertiary` is added
+// at the actual usage site below instead.
 const labelStyle = {
   fontSize: 10,
   fontWeight: '700' as const,
   letterSpacing: 1.5,
   textTransform: 'uppercase' as const,
-  color: TEXT.tertiary,
 };
 
 // Integer stays at the size the amount has always been; symbol and decimal
@@ -101,7 +103,7 @@ export function MoneyStatCard({ label, amount, currencyCode, color, footer }: Mo
   const { theme } = useTheme();
   const { formatMoneyParts } = useCurrency();
   const parts = formatMoneyParts(amount, currencyCode);
-  const valueColor = color ?? TEXT.primary;
+  const valueColor = color ?? theme.textPrimary;
 
   // Mirrors formatMoney's own sign placement exactly (English: "-SAR 1,234.56";
   // Arabic: "1,234.56- ر.س").
@@ -184,7 +186,7 @@ export function MoneyStatCard({ label, amount, currencyCode, color, footer }: Mo
           <GlowBlob color={`rgb(${theme.glow.a})`} corner="topStart" />
           <GlowBlob color={`rgb(${theme.glow.b})`} corner="bottomEnd" />
           <View style={{ minHeight: SIDE_SLOT_HEIGHT, justifyContent: 'center' }}>
-            <Text style={labelStyle}>{label}</Text>
+            <Text style={[labelStyle, { color: theme.textTertiary }]}>{label}</Text>
           </View>
           {/* Explicit width, not shrink-wrap-then-center-by-parent — Android
               can misjudge a mixed-font-size nested-run Text's own intrinsic

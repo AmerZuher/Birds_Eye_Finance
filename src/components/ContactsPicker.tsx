@@ -13,7 +13,6 @@ import { IconButton } from '@/components/ui/IconButton';
 import { GradientButton } from '@/components/ui/GradientButton';
 import { useTheme } from '@/context/ThemeContext';
 import { useLanguage } from '@/context/LanguageContext';
-import { TEXT } from '@/constants/theme';
 
 const FIELDS = [
   ContactField.FULL_NAME,
@@ -119,7 +118,7 @@ export function ContactsPicker({ visible, onClose, onSelect }: ContactsPickerPro
             onPress={onClose}
             directional
           />
-          <Text style={{ fontSize: 15, fontWeight: '700', color: TEXT.primary }}>
+          <Text style={{ fontSize: 15, fontWeight: '700', color: theme.textPrimary }}>
             {t('contactsPicker.title')}
           </Text>
         </View>
@@ -136,7 +135,7 @@ export function ContactsPicker({ visible, onClose, onSelect }: ContactsPickerPro
 
         {state === 'loading' ? (
           <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-            <Text style={{ color: TEXT.tertiary, fontSize: 12 }}>
+            <Text style={{ color: theme.textTertiary, fontSize: 12 }}>
               {t('contactsPicker.loading')}
             </Text>
           </View>

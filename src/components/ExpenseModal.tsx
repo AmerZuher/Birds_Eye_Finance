@@ -23,7 +23,7 @@ import { useLanguage } from '@/context/LanguageContext';
 import { useCurrency } from '@/context/CurrencyContext';
 import { useFinance } from '@/context/FinanceContext';
 import type { Expense, NewExpense } from '@/db/schema';
-import { BORDER, RADII, SEMANTIC, TEXT } from '@/constants/theme';
+import { RADII, SEMANTIC } from '@/constants/theme';
 import type { Period } from '@/lib/period';
 import type { ExpenseTemplate } from '@/utils/expenseIcon';
 import {
@@ -182,21 +182,39 @@ export function ExpenseModal({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [values.amount]);
 
+  // Names already in the expense list — a template for one of these would
+  // just recreate the onValid duplicate-name error below on submit, so both
+  // browsing surfaces (Templates tab, Custom tab's autocomplete) hide it
+  // before that point instead of letting you pick it and then bounce off the
+  // error. Recomputes from `expenses` itself, so a template comes back the
+  // moment its matching expense is deleted — nothing else to reset.
+  const existingNames = useMemo(
+    () => new Set(expenses.map((e) => e.name.trim().toLowerCase())),
+    [expenses],
+  );
+
   // Custom tab keeps its own live name-autocomplete against the same
   // catalog the Templates tab browses — a fast path for "I'm already
   // customizing, but this happens to match a known template" without
   // switching tabs.
   const suggestions = useMemo(
-    () => (values.name.trim() ? searchTemplates(values.name, 5) : []),
-    [values.name],
+    () =>
+      values.name.trim()
+        ? searchTemplates(values.name, 5).filter(
+            (template) => !existingNames.has(template.name.trim().toLowerCase()),
+          )
+        : [],
+    [values.name, existingNames],
   );
 
   const filteredTemplates = useMemo(() => {
-    const results = searchTemplates(templateSearch);
+    const results = searchTemplates(templateSearch).filter(
+      (template) => !existingNames.has(template.name.trim().toLowerCase()),
+    );
     if (templateSearch.trim()) return results;
     // No search yet — surface the most universally-relevant picks first.
     return [...results].sort((a, b) => Number(!!b.universal) - Number(!!a.universal));
-  }, [templateSearch]);
+  }, [templateSearch, existingNames]);
 
   const clearError = () => {
     if (formError) setFormError('');
@@ -269,11 +287,11 @@ export function ExpenseModal({
 
   const inputStyle = {
     fontSize: 13,
-    color: TEXT.primary,
+    color: theme.textPrimary,
     backgroundColor: theme.surfaceAlt,
     borderRadius: RADII.field,
     borderWidth: 1,
-    borderColor: BORDER.hairline,
+    borderColor: theme.border,
     paddingHorizontal: 12,
     paddingVertical: 10,
   } as const;
@@ -316,7 +334,7 @@ export function ExpenseModal({
           onPress={() => setPeriodPickerOpen(true)}
           style={[inputStyle, { flexDirection: 'row', justifyContent: 'space-between' }]}
         >
-          <Text style={{ fontSize: 13, color: TEXT.primary }}>
+          <Text style={{ fontSize: 13, color: theme.textPrimary }}>
             {t(`expenses.period.${values.period}`)}
           </Text>
         </Pressable>
@@ -332,7 +350,7 @@ export function ExpenseModal({
             }}
             keyboardType="number-pad"
             placeholder="30"
-            placeholderTextColor={TEXT.tertiary}
+            placeholderTextColor={theme.textTertiary}
             style={inputStyle}
           />
         </FormField>
@@ -355,7 +373,7 @@ export function ExpenseModal({
           value={values.notes}
           onChangeText={(v) => setValue('notes', v)}
           placeholder={t('expenseModal.notesPlaceholder')}
-          placeholderTextColor={TEXT.tertiary}
+          placeholderTextColor={theme.textTertiary}
           multiline
           numberOfLines={3}
           textAlignVertical="top"
@@ -419,15 +437,19 @@ export function ExpenseModal({
                   borderRadius: RADII.field,
                   backgroundColor: active ? `${theme.accent1}22` : theme.surfaceAlt,
                   borderWidth: 1.5,
-                  borderColor: active ? theme.accent1 : BORDER.hairline,
+                  borderColor: active ? theme.accent1 : theme.border,
                 }}
               >
-                <Icon size={16} color={active ? theme.accent2 : TEXT.tertiary} strokeWidth={2.4} />
+                <Icon
+                  size={16}
+                  color={active ? theme.accent2 : theme.textTertiary}
+                  strokeWidth={2.4}
+                />
                 <Text
                   style={{
                     fontSize: 13.5,
                     fontWeight: '800',
-                    color: active ? theme.accent2 : TEXT.secondary,
+                    color: active ? theme.accent2 : theme.textSecondary,
                   }}
                 >
                   {t(`expenseModal.tab.${tab}`)}
@@ -451,10 +473,10 @@ export function ExpenseModal({
                   size={44}
                 />
                 <View style={{ flex: 1 }}>
-                  <Text style={{ fontSize: 15, fontWeight: '700', color: TEXT.primary }}>
+                  <Text style={{ fontSize: 15, fontWeight: '700', color: theme.textPrimary }}>
                     {selectedTemplate.name}
                   </Text>
-                  <Text style={{ fontSize: 11, color: TEXT.tertiary, marginTop: 1 }}>
+                  <Text style={{ fontSize: 11, color: theme.textTertiary, marginTop: 1 }}>
                     {t(`expenses.category.${selectedTemplate.category}`)}
                   </Text>
                 </View>
@@ -529,7 +551,7 @@ export function ExpenseModal({
                     clearError();
                   }}
                   placeholder={t('expenseModal.namePlaceholder')}
-                  placeholderTextColor={TEXT.tertiary}
+                  placeholderTextColor={theme.textTertiary}
                   style={inputStyle}
                 />
               </View>
@@ -553,7 +575,9 @@ export function ExpenseModal({
                       }}
                     >
                       <ExpenseIconTile icon={template.icon} name={template.name} size={26} />
-                      <Text style={{ fontSize: 12.5, color: TEXT.primary }}>{template.name}</Text>
+                      <Text style={{ fontSize: 12.5, color: theme.textPrimary }}>
+                        {template.name}
+                      </Text>
                     </Pressable>
                   </ListCard>
                 ))}
@@ -576,7 +600,7 @@ export function ExpenseModal({
                       }}
                     >
                       <IconTile backgroundColor={active ? `${theme.accent1}33` : undefined}>
-                        <Icon size={16} color={active ? theme.accent2 : TEXT.secondary} />
+                        <Icon size={16} color={active ? theme.accent2 : theme.textSecondary} />
                       </IconTile>
                     </Pressable>
                   );
@@ -616,6 +640,8 @@ export function ExpenseModal({
 }
 
 function FormField({ label, children }: { label: string; children: React.ReactNode }) {
+  const { theme } = useTheme();
+
   return (
     <View style={{ gap: 6 }}>
       <Text
@@ -624,7 +650,7 @@ function FormField({ label, children }: { label: string; children: React.ReactNo
           fontWeight: '700',
           letterSpacing: 0.6,
           textTransform: 'uppercase',
-          color: TEXT.tertiary,
+          color: theme.textTertiary,
         }}
       >
         {label}

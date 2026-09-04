@@ -5,7 +5,7 @@ import { PageTransition } from '@/components/PageTransition';
 import { useLanguage } from '@/context/LanguageContext';
 import { useTheme } from '@/context/ThemeContext';
 import { useChrome } from '@/context/ChromeContext';
-import { FONTS, TEXT } from '@/constants/theme';
+import { FONTS } from '@/constants/theme';
 
 // Stub, same footing as Dashboard (rule 15): the Obsidian refactor's navbar
 // is a 2-left / notch / 2-right layout, which needs a fourth tab to be
@@ -30,10 +30,10 @@ export default function Analytics() {
           backgroundColor: theme.ground,
         }}
       >
-        <Text style={{ fontFamily: FONTS.display, fontSize: 20, color: TEXT.primary }}>
+        <Text style={{ fontFamily: FONTS.display, fontSize: 20, color: theme.textPrimary }}>
           {t('placeholder.analytics.title')}
         </Text>
-        <Text style={{ fontSize: 13, color: TEXT.tertiary, textAlign: 'center' }}>
+        <Text style={{ fontSize: 13, color: theme.textTertiary, textAlign: 'center' }}>
           {t('placeholder.analytics.subtitle')}
         </Text>
       </View>

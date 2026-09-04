@@ -3,7 +3,7 @@ import { Text, View } from 'react-native';
 import type { LucideIcon } from 'lucide-react-native';
 import { Inbox } from 'lucide-react-native';
 
-import { TEXT } from '@/constants/theme';
+import { useTheme } from '@/context/ThemeContext';
 
 interface EmptyStateProps {
   icon?: LucideIcon;
@@ -12,6 +12,8 @@ interface EmptyStateProps {
 
 /** Dashed border + muted icon + caption — used by every empty list, never reimplemented. */
 export function EmptyState({ icon: Icon = Inbox, caption }: EmptyStateProps) {
+  const { theme } = useTheme();
+
   return (
     <View
       style={{
@@ -22,11 +24,11 @@ export function EmptyState({ icon: Icon = Inbox, caption }: EmptyStateProps) {
         borderRadius: 20,
         borderWidth: 1,
         borderStyle: 'dashed',
-        borderColor: 'rgba(255,255,255,0.12)',
+        borderColor: theme.border,
       }}
     >
-      <Icon size={26} color={TEXT.tertiary} />
-      <Text style={{ fontSize: 12, color: TEXT.tertiary, textAlign: 'center', maxWidth: 220 }}>
+      <Icon size={26} color={theme.textTertiary} />
+      <Text style={{ fontSize: 12, color: theme.textTertiary, textAlign: 'center', maxWidth: 220 }}>
         {caption}
       </Text>
     </View>

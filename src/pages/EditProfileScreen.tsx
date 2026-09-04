@@ -20,7 +20,7 @@ import { useUser } from '@/context/UserContext';
 import { useFinance } from '@/context/FinanceContext';
 import { useChrome } from '@/context/ChromeContext';
 import type { FinancialHealthTier } from '@/context/FinanceContext';
-import { BORDER, RADII, TEXT } from '@/constants/theme';
+import { RADII } from '@/constants/theme';
 import type { StartBalance } from '@/constants/initialData';
 
 const HEALTH_COLORS: Record<FinancialHealthTier, string> = {
@@ -162,11 +162,11 @@ export default function EditProfileScreen() {
               value={name}
               onChangeText={commitName}
               placeholder={t('editProfile.name.placeholder')}
-              placeholderTextColor={TEXT.tertiary}
+              placeholderTextColor={theme.textTertiary}
               style={{
                 fontSize: 17,
                 fontWeight: '700',
-                color: TEXT.primary,
+                color: theme.textPrimary,
                 textAlign: 'center',
                 minWidth: 160,
                 padding: 0,
@@ -175,7 +175,7 @@ export default function EditProfileScreen() {
 
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
               <Coins size={12} color={theme.accent2} />
-              <Text style={{ fontSize: 11, color: TEXT.secondary }}>
+              <Text style={{ fontSize: 11, color: theme.textSecondary }}>
                 {t('settings.monthlyIncome', { amount: formatMoney(totalMonthlyIncomeBase) })}
               </Text>
             </View>
@@ -315,7 +315,7 @@ function EntryManager({
                 borderRadius: RADII.field,
                 backgroundColor: theme.surfaceAlt,
                 borderWidth: 1,
-                borderColor: BORDER.hairline,
+                borderColor: theme.border,
               }}
             >
               <IconTile size={30} radius={RADII.tileSm}>
@@ -324,16 +324,16 @@ function EntryManager({
               <View style={{ flex: 1, minWidth: 0 }}>
                 <Text
                   numberOfLines={1}
-                  style={{ fontSize: 13, fontWeight: '700', color: TEXT.primary }}
+                  style={{ fontSize: 13, fontWeight: '700', color: theme.textPrimary }}
                 >
                   {entry.name}
                 </Text>
-                <Text style={{ fontSize: 10.5, color: TEXT.tertiary, marginTop: 1 }}>
+                <Text style={{ fontSize: 10.5, color: theme.textTertiary, marginTop: 1 }}>
                   {entry.currency}
                 </Text>
               </View>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                <Text style={{ fontSize: 12.5, fontWeight: '700', color: TEXT.primary }}>
+                <Text style={{ fontSize: 12.5, fontWeight: '700', color: theme.textPrimary }}>
                   {formatOriginalMoney(entry.amount, entry.currency)}
                 </Text>
                 <IconButton
@@ -354,14 +354,14 @@ function EntryManager({
           value={entryName}
           onChangeText={setEntryName}
           placeholder={namePlaceholder}
-          placeholderTextColor={TEXT.tertiary}
+          placeholderTextColor={theme.textTertiary}
           style={{
             fontSize: 13,
-            color: TEXT.primary,
+            color: theme.textPrimary,
             backgroundColor: theme.surfaceAlt,
             borderRadius: RADII.field,
             borderWidth: 1,
-            borderColor: BORDER.hairline,
+            borderColor: theme.border,
             paddingHorizontal: 12,
             paddingVertical: 10,
           }}
@@ -407,7 +407,9 @@ function EntryManager({
         </Pressable>
       </View>
 
-      <Text style={{ marginTop: 10, fontSize: 10.5, color: TEXT.tertiary, textAlign: 'center' }}>
+      <Text
+        style={{ marginTop: 10, fontSize: 10.5, color: theme.textTertiary, textAlign: 'center' }}
+      >
         {footerLabel}
       </Text>
     </SettingsCard>

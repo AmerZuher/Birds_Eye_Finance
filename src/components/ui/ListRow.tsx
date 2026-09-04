@@ -1,7 +1,7 @@
 import React from 'react';
 import { Pressable, Text, View } from 'react-native';
 
-import { TEXT, BORDER } from '@/constants/theme';
+import { useTheme } from '@/context/ThemeContext';
 
 interface ListRowProps {
   leading?: React.ReactNode;
@@ -22,6 +22,7 @@ export function ListRow({
   onPress,
   showBottomBorder = true,
 }: ListRowProps) {
+  const { theme } = useTheme();
   const Wrapper = onPress ? Pressable : View;
 
   return (
@@ -32,19 +33,30 @@ export function ListRow({
         alignItems: 'center',
         gap: 11,
         padding: 12,
-        backgroundColor: 'rgba(255,255,255,0.02)',
+        // A faint wash barely lighter than the surface on dark themes reads
+        // as a highlight; the same wash in white would be invisible-to-wrong
+        // on a light surface, so it flips to a faint darken there instead —
+        // same idea (very slightly distinct from its own background) on
+        // either kind of theme.
+        backgroundColor: theme.isLight ? 'rgba(0,0,0,0.02)' : 'rgba(255,255,255,0.02)',
         borderBottomWidth: showBottomBorder ? 1 : 0,
-        borderBottomColor: BORDER.hairlineSoft,
+        borderBottomColor: theme.borderSoft,
       }}
     >
       {leading}
       <View style={{ flex: 1, minWidth: 0 }}>
-        <Text numberOfLines={1} style={{ fontSize: 13, fontWeight: '700', color: TEXT.primary }}>
+        <Text
+          numberOfLines={1}
+          style={{ fontSize: 13, fontWeight: '700', color: theme.textPrimary }}
+        >
           {title}
         </Text>
         {subtitle ? (
           typeof subtitle === 'string' ? (
-            <Text numberOfLines={1} style={{ fontSize: 10.5, color: TEXT.tertiary, marginTop: 1 }}>
+            <Text
+              numberOfLines={1}
+              style={{ fontSize: 10.5, color: theme.textTertiary, marginTop: 1 }}
+            >
               {subtitle}
             </Text>
           ) : (

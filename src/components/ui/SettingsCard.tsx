@@ -2,7 +2,7 @@ import React from 'react';
 import { Pressable, Text, View } from 'react-native';
 
 import { useTheme } from '@/context/ThemeContext';
-import { BORDER, RADII, TEXT } from '@/constants/theme';
+import { RADII } from '@/constants/theme';
 
 interface SettingsCardProps {
   title?: string;
@@ -21,7 +21,7 @@ export function SettingsCard({ title, children }: SettingsCardProps) {
         paddingTop: 18,
         backgroundColor: theme.surface,
         borderWidth: 1,
-        borderColor: BORDER.hairline,
+        borderColor: theme.border,
       }}
     >
       {title ? (
@@ -31,7 +31,7 @@ export function SettingsCard({ title, children }: SettingsCardProps) {
             fontWeight: '700',
             letterSpacing: 1,
             textTransform: 'uppercase',
-            color: TEXT.tertiary,
+            color: theme.textTertiary,
             marginBottom: 10,
           }}
         >
@@ -53,6 +53,7 @@ interface SettingsRowProps {
 
 /** icon tile + label + trailing value/control — one row inside a SettingsCard. */
 export function SettingsRow({ icon, label, value, onPress, showTopBorder }: SettingsRowProps) {
+  const { theme } = useTheme();
   const Wrapper = onPress ? Pressable : View;
   return (
     <Wrapper
@@ -63,12 +64,12 @@ export function SettingsRow({ icon, label, value, onPress, showTopBorder }: Sett
         justifyContent: 'space-between',
         paddingVertical: 9,
         borderTopWidth: showTopBorder ? 1 : 0,
-        borderTopColor: BORDER.hairlineSoft,
+        borderTopColor: theme.borderSoft,
       }}
     >
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 9 }}>
         {icon}
-        <Text style={{ fontSize: 12, fontWeight: '600', color: TEXT.primary }}>{label}</Text>
+        <Text style={{ fontSize: 12, fontWeight: '600', color: theme.textPrimary }}>{label}</Text>
       </View>
       {value}
     </Wrapper>

@@ -16,7 +16,7 @@ import { useCurrency } from '@/context/CurrencyContext';
 import { useUser } from '@/context/UserContext';
 import { useFinance } from '@/context/FinanceContext';
 import { useChrome } from '@/context/ChromeContext';
-import { THEME_IDS, THEMES, TEXT, RADII } from '@/constants/theme';
+import { THEME_IDS, THEMES, RADII } from '@/constants/theme';
 import type { ThemeId } from '@/constants/theme';
 import { FONT_SCALE_IDS, FONT_SCALE_LABELS, type FontScaleId } from '@/constants/fontScale';
 import type { Language } from '@/constants/translations';
@@ -70,12 +70,12 @@ export default function Settings() {
               ring="accent"
             />
             <View style={{ flex: 1, gap: 6 }}>
-              <Text style={{ fontSize: 17, fontWeight: '700', color: TEXT.primary }}>
+              <Text style={{ fontSize: 17, fontWeight: '700', color: theme.textPrimary }}>
                 {profile.name || '—'}
               </Text>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                 <CreditCard size={12} color={theme.accent2} />
-                <Text style={{ fontSize: 11, color: TEXT.secondary }}>
+                <Text style={{ fontSize: 11, color: theme.textSecondary }}>
                   {t('settings.monthlyIncome', { amount: formatMoney(totalMonthlyIncomeBase) })}
                 </Text>
               </View>
@@ -191,7 +191,7 @@ export default function Settings() {
             }
             label={t('settings.backupData')}
             value={
-              <Text style={{ fontSize: 11.5, color: TEXT.tertiary }}>
+              <Text style={{ fontSize: 11.5, color: theme.textTertiary }}>
                 {t('settings.backupDataValue')} ›
               </Text>
             }
@@ -241,14 +241,18 @@ function ThemeTile({ id, active, onPress }: { id: ThemeId; active: boolean; onPr
         borderRadius: RADII.tileLg,
         backgroundColor: activeTheme.surfaceAlt,
         borderWidth: 1,
-        borderColor: active ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.08)',
+        // Was a flat white-alpha border regardless of theme — invisible-ish
+        // on a light activeTheme's own light surfaceAlt. accent1 for the
+        // selected tile reads clearly on any ground; unselected falls back
+        // to the active theme's own border token instead of a hardcoded one.
+        borderColor: active ? activeTheme.accent1 : activeTheme.border,
       }}
     >
       <LinearGradient
         colors={[swatchTheme.accent1, swatchTheme.accent2]}
         style={{ width: 20, height: 20, borderRadius: 10 }}
       />
-      <Text style={{ fontSize: 10.5, fontWeight: '700', color: TEXT.primary, flex: 1 }}>
+      <Text style={{ fontSize: 10.5, fontWeight: '700', color: activeTheme.textPrimary, flex: 1 }}>
         {swatchTheme.label[language]}
       </Text>
       {active ? (

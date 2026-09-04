@@ -20,7 +20,10 @@ function initialsOf(name?: string): string {
   return (parts[0][0] + parts[1][0]).toUpperCase();
 }
 
-function ringColor(ring: AvatarRing, theme: { glow: { a: string } }): string | null {
+function ringColor(
+  ring: AvatarRing,
+  theme: { glow: { a: string }; isLight: boolean },
+): string | null {
   switch (ring) {
     case 'positive':
       return 'rgba(52,211,153,0.6)';
@@ -29,7 +32,10 @@ function ringColor(ring: AvatarRing, theme: { glow: { a: string } }): string | n
     case 'settled':
       return 'rgba(165,154,138,0.55)';
     case 'flat':
-      return 'rgba(255,255,255,0.2)';
+      // Was a flat white-alpha regardless of theme — near-invisible against
+      // a light theme's own light `ground` (what the ring sits on, see the
+      // outer View below). Same neutral-grey intent, black-based on light.
+      return theme.isLight ? 'rgba(15,23,42,0.18)' : 'rgba(255,255,255,0.2)';
     case 'accent':
       return `rgba(${theme.glow.a},0.7)`;
     default:
@@ -73,7 +79,11 @@ export function Avatar({ name, photoUri, size = 44, ring = 'none' }: AvatarProps
             style={{
               fontFamily: FONTS.display,
               fontSize: size * 0.34,
-              color: '#f3efe8',
+              // Was a hardcoded near-white, unreadable against a light
+              // theme's own light surfaceAlt (what this circle's
+              // background is, immediately above). textPrimary is already
+              // built to contrast against surfaces on either kind of theme.
+              color: theme.textPrimary,
             }}
           >
             {initialsOf(name)}

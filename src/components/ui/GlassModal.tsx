@@ -28,7 +28,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '@/context/ThemeContext';
 import { useChrome } from '@/context/ChromeContext';
 import { useModalPortal } from '@/context/ModalPortalContext';
-import { ANDROID_BLUR_METHOD, GLASS, RADII, TEXT } from '@/constants/theme';
+import { ANDROID_BLUR_METHOD, GLASS_BLUR_INTENSITY, RADII, getThemeGlass } from '@/constants/theme';
 import { CHROME_GROUND_ALPHA, hexToRgb } from '@/utils/color';
 
 const SCREEN_HEIGHT = Dimensions.get('window').height;
@@ -72,6 +72,7 @@ export function GlassModal({
   scrollable = true,
 }: GlassModalProps) {
   const { theme } = useTheme();
+  const themeGlass = getThemeGlass(theme);
   const insets = useSafeAreaInsets();
   const { blurTarget } = useChrome();
   const { showModal, hideModal } = useModalPortal();
@@ -182,7 +183,7 @@ export function GlassModal({
       <View style={{ flex: 1, justifyContent: 'flex-end' }}>
         <Animated.View
           style={[
-            { position: 'absolute', inset: 0, backgroundColor: GLASS.overlay },
+            { position: 'absolute', inset: 0, backgroundColor: themeGlass.overlay },
             backdropStyle,
           ]}
         >
@@ -220,8 +221,8 @@ export function GlassModal({
               crash earlier (see Navbar.tsx); the border above carries the
               visual separation instead. */}
           <BlurView
-            intensity={GLASS.blurIntensity}
-            tint="dark"
+            intensity={GLASS_BLUR_INTENSITY}
+            tint={theme.isLight ? 'light' : 'dark'}
             blurMethod={ANDROID_BLUR_METHOD}
             blurTarget={blurTarget}
             style={StyleSheet.absoluteFill}
@@ -270,7 +271,7 @@ export function GlassModal({
                     style={{
                       fontSize: 16,
                       fontWeight: '600',
-                      color: TEXT.primary,
+                      color: theme.textPrimary,
                       textAlign: 'center',
                       marginBottom: 8,
                       paddingHorizontal: 18,
