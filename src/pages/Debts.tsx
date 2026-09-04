@@ -6,10 +6,11 @@ import Animated, { SlideInLeft, SlideInRight } from 'react-native-reanimated';
 import {
   ArrowLeft,
   Building2,
+  CalendarClock,
   ChevronRight,
   History,
   Mail,
-  Pencil,
+  StickyNote,
   Trash2,
   TrendingDown,
   TrendingUp,
@@ -17,6 +18,8 @@ import {
 
 import { PageTransition } from '@/components/PageTransition';
 import { Avatar } from '@/components/ui/Avatar';
+import { GlassModal } from '@/components/ui/GlassModal';
+import { GradientButton } from '@/components/ui/GradientButton';
 import { ListCard } from '@/components/ui/ListCard';
 import { ListRow } from '@/components/ui/ListRow';
 import { SearchInput } from '@/components/ui/SearchInput';
@@ -219,7 +222,6 @@ export default function Debts() {
             group={selectedGroup}
             onBack={() => setSelectedName(null)}
             onEdit={openEditModal}
-            onDelete={setDeleteTarget}
             onWhatsApp={handleWhatsApp}
             whatsAppError={whatsAppError}
             onDismissWhatsAppError={() => setWhatsAppError('')}
@@ -249,6 +251,10 @@ export default function Debts() {
         onClose={() => setModalOpen(false)}
         editingDebt={editingDebt}
         prefill={createPrefill}
+        onRequestDelete={() => {
+          setModalOpen(false);
+          setDeleteTarget(editingDebt);
+        }}
       />
 
       <ConfirmModal
@@ -435,7 +441,6 @@ interface DetailViewProps {
   group: DebtGroup;
   onBack: () => void;
   onEdit: (debt: Debt) => void;
-  onDelete: (debt: Debt) => void;
   onWhatsApp: () => void;
   whatsAppError: string;
   onDismissWhatsAppError: () => void;
@@ -446,7 +451,6 @@ function DetailView({
   group,
   onBack,
   onEdit,
-  onDelete,
   onWhatsApp,
   whatsAppError,
   onDismissWhatsAppError,
@@ -455,16 +459,11 @@ function DetailView({
   const { t, isRTL } = useLanguage();
   const { theme } = useTheme();
   const { headerHeight, navbarHeight } = useChrome();
-  const [expandedIds, setExpandedIds] = useState<Set<number>>(new Set());
-
-  const toggleExpanded = (id: number) => {
-    setExpandedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  };
+  // Data and visibility kept separate (mirrors DebtModal's own
+  // editingDebt/modalOpen split) so the sheet's content doesn't blank out
+  // mid-close — `detailTarget` only ever changes when a new row is tapped.
+  const [detailTarget, setDetailTarget] = useState<Debt | null>(null);
+  const [detailOpen, setDetailOpen] = useState(false);
 
   const header = (
     <View style={{ marginBottom: 16 }}>
@@ -580,144 +579,207 @@ function DetailView({
           paddingBottom: navbarHeight + 40,
         }}
         ListHeaderComponent={header}
-        renderItem={({ item, index }) => {
-          const isFirst = index === 0;
-          const isLast = index === group.transactions.length - 1;
-          return (
-            <View
-              style={{
-                backgroundColor: theme.surface,
-                borderColor: theme.border,
-                borderLeftWidth: 1,
-                borderRightWidth: 1,
-                borderTopWidth: isFirst ? 1 : 0,
-                borderBottomWidth: isLast ? 1 : 0,
-                borderTopLeftRadius: isFirst ? RADII.txList : 0,
-                borderTopRightRadius: isFirst ? RADII.txList : 0,
-                borderBottomLeftRadius: isLast ? RADII.txList : 0,
-                borderBottomRightRadius: isLast ? RADII.txList : 0,
+        renderItem={({ item, index }) => (
+          <ListCard isLast={index === group.transactions.length - 1}>
+            <TransactionRow
+              debt={item}
+              onPress={() => {
+                setDetailTarget(item);
+                setDetailOpen(true);
               }}
-            >
-              <TransactionRow
-                debt={item}
-                showBottomBorder={!isLast}
-                expanded={expandedIds.has(item.id)}
-                onToggle={() => toggleExpanded(item.id)}
-                onEdit={() => onEdit(item)}
-                onDelete={() => onDelete(item)}
-              />
-            </View>
-          );
+              onEditPress={() => onEdit(item)}
+            />
+          </ListCard>
+        )}
+      />
+
+      <TransactionDetailSheet
+        visible={detailOpen}
+        debt={detailTarget}
+        onClose={() => setDetailOpen(false)}
+        onEdit={() => {
+          setDetailOpen(false);
+          if (detailTarget) onEdit(detailTarget);
         }}
       />
     </Animated.View>
   );
 }
 
-interface TransactionRowProps {
-  debt: Debt;
-  showBottomBorder: boolean;
-  expanded: boolean;
-  onToggle: () => void;
-  onEdit: () => void;
-  onDelete: () => void;
-}
-
+/** Same row shape as Expenses' ExpenseRow (CLAUDE.md rule 4) — one leading
+ * tile, title+subtitle, trailing amount, no per-row edit/delete icons.
+ * Tapping the row opens a quick read-only detail sheet (notes, installment
+ * plan); the trailing chevron is its own tap target that jumps straight into
+ * DebtModal's edit form — RN's touch responder gives the innermost Pressable
+ * (the IconButton) the touch, so it doesn't also trigger the row's own
+ * onPress. */
 function TransactionRow({
   debt,
-  showBottomBorder,
-  expanded,
-  onToggle,
-  onEdit,
-  onDelete,
-}: TransactionRowProps) {
+  onPress,
+  onEditPress,
+}: {
+  debt: Debt;
+  onPress: () => void;
+  onEditPress: () => void;
+}) {
   const { t } = useLanguage();
-  const { theme } = useTheme();
   const isPositive = debt.type === 'positive';
-  const hasInstallment = debt.type === 'negative' && debt.monthlyPayment > 0;
-  const hasExpandable = !!debt.notes || hasInstallment;
 
   return (
-    <Pressable
-      onPress={hasExpandable ? onToggle : undefined}
-      style={{
-        padding: 12,
-        borderBottomWidth: showBottomBorder ? 1 : 0,
-        borderBottomColor: theme.borderSoft,
-      }}
-    >
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+    <ListRow
+      onPress={onPress}
+      showBottomBorder={false}
+      leading={
         <IconTile
-          size={34}
+          size={40}
           backgroundColor={isPositive ? 'rgba(52,211,153,0.14)' : 'rgba(251,113,133,0.14)'}
         >
           {isPositive ? (
-            <TrendingUp size={15} color={SEMANTIC.positive} />
+            <TrendingUp size={17} color={SEMANTIC.positive} />
           ) : (
-            <TrendingDown size={15} color={SEMANTIC.negative} />
+            <TrendingDown size={17} color={SEMANTIC.negative} />
           )}
         </IconTile>
-        <View style={{ flex: 1, minWidth: 0 }}>
-          <Text style={{ fontSize: 12.5, fontWeight: '700', color: theme.textPrimary }}>
-            {t(isPositive ? 'debts.type.positive' : 'debts.type.negative')}
-          </Text>
-          <Text style={{ fontSize: 10.5, color: theme.textTertiary, marginTop: 1 }}>
-            {debt.date}
-          </Text>
+      }
+      title={t(isPositive ? 'debts.type.positive' : 'debts.type.negative')}
+      subtitle={debt.date}
+      trailing={
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+          <MoneyAmount
+            amount={debt.amount}
+            currencyCode={debt.currency ?? 'SAR'}
+            color={isPositive ? SEMANTIC.positive : SEMANTIC.negative}
+            size={17}
+          />
+          <IconButton
+            icon={ChevronRight}
+            accessibilityLabel={t('debts.editTransaction')}
+            onPress={onEditPress}
+            directional
+            size={22}
+            iconSize={11}
+          />
         </View>
-        <MoneyAmount
-          amount={debt.amount}
-          currencyCode={debt.currency ?? 'SAR'}
-          color={isPositive ? SEMANTIC.positive : SEMANTIC.negative}
-          size={17}
-        />
-        <IconButton
-          icon={Pencil}
-          accessibilityLabel={t('debts.editTransaction')}
-          size={28}
-          iconSize={12}
-          onPress={onEdit}
-        />
-        <IconButton
-          icon={Trash2}
-          accessibilityLabel={t('debts.deleteTransaction')}
-          size={28}
-          iconSize={12}
-          onPress={onDelete}
-        />
+      }
+    />
+  );
+}
+
+/** Read-only "what is this transaction" sheet — notes and installment plan
+ * laid out to actually be read at a glance, not the plain stacked form
+ * fields DebtModal needs for editing. One Edit button hands off to that
+ * form when you actually want to change something. `debt` stays set across
+ * the close animation (mirrors DebtModal's editingDebt/visible split) so the
+ * sheet's content doesn't blank out mid-slide-down. */
+function TransactionDetailSheet({
+  visible,
+  debt,
+  onClose,
+  onEdit,
+}: {
+  visible: boolean;
+  debt: Debt | null;
+  onClose: () => void;
+  onEdit: () => void;
+}) {
+  const { t } = useLanguage();
+  const { theme } = useTheme();
+
+  if (!debt) return <GlassModal visible={visible} onClose={onClose}>{null}</GlassModal>;
+
+  const isPositive = debt.type === 'positive';
+  const hasInstallment = debt.type === 'negative' && debt.monthlyPayment > 0;
+  const accent = isPositive ? SEMANTIC.positive : SEMANTIC.negative;
+
+  return (
+    <GlassModal
+      visible={visible}
+      onClose={onClose}
+      title={t(isPositive ? 'debts.type.positive' : 'debts.type.negative')}
+    >
+      <View style={{ alignItems: 'center', gap: 10, paddingVertical: 4 }}>
+        <IconTile size={52} backgroundColor={isPositive ? 'rgba(52,211,153,0.14)' : 'rgba(251,113,133,0.14)'}>
+          {isPositive ? (
+            <TrendingUp size={22} color={SEMANTIC.positive} />
+          ) : (
+            <TrendingDown size={22} color={SEMANTIC.negative} />
+          )}
+        </IconTile>
+        <MoneyAmount amount={debt.amount} currencyCode={debt.currency ?? 'SAR'} color={accent} size={30} />
+        <Text style={{ fontSize: 12, color: theme.textTertiary }}>{debt.date}</Text>
       </View>
 
-      {expanded ? (
-        <View style={{ marginTop: 10, gap: 4, paddingStart: 44 }}>
-          {debt.notes ? (
-            <Text style={{ fontSize: 11.5, color: theme.textSecondary }}>{debt.notes}</Text>
-          ) : null}
-          {hasInstallment ? (
-            <View style={{ gap: 2 }}>
-              <View
-                style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 4 }}
-              >
-                <Text style={{ fontSize: 11.5, color: theme.textSecondary }}>
-                  {t('debts.installmentDetailsLabel')}
-                </Text>
-                <MoneyAmount
-                  amount={debt.monthlyPayment}
-                  currencyCode={debt.currency ?? 'SAR'}
-                  color={theme.textSecondary}
-                  size={12}
-                />
-                <Text style={{ fontSize: 11.5, color: theme.textSecondary }}>
-                  {t('debts.installmentDetailsSuffix')}
-                </Text>
-              </View>
-              <Text style={{ fontSize: 11.5, color: theme.textSecondary }}>
-                {debt.startDate} → {debt.endDate || t('debts.noEndDate')}
-              </Text>
-            </View>
-          ) : null}
+      {debt.notes ? (
+        <View
+          style={{
+            flexDirection: 'row',
+            gap: 10,
+            padding: 14,
+            borderRadius: RADII.field,
+            backgroundColor: theme.surfaceAlt,
+            borderWidth: 1,
+            borderColor: theme.border,
+          }}
+        >
+          <StickyNote size={15} color={theme.textTertiary} />
+          <Text style={{ flex: 1, fontSize: 12.5, color: theme.textSecondary, lineHeight: 18 }}>
+            {debt.notes}
+          </Text>
         </View>
       ) : null}
-    </Pressable>
+
+      {hasInstallment ? (
+        <View
+          style={{
+            gap: 12,
+            padding: 14,
+            borderRadius: RADII.field,
+            backgroundColor: `${SEMANTIC.negative}0F`,
+            borderWidth: 1,
+            borderColor: `${SEMANTIC.negative}33`,
+          }}
+        >
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7 }}>
+            <CalendarClock size={14} color={SEMANTIC.negative} />
+            <Text
+              style={{
+                fontSize: 11,
+                fontWeight: '800',
+                letterSpacing: 0.5,
+                textTransform: 'uppercase',
+                color: SEMANTIC.negative,
+              }}
+            >
+              {t('debtModal.installmentSectionTitle')}
+            </Text>
+          </View>
+
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+            <Text style={{ fontSize: 11.5, color: theme.textSecondary }}>
+              {t('debts.installmentDetailsSuffix')}
+            </Text>
+            <MoneyAmount
+              amount={debt.monthlyPayment}
+              currencyCode={debt.currency ?? 'SAR'}
+              color={theme.textPrimary}
+              size={15}
+            />
+          </View>
+
+          <View style={{ height: 1, backgroundColor: theme.borderSoft }} />
+
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+            <Text style={{ fontSize: 11.5, color: theme.textSecondary }}>{debt.startDate}</Text>
+            <Text style={{ fontSize: 11, color: theme.textTertiary }}>→</Text>
+            <Text style={{ fontSize: 11.5, color: theme.textSecondary }}>
+              {debt.endDate || t('debts.noEndDate')}
+            </Text>
+          </View>
+        </View>
+      ) : null}
+
+      <GradientButton label={t('debts.editTransaction')} onPress={onEdit} />
+    </GlassModal>
   );
 }
 

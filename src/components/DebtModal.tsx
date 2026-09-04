@@ -5,7 +5,7 @@ import { useForm } from 'react-hook-form';
 import type { SubmitErrorHandler, SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { TrendingDown, TrendingUp, Users, X } from 'lucide-react-native';
+import { CalendarClock, TrendingDown, TrendingUp, Trash2, Users, X } from 'lucide-react-native';
 
 import { GlassModal } from '@/components/ui/GlassModal';
 import { GradientButton } from '@/components/ui/GradientButton';
@@ -116,6 +116,11 @@ interface DebtModalProps {
   editingDebt: Debt | null;
   /** Create-mode only — pre-fills identity fields when opened from a person's detail view. */
   prefill?: DebtPrefill | null;
+  /** Edit mode only — the transaction row no longer carries its own delete
+   * icon (it opens straight into edit, like the Expenses row), so this is
+   * now the only path to deleting a debt. The caller owns the actual
+   * ConfirmModal/deleteDebt call; this just hands back the request. */
+  onRequestDelete?: () => void;
 }
 
 /**
@@ -126,7 +131,13 @@ interface DebtModalProps {
  * watch/setValue pair is the simpler controlled-form shape while still going
  * through react-hook-form + zod for validation (CLAUDE.md rule 5).
  */
-export function DebtModal({ visible, onClose, editingDebt, prefill }: DebtModalProps) {
+export function DebtModal({
+  visible,
+  onClose,
+  editingDebt,
+  prefill,
+  onRequestDelete,
+}: DebtModalProps) {
   const { theme } = useTheme();
   const { t } = useLanguage();
   const { currencies, baseCurrency } = useCurrency();
@@ -510,56 +521,85 @@ export function DebtModal({ visible, onClose, editingDebt, prefill }: DebtModalP
             position, and the panel itself fades in/out on top of that. */}
         <Animated.View layout={LinearTransition.duration(220)} style={{ gap: 14 }}>
           {values.type === 'negative' ? (
-            <FormField label={t('debtModal.monthlyPaymentLabel')}>
-              <TextInput
-                value={values.monthlyPayment}
-                onChangeText={(v) => {
-                  setValue('monthlyPayment', v);
-                  clearError();
-                }}
-                keyboardType="decimal-pad"
-                placeholder="0.00"
-                placeholderTextColor={theme.textTertiary}
-                style={inputStyle}
-              />
-            </FormField>
-          ) : null}
-
-          {showInstallmentPanel ? (
-            <Animated.View
-              entering={FadeIn.duration(180)}
-              exiting={FadeOut.duration(120)}
-              style={{ flexDirection: 'row', gap: 10 }}
+            // Grouped as one tinted panel — monthly payment + its start/end
+            // dates read as a single "installment plan" rather than three
+            // form fields blended into the identity/contact fields below.
+            <View
+              style={{
+                gap: 12,
+                padding: 14,
+                borderRadius: RADII.field,
+                backgroundColor: `${SEMANTIC.negative}0F`,
+                borderWidth: 1,
+                borderColor: `${SEMANTIC.negative}33`,
+              }}
             >
-              <View style={{ flex: 1 }}>
-                <FormField label={t('debtModal.startDateLabel')}>
-                  <TextInput
-                    value={values.startDate}
-                    onChangeText={(v) => {
-                      setValue('startDate', v);
-                      clearError();
-                    }}
-                    placeholder="YYYY-MM-DD"
-                    placeholderTextColor={theme.textTertiary}
-                    style={inputStyle}
-                  />
-                </FormField>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7 }}>
+                <CalendarClock size={14} color={SEMANTIC.negative} />
+                <Text
+                  style={{
+                    fontSize: 11,
+                    fontWeight: '800',
+                    letterSpacing: 0.5,
+                    textTransform: 'uppercase',
+                    color: SEMANTIC.negative,
+                  }}
+                >
+                  {t('debtModal.installmentSectionTitle')}
+                </Text>
               </View>
-              <View style={{ flex: 1 }}>
-                <FormField label={t('debtModal.endDateLabel')}>
-                  <TextInput
-                    value={values.endDate}
-                    onChangeText={(v) => {
-                      setValue('endDate', v);
-                      clearError();
-                    }}
-                    placeholder="YYYY-MM-DD"
-                    placeholderTextColor={theme.textTertiary}
-                    style={inputStyle}
-                  />
-                </FormField>
-              </View>
-            </Animated.View>
+
+              <FormField label={t('debtModal.monthlyPaymentLabel')}>
+                <TextInput
+                  value={values.monthlyPayment}
+                  onChangeText={(v) => {
+                    setValue('monthlyPayment', v);
+                    clearError();
+                  }}
+                  keyboardType="decimal-pad"
+                  placeholder="0.00"
+                  placeholderTextColor={theme.textTertiary}
+                  style={inputStyle}
+                />
+              </FormField>
+
+              {showInstallmentPanel ? (
+                <Animated.View
+                  entering={FadeIn.duration(180)}
+                  exiting={FadeOut.duration(120)}
+                  style={{ flexDirection: 'row', gap: 10 }}
+                >
+                  <View style={{ flex: 1 }}>
+                    <FormField label={t('debtModal.startDateLabel')}>
+                      <TextInput
+                        value={values.startDate}
+                        onChangeText={(v) => {
+                          setValue('startDate', v);
+                          clearError();
+                        }}
+                        placeholder="YYYY-MM-DD"
+                        placeholderTextColor={theme.textTertiary}
+                        style={inputStyle}
+                      />
+                    </FormField>
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <FormField label={t('debtModal.endDateLabel')}>
+                      <TextInput
+                        value={values.endDate}
+                        onChangeText={(v) => {
+                          setValue('endDate', v);
+                          clearError();
+                        }}
+                        placeholder="YYYY-MM-DD"
+                        placeholderTextColor={theme.textTertiary}
+                        style={inputStyle}
+                      />
+                    </FormField>
+                  </View>
+                </Animated.View>
+              ) : null}
+            </View>
           ) : null}
 
           <FormField label={t('debtModal.phoneLabel')}>
@@ -604,6 +644,26 @@ export function DebtModal({ visible, onClose, editingDebt, prefill }: DebtModalP
             label={editingDebt ? t('debtModal.saveButton') : t('debtModal.createButton')}
             onPress={handleSubmit(onValid, onInvalid)}
           />
+
+          {editingDebt && onRequestDelete ? (
+            <Pressable
+              onPress={onRequestDelete}
+              accessibilityRole="button"
+              accessibilityLabel={t('debts.deleteTransaction')}
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 6,
+                paddingVertical: 4,
+              }}
+            >
+              <Trash2 size={14} color={SEMANTIC.negative} />
+              <Text style={{ fontSize: 12.5, fontWeight: '700', color: SEMANTIC.negative }}>
+                {t('debtModal.deleteButton')}
+              </Text>
+            </Pressable>
+          ) : null}
         </Animated.View>
       </GlassModal>
 

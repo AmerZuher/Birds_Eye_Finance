@@ -102,9 +102,12 @@ export function MoneyAmount({
     return (
       <View
         style={{
-          // Always leading, never reversed — the glyph is a graphic mark,
-          // not locale-ordered text, so it stays at the same X position in
-          // every amount everywhere rather than flipping with symbolFirst.
+          // Forced LTR (not just "row", which the app's native RTL flip
+          // would otherwise mirror into "row-reverse" in Arabic) — the glyph
+          // is a graphic mark, not locale-ordered text, so it stays at the
+          // same physical leading edge in every amount everywhere rather
+          // than flipping with symbolFirst or the app's language.
+          direction: 'ltr',
           flexDirection: 'row',
           // Vertically centered against the number, not baseline/flex-end —
           // it doesn't sit on a text baseline the way a font glyph would.
@@ -147,14 +150,20 @@ export function MoneyAmount({
 
   const symbolRun = (
     <Text style={{ fontSize: symbolSize, fontFamily: FONTS.display, color: valueColor }}>
-      {!masked && parts.symbolFirst && parts.isNegative ? '-' : ''}
       {parts.symbol}
     </Text>
   );
 
   return (
     <Text
-      style={{ textAlign: align }}
+      // Forced LTR: the minus sign always attaches to the integer's own
+      // left edge below, and symbolFirst still governs which *side* the
+      // currency symbol sits on — but without an explicit direction, the
+      // app's native RTL flip (LanguageContext's I18nManager.forceRTL)
+      // mirrors this whole nested-Text run in Arabic, dragging the sign
+      // away from the number it belongs to instead of just relocating the
+      // symbol the way symbolFirst intends.
+      style={{ textAlign: align, direction: 'ltr' }}
       numberOfLines={shrinkToFit ? (numberOfLines ?? 1) : numberOfLines}
       adjustsFontSizeToFit={shrinkToFit}
       minimumFontScale={shrinkToFit ? 0.4 : undefined}
@@ -162,6 +171,7 @@ export function MoneyAmount({
       {parts.symbolFirst ? symbolRun : null}
       {parts.symbolFirst ? ' ' : ''}
       <Text style={{ fontSize: size, fontFamily: FONTS.display, color: valueColor }}>
+        {!masked && parts.isNegative ? '-' : ''}
         {integerDisplay}
       </Text>
       <Text
@@ -173,7 +183,6 @@ export function MoneyAmount({
         }}
       >
         .{decimalDisplay}
-        {!masked && !parts.symbolFirst && parts.isNegative ? '-' : ''}
       </Text>
       {!parts.symbolFirst ? ' ' : ''}
       {!parts.symbolFirst ? symbolRun : null}
