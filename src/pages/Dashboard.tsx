@@ -1,39 +1,138 @@
-import React from 'react';
-import { Text, View } from 'react-native';
+import React, { useMemo } from 'react';
+import { ScrollView, Text, View } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
+import {
+  ArrowDownToLine,
+  ArrowUpFromLine,
+  Landmark,
+  TrendingUp,
+  Sparkles,
+} from 'lucide-react-native';
+import type { LucideIcon } from 'lucide-react-native';
 
 import { PageTransition } from '@/components/PageTransition';
-import { useLanguage } from '@/context/LanguageContext';
+import { RingGauge } from '@/components/ui/RingGauge';
+import { StatTile } from '@/components/ui/StatTile';
+import { GlowBlob } from '@/components/ui/GlowBlob';
+import { BalanceRevealCard } from '@/components/ui/BalanceRevealCard';
 import { useTheme } from '@/context/ThemeContext';
+import { useLanguage } from '@/context/LanguageContext';
+import { useCurrency } from '@/context/CurrencyContext';
+import { useUser } from '@/context/UserContext';
+import { useFinance } from '@/context/FinanceContext';
 import { useChrome } from '@/context/ChromeContext';
-import { FONTS } from '@/constants/theme';
+import { FONTS, RADII, SEMANTIC } from '@/constants/theme';
+import { healthTierColor } from '@/utils/color';
 
-// Rule 15: intentionally minimal until Phase 5 — no rich data, no forecasting.
+function greetingKey(hour: number): string {
+  if (hour < 12) return 'dashboard.greeting.morning';
+  if (hour < 18) return 'dashboard.greeting.afternoon';
+  return 'dashboard.greeting.evening';
+}
+
 export default function Dashboard() {
-  const { t } = useLanguage();
   const { theme } = useTheme();
+  const { t } = useLanguage();
   const { headerHeight, navbarHeight } = useChrome();
+  const { formatPercent, convertToBase } = useCurrency();
+  const { profile } = useUser();
+  const {
+    totalMonthlyIncomeBase,
+    totalExpenses,
+    debtsCalculations,
+    netSavings,
+    savingsRate,
+    financialHealth,
+  } = useFinance();
+
+  const hour = new Date().getHours();
+  const healthColor = healthTierColor(financialHealth, theme);
+
+  const totalBalancesBase = useMemo(
+    () =>
+      (profile.startBalances ?? []).reduce(
+        (sum, b) => sum + convertToBase(b.amount, b.currency),
+        0,
+      ),
+    [profile.startBalances, convertToBase],
+  );
+
+  // Clamp the gauge to 0..1 while the center text shows the true % value.
+  const gaugeProgress = Math.min(1, Math.max(0, savingsRate / 100));
+
+  const statTiles: { icon: LucideIcon; label: string; amount: number; color: string }[] = [
+    {
+      icon: ArrowDownToLine,
+      label: t('dashboard.income'),
+      amount: totalMonthlyIncomeBase,
+      color: SEMANTIC.positive,
+    },
+    {
+      icon: ArrowUpFromLine,
+      label: t('dashboard.expenses'),
+      amount: totalExpenses,
+      color: SEMANTIC.negative,
+    },
+    {
+      icon: Landmark,
+      label: t('dashboard.installments'),
+      amount: debtsCalculations.totalNegativeMonthly,
+      color: theme.accent2,
+    },
+    {
+      icon: TrendingUp,
+      label: t('dashboard.netSavings'),
+      amount: netSavings,
+      color: netSavings >= 0 ? SEMANTIC.positive : SEMANTIC.negative,
+    },
+  ];
 
   return (
     <PageTransition>
-      <View
-        style={{
-          flex: 1,
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: 8,
-          padding: 24,
-          paddingTop: headerHeight + 24,
+      <ScrollView
+        style={{ backgroundColor: theme.ground }}
+        contentContainerStyle={{
+          padding: 16,
+          paddingTop: headerHeight + 20,
           paddingBottom: navbarHeight + 24,
-          backgroundColor: theme.ground,
+          gap: 16,
         }}
+        showsVerticalScrollIndicator={false}
       >
-        <Text style={{ fontFamily: FONTS.display, fontSize: 20, color: theme.textPrimary }}>
-          {t('placeholder.dashboard.title')}
-        </Text>
-        <Text style={{ fontSize: 13, color: theme.textTertiary, textAlign: 'center' }}>
-          {t('placeholder.dashboard.subtitle')}
-        </Text>
-      </View>
+        {/* Greeting */}
+        <Animated.View entering={FadeInDown.duration(420)} style={{ gap: 2 }}>
+          <Text style={{ fontSize: 12, color: theme.textTertiary, fontWeight: '600' }}>
+            {t(greetingKey(hour))}
+          </Text>
+          <Text style={{ fontFamily: FONTS.display, fontSize: 26, color: theme.textPrimary }}>
+            {profile.name || t('app.shortName')}
+          </Text>
+          <View style={{ height: 1, backgroundColor: theme.border, marginVertical: 14 }} />
+
+        </Animated.View>
+
+        {/* Current balance hero */}
+        <Animated.View entering={FadeInUp.duration(420).delay(60)}>
+          <BalanceRevealCard label={t('dashboard.currentBalance')} amount={totalBalancesBase} />
+        </Animated.View>
+
+
+        {/* Stat grid */}
+        <Animated.View
+          entering={FadeInUp.duration(420).delay(110)}
+          style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}
+        >
+          {statTiles.map((s) => (
+            <View key={s.label} style={{ width: '48%', flexGrow: 1 }}>
+              <StatTile icon={s.icon} label={s.label} amount={s.amount} accent={s.color} />
+            </View>
+          ))}
+        </Animated.View>
+
+
+        
+      </ScrollView>
     </PageTransition>
   );
 }

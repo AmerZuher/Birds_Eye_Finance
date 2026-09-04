@@ -15,10 +15,10 @@ import { Badge, FilterChip } from '@/components/ui/Badge';
 import { ExpenseModal } from '@/components/ExpenseModal';
 import { ExpenseIconTile } from '@/components/ExpenseIconTile';
 import { MoneyStatCard } from '@/components/MoneyStatCard';
+import { MoneyAmount } from '@/components/ui/MoneyAmount';
 import { useLanguage } from '@/context/LanguageContext';
 import { useTheme } from '@/context/ThemeContext';
 import { useChrome } from '@/context/ChromeContext';
-import { useCurrency } from '@/context/CurrencyContext';
 import { useFinance } from '@/context/FinanceContext';
 import type { Expense } from '@/db/schema';
 import { FONTS } from '@/constants/theme';
@@ -177,7 +177,6 @@ interface ExpenseRowProps {
 function ExpenseRow({ expense, onPress }: ExpenseRowProps) {
   const { t } = useLanguage();
   const { theme } = useTheme();
-  const { formatOriginalMoney } = useCurrency();
   const unconfigured = expense.amount === 0;
   // FEATURE_SPEC 2.5: period Badge only when amount > 0.
   const showPeriodBadge = !unconfigured;
@@ -208,9 +207,7 @@ function ExpenseRow({ expense, onPress }: ExpenseRowProps) {
                 {t('expenses.setupCost')}
               </Text>
             ) : (
-              <Text style={{ fontFamily: FONTS.display, fontSize: 14, color: theme.textPrimary }}>
-                {formatOriginalMoney(expense.amount, expense.currency ?? 'SAR')}
-              </Text>
+              <MoneyAmount amount={expense.amount} currencyCode={expense.currency ?? 'SAR'} size={17} />
             )}
             {/* Decorative, like the Debts person row's chevron — the row
                 itself (via `onPress` above) is what's tappable, opening this

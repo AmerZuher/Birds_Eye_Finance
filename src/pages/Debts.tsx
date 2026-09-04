@@ -29,6 +29,7 @@ import { DebtModal } from '@/components/DebtModal';
 import type { DebtPrefill } from '@/components/DebtModal';
 import { BrandGlyph } from '@/components/BrandGlyph';
 import { MoneyStatCard } from '@/components/MoneyStatCard';
+import { MoneyAmount } from '@/components/ui/MoneyAmount';
 import { useLanguage } from '@/context/LanguageContext';
 import { useTheme } from '@/context/ThemeContext';
 import type { ThemeShape } from '@/constants/theme';
@@ -297,7 +298,6 @@ function SummaryView({
   const { t, isRTL } = useLanguage();
   const { theme } = useTheme();
   const { headerHeight, navbarHeight } = useChrome();
-  const { formatMoney } = useCurrency();
 
   return (
     <Animated.View
@@ -348,6 +348,9 @@ function SummaryView({
                   <View
                     style={{
                       alignSelf: 'center',
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      gap: 4,
                       paddingVertical: 5,
                       paddingHorizontal: 12,
                       borderRadius: RADII.pill,
@@ -357,10 +360,13 @@ function SummaryView({
                     }}
                   >
                     <Text style={{ fontSize: 10.5, fontWeight: '700', color: theme.accent2 }}>
-                      {t('debts.monthlyInstallments', {
-                        amount: formatMoney(totalNegativeMonthly),
-                      })}
+                      {t('debts.monthlyInstallmentsLabel')}
                     </Text>
+                    <MoneyAmount
+                      amount={totalNegativeMonthly}
+                      color={theme.accent2}
+                      size={14}
+                    />
                   </View>
                 ) : undefined
               }
@@ -389,7 +395,6 @@ function SummaryView({
 function PersonRow({ group, onPress }: { group: DebtGroup; onPress: () => void }) {
   const { t } = useLanguage();
   const { theme } = useTheme();
-  const { formatMoney } = useCurrency();
 
   return (
     <ListRow
@@ -412,15 +417,7 @@ function PersonRow({ group, onPress }: { group: DebtGroup; onPress: () => void }
       }
       trailing={
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-          <Text
-            style={{
-              fontFamily: FONTS.display,
-              fontSize: 14,
-              color: netColor(group.type, theme),
-            }}
-          >
-            {formatMoney(group.totalNet)}
-          </Text>
+          <MoneyAmount amount={group.totalNet} color={netColor(group.type, theme)} size={17} />
           <IconButton
             icon={ChevronRight}
             accessibilityLabel={t('debts.viewPerson')}
@@ -458,7 +455,6 @@ function DetailView({
   const { t, isRTL } = useLanguage();
   const { theme } = useTheme();
   const { headerHeight, navbarHeight } = useChrome();
-  const { formatMoney } = useCurrency();
   const [expandedIds, setExpandedIds] = useState<Set<number>>(new Set());
 
   const toggleExpanded = (id: number) => {
@@ -548,16 +544,9 @@ function DetailView({
           >
             {group.type === 'settled' ? t('debts.status.settled') : t(`debts.type.${group.type}`)}
           </Text>
-          <Text
-            style={{
-              fontFamily: FONTS.display,
-              fontSize: 26,
-              marginTop: 6,
-              color: netColor(group.type, theme),
-            }}
-          >
-            {formatMoney(group.totalNet)}
-          </Text>
+          <View style={{ marginTop: 6 }}>
+            <MoneyAmount amount={group.totalNet} color={netColor(group.type, theme)} size={26} />
+          </View>
         </View>
       </View>
 
@@ -644,7 +633,6 @@ function TransactionRow({
 }: TransactionRowProps) {
   const { t } = useLanguage();
   const { theme } = useTheme();
-  const { formatOriginalMoney } = useCurrency();
   const isPositive = debt.type === 'positive';
   const hasInstallment = debt.type === 'negative' && debt.monthlyPayment > 0;
   const hasExpandable = !!debt.notes || hasInstallment;
@@ -677,15 +665,12 @@ function TransactionRow({
             {debt.date}
           </Text>
         </View>
-        <Text
-          style={{
-            fontFamily: FONTS.display,
-            fontSize: 14,
-            color: isPositive ? SEMANTIC.positive : SEMANTIC.negative,
-          }}
-        >
-          {formatOriginalMoney(debt.amount, debt.currency ?? 'SAR')}
-        </Text>
+        <MoneyAmount
+          amount={debt.amount}
+          currencyCode={debt.currency ?? 'SAR'}
+          color={isPositive ? SEMANTIC.positive : SEMANTIC.negative}
+          size={17}
+        />
         <IconButton
           icon={Pencil}
           accessibilityLabel={t('debts.editTransaction')}
@@ -708,13 +693,27 @@ function TransactionRow({
             <Text style={{ fontSize: 11.5, color: theme.textSecondary }}>{debt.notes}</Text>
           ) : null}
           {hasInstallment ? (
-            <Text style={{ fontSize: 11.5, color: theme.textSecondary }}>
-              {t('debts.installmentDetails', {
-                amount: formatOriginalMoney(debt.monthlyPayment, debt.currency ?? 'SAR'),
-              })}
-              {'\n'}
-              {debt.startDate} → {debt.endDate || t('debts.noEndDate')}
-            </Text>
+            <View style={{ gap: 2 }}>
+              <View
+                style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 4 }}
+              >
+                <Text style={{ fontSize: 11.5, color: theme.textSecondary }}>
+                  {t('debts.installmentDetailsLabel')}
+                </Text>
+                <MoneyAmount
+                  amount={debt.monthlyPayment}
+                  currencyCode={debt.currency ?? 'SAR'}
+                  color={theme.textSecondary}
+                  size={12}
+                />
+                <Text style={{ fontSize: 11.5, color: theme.textSecondary }}>
+                  {t('debts.installmentDetailsSuffix')}
+                </Text>
+              </View>
+              <Text style={{ fontSize: 11.5, color: theme.textSecondary }}>
+                {debt.startDate} → {debt.endDate || t('debts.noEndDate')}
+              </Text>
+            </View>
           ) : null}
         </View>
       ) : null}
@@ -811,7 +810,6 @@ function HistoryRow({
 }) {
   const { t } = useLanguage();
   const { theme } = useTheme();
-  const { formatOriginalMoney } = useCurrency();
   const isPositive = debt.type === 'positive';
 
   return (
@@ -846,15 +844,12 @@ function HistoryRow({
           {t('debts.deletedOn', { date: (debt.deletedAt ?? '').slice(0, 10) })}
         </Text>
       </View>
-      <Text
-        style={{
-          fontFamily: FONTS.display,
-          fontSize: 14,
-          color: isPositive ? SEMANTIC.positive : SEMANTIC.negative,
-        }}
-      >
-        {formatOriginalMoney(debt.amount, debt.currency ?? 'SAR')}
-      </Text>
+      <MoneyAmount
+        amount={debt.amount}
+        currencyCode={debt.currency ?? 'SAR'}
+        color={isPositive ? SEMANTIC.positive : SEMANTIC.negative}
+        size={17}
+      />
       <IconButton
         icon={Trash2}
         accessibilityLabel={t('debts.deleteForever')}

@@ -83,13 +83,13 @@ export const THEMES = {
     cardShadow: 'rgba(28, 25, 23, 0.06)',
   },
 
-  // --- 5. LIGHT CALM ORGANIC (Eucalyptus & Sage Green) ---
+  // --- 5. LIGHT CALM ORGANIC (Eucalyptus & Mint Green) ---
   sage: {
-    label: { en: 'Sage', ar: 'مرمية' },
+    label: { en: 'Mint', ar: 'نعناعي' },
     isLight: true,
     ground: '#edf2ee', // Calming herbal mist ground
     surface: '#ffffff', // Clean white card surface
-    surfaceAlt: '#d8e3da', // Muted sage container
+    surfaceAlt: '#d8e3da', // Muted Mint container
     accent1: '#0f766e', // Deep eucalyptus teal
     accent2: '#14b8a6', // Crisp mint teal
     fab: '#0f766e',
@@ -207,6 +207,52 @@ export const THEMES = {
     glow: { a: '225,29,72', b: '244,63,94' },
     chromeTint: '29,18,27',
     cardShadow: 'rgba(0,0,0,0.6)',
+  },
+
+  // --- 11. DARK AMETHYST (Violet/Magenta — the one hue family none of the
+  // above dark themes actually use: obsidian/tokyoNight/oledBlack all lean
+  // blue-indigo, rosePine leans crimson-red) ---
+  amethyst: {
+    label: { en: 'Amethyst Night', ar: 'جمشت الليل' },
+    isLight: false,
+    ground: '#0f0611',
+    surface: '#1a0e1c',
+    surfaceAlt: '#241526',
+    accent1: '#9333ea',
+    accent2: '#e879f9',
+    fab: '#9333ea',
+    buttonText: '#ffffff',
+    textPrimary: '#f5e9fb',
+    textSecondary: '#d8b4e8',
+    textTertiary: '#6b4674',
+    border: 'rgba(255,255,255,0.08)',
+    borderSoft: 'rgba(255,255,255,0.04)',
+    glow: { a: '147,51,234', b: '232,121,249' },
+    chromeTint: '36,21,38',
+    cardShadow: 'rgba(0,0,0,0.6)',
+  },
+
+  // --- 12. LIGHT GOLDENROD (Warm Mustard/Gold — the light themes so far are
+  // indigo/porcelain, orange-terracotta/sandstone, teal/sage; none touch
+  // yellow-gold, and amberGlow's bronze is a dark theme, not this) ---
+  goldenrod: {
+    label: { en: 'Goldenrod', ar: 'ذهبي' },
+    isLight: true,
+    ground: '#fefce8',
+    surface: '#ffffff',
+    surfaceAlt: '#fef3c7',
+    accent1: '#a16207',
+    accent2: '#ca8a04',
+    fab: '#a16207',
+    buttonText: '#ffffff',
+    textPrimary: '#1c1508',
+    textSecondary: '#57462a',
+    textTertiary: '#a89873',
+    border: 'rgba(28, 21, 8, 0.09)',
+    borderSoft: 'rgba(28, 21, 8, 0.04)',
+    glow: { a: '161,98,7', b: '202,138,4' },
+    chromeTint: '254,243,199',
+    cardShadow: 'rgba(28, 21, 8, 0.06)',
   },
 } as const;
 

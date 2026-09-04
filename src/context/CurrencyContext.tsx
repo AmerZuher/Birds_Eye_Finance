@@ -11,6 +11,20 @@ export function readInitialBaseCurrency(): string {
 
 const CODE_LIKE = /^[A-Za-z]+$/;
 
+// The official Riyal symbol (U+20C1, see currencies.ts) isn't in any
+// shipped font yet, so it can't appear in a plain string — formatMoney/
+// formatOriginalMoney return raw text embedded directly in a Text node,
+// with no way to substitute the SVG glyph MoneyAmount draws instead. This
+// is the one place that matters: every plain-string formatter call across
+// the app (Settings, EditProfileScreen, Debts, Expenses, Analytics, and
+// anywhere new) routes through formatMoneyIn below, so falling back to
+// legible text here — instead of at each call site — covers all of them
+// at once. formatMoneyPartsIn (MoneyAmount's path) is untouched and keeps
+// returning the real symbol, since it can actually render it.
+const PLAIN_TEXT_SYMBOL_FALLBACK: Record<string, { ar: string; en: string }> = {
+  SAR: { ar: 'ر.س', en: 'SAR' },
+};
+
 export interface MoneyParts {
   /** Digits before the decimal separator (grouped, locale digits). */
   integer: string;
@@ -33,6 +47,9 @@ interface CurrencyContextValue {
   /** Same formatting as `formatMoney`, split into parts so a caller can give
    * the symbol/integer/decimal portions different type treatment. */
   formatMoneyParts: (amount: number, currencyCode?: string) => MoneyParts;
+  /** A whole-number percentage, localized — Arabic uses Arabic-Indic digits,
+   * English uses Latin digits. Callers append the "%" glyph themselves. */
+  formatPercent: (value: number) => string;
 }
 
 const CurrencyContext = createContext<CurrencyContextValue | null>(null);
@@ -65,7 +82,8 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
         maximumFractionDigits: 2,
       });
       const formatted = numberFormatter.format(abs);
-      const symbol = isAr ? currency.symbolAr : currency.symbolEn;
+      const fallback = PLAIN_TEXT_SYMBOL_FALLBACK[currency.code];
+      const symbol = fallback ? (isAr ? fallback.ar : fallback.en) : isAr ? currency.symbolAr : currency.symbolEn;
       const isNegative = amount < 0;
 
       if (isAr) {
@@ -124,6 +142,18 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
     [formatMoneyPartsIn, baseCurrency],
   );
 
+  const formatPercent = useCallback(
+    (value: number) => {
+      const isAr = language === 'ar';
+      const rounded = Math.round(value);
+      const numberFormatter = new Intl.NumberFormat(isAr ? 'ar-SA-u-nu-arab' : 'en-US', {
+        maximumFractionDigits: 0,
+      });
+      return numberFormatter.format(rounded);
+    },
+    [language],
+  );
+
   const value = useMemo<CurrencyContextValue>(
     () => ({
       baseCurrency,
@@ -133,6 +163,7 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
       formatMoney,
       formatOriginalMoney,
       formatMoneyParts,
+      formatPercent,
     }),
     [
       baseCurrency,
@@ -141,6 +172,7 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
       formatMoney,
       formatOriginalMoney,
       formatMoneyParts,
+      formatPercent,
     ],
   );
 

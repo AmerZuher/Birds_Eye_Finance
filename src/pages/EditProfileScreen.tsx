@@ -13,22 +13,16 @@ import { IconButton } from '@/components/ui/IconButton';
 import { IconTile } from '@/components/ui/IconTile';
 import { InlineBanner } from '@/components/ui/InlineBanner';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { MoneyAmount } from '@/components/ui/MoneyAmount';
 import { useTheme } from '@/context/ThemeContext';
 import { useLanguage } from '@/context/LanguageContext';
 import { useCurrency } from '@/context/CurrencyContext';
 import { useUser } from '@/context/UserContext';
 import { useFinance } from '@/context/FinanceContext';
 import { useChrome } from '@/context/ChromeContext';
-import type { FinancialHealthTier } from '@/context/FinanceContext';
 import { RADII } from '@/constants/theme';
 import type { StartBalance } from '@/constants/initialData';
-
-const HEALTH_COLORS: Record<FinancialHealthTier, string> = {
-  excellent: '#34d399',
-  good: '#4fe3ab',
-  fair: '#fbbf24',
-  critical: '#fb7185',
-};
+import { healthTierColor } from '@/utils/color';
 
 interface Entry {
   id: number;
@@ -40,7 +34,7 @@ interface Entry {
 export default function EditProfileScreen() {
   const { theme } = useTheme();
   const { t } = useLanguage();
-  const { convertToBase, formatMoney } = useCurrency();
+  const { convertToBase } = useCurrency();
   const { profile, updateProfile } = useUser();
   const {
     incomeSources,
@@ -173,10 +167,11 @@ export default function EditProfileScreen() {
               }}
             />
 
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
               <Coins size={12} color={theme.accent2} />
+              <MoneyAmount amount={totalMonthlyIncomeBase} color={theme.textSecondary} size={11} />
               <Text style={{ fontSize: 11, color: theme.textSecondary }}>
-                {t('settings.monthlyIncome', { amount: formatMoney(totalMonthlyIncomeBase) })}
+                {t('settings.monthlyIncomeSuffix')}
               </Text>
             </View>
 
@@ -185,14 +180,14 @@ export default function EditProfileScreen() {
                 paddingHorizontal: 10,
                 paddingVertical: 4,
                 borderRadius: RADII.pill,
-                backgroundColor: `${HEALTH_COLORS[financialHealth]}22`,
+                backgroundColor: `${healthTierColor(financialHealth, theme)}22`,
               }}
             >
               <Text
                 style={{
                   fontSize: 10,
                   fontWeight: '700',
-                  color: HEALTH_COLORS[financialHealth],
+                  color: healthTierColor(financialHealth, theme),
                   textTransform: 'uppercase',
                   letterSpacing: 0.5,
                 }}
@@ -222,10 +217,16 @@ export default function EditProfileScreen() {
           namePlaceholder={t('editProfile.balances.namePlaceholder')}
           addLabel={t('editProfile.balances.add')}
           removeLabel={t('editProfile.balances.remove')}
-          footerLabel={t('editProfile.balances.footer', {
-            count: (profile.startBalances ?? []).length,
-            total: formatMoney(totalBalancesBase),
-          })}
+          footerLabel={
+            <>
+              <Text style={{ fontSize: 10.5, color: theme.textTertiary }}>
+                {t('editProfile.balances.footerPrefix', {
+                  count: (profile.startBalances ?? []).length,
+                })}
+              </Text>
+              <MoneyAmount amount={totalBalancesBase} color={theme.textTertiary} size={10.5} />
+            </>
+          }
         />
 
         <EntryManager
@@ -238,10 +239,17 @@ export default function EditProfileScreen() {
           namePlaceholder={t('editProfile.income.namePlaceholder')}
           addLabel={t('editProfile.income.add')}
           removeLabel={t('editProfile.income.remove')}
-          footerLabel={t('editProfile.income.footer', {
-            count: incomeSources.length,
-            total: formatMoney(totalMonthlyIncomeBase),
-          })}
+          footerLabel={
+            <>
+              <Text style={{ fontSize: 10.5, color: theme.textTertiary }}>
+                {t('editProfile.income.footerPrefix', { count: incomeSources.length })}
+              </Text>
+              <MoneyAmount amount={totalMonthlyIncomeBase} color={theme.textTertiary} size={10.5} />
+              <Text style={{ fontSize: 10.5, color: theme.textTertiary }}>
+                {t('editProfile.income.footerSuffix')}
+              </Text>
+            </>
+          }
         />
       </ScrollView>
     </PageTransition>
@@ -258,7 +266,7 @@ interface EntryManagerProps {
   namePlaceholder: string;
   addLabel: string;
   removeLabel: string;
-  footerLabel: string;
+  footerLabel: React.ReactNode;
 }
 
 /** Shared add-row + list + footer shape used by both the balances and income-sources managers (FEATURE_SPEC 3.3). */
@@ -276,7 +284,7 @@ function EntryManager({
 }: EntryManagerProps) {
   const { theme } = useTheme();
   const { t } = useLanguage();
-  const { currencies, baseCurrency, formatOriginalMoney } = useCurrency();
+  const { currencies, baseCurrency } = useCurrency();
 
   const [entryName, setEntryName] = useState('');
   const [amountText, setAmountText] = useState('');
@@ -333,9 +341,7 @@ function EntryManager({
                 </Text>
               </View>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                <Text style={{ fontSize: 12.5, fontWeight: '700', color: theme.textPrimary }}>
-                  {formatOriginalMoney(entry.amount, entry.currency)}
-                </Text>
+                <MoneyAmount amount={entry.amount} currencyCode={entry.currency} size={12.5} />
                 <IconButton
                   icon={Trash2}
                   accessibilityLabel={removeLabel}
@@ -407,11 +413,18 @@ function EntryManager({
         </Pressable>
       </View>
 
-      <Text
-        style={{ marginTop: 10, fontSize: 10.5, color: theme.textTertiary, textAlign: 'center' }}
+      <View
+        style={{
+          marginTop: 10,
+          flexDirection: 'row',
+          flexWrap: 'wrap',
+          justifyContent: 'center',
+          alignItems: 'center',
+          gap: 4,
+        }}
       >
         {footerLabel}
-      </Text>
+      </View>
     </SettingsCard>
   );
 }

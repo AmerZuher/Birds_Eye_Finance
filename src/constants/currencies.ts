@@ -13,8 +13,8 @@ export interface CurrencyDef {
 export const CURRENCIES: CurrencyDef[] = [
   {
     code: 'SAR',
-    symbolAr: 'ر.س',
-    symbolEn: 'SAR',
+    symbolAr: '⃁',
+    symbolEn: '⃁',
     nameAr: 'ريال سعودي',
     nameEn: 'Saudi Riyal',
     locale: 'ar-SA',

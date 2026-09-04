@@ -10,6 +10,7 @@ import { SettingsCard, SettingsRow } from '@/components/ui/SettingsCard';
 import { ToggleSwitch } from '@/components/ui/ToggleSwitch';
 import { SegmentedControl } from '@/components/ui/SegmentedControl';
 import { CustomSelect } from '@/components/ui/CustomSelect';
+import { MoneyAmount } from '@/components/ui/MoneyAmount';
 import { useTheme } from '@/context/ThemeContext';
 import { useLanguage } from '@/context/LanguageContext';
 import { useCurrency } from '@/context/CurrencyContext';
@@ -25,7 +26,7 @@ export default function Settings() {
   const router = useRouter();
   const { theme, themeId, setThemeId, fontScale, setFontScale } = useTheme();
   const { language, setLanguage, t } = useLanguage();
-  const { baseCurrency, setBaseCurrency, currencies, formatMoney } = useCurrency();
+  const { baseCurrency, setBaseCurrency, currencies } = useCurrency();
   const { profile } = useUser();
   const { totalMonthlyIncomeBase } = useFinance();
   const { headerHeight } = useChrome();
@@ -73,10 +74,15 @@ export default function Settings() {
               <Text style={{ fontSize: 17, fontWeight: '700', color: theme.textPrimary }}>
                 {profile.name || '—'}
               </Text>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
                 <CreditCard size={12} color={theme.accent2} />
+                <MoneyAmount
+                  amount={totalMonthlyIncomeBase}
+                  color={theme.textSecondary}
+                  size={11}
+                />
                 <Text style={{ fontSize: 11, color: theme.textSecondary }}>
-                  {t('settings.monthlyIncome', { amount: formatMoney(totalMonthlyIncomeBase) })}
+                  {t('settings.monthlyIncomeSuffix')}
                 </Text>
               </View>
             </View>
@@ -84,8 +90,38 @@ export default function Settings() {
         </Pressable>
 
         <SettingsCard title={t('settings.appearance')}>
+          <Text
+            style={{
+              fontSize: 11,
+              fontWeight: '700',
+              letterSpacing: 1,
+              textTransform: 'uppercase',
+              color: theme.textTertiary,
+              marginBottom: 8,
+            }}
+          >
+            {t('settings.darkThemes')}
+          </Text>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
+            {THEME_IDS.filter((id) => !THEMES[id].isLight).map((id) => (
+              <ThemeTile key={id} id={id} active={id === themeId} onPress={() => setThemeId(id)} />
+            ))}
+          </View>
+
+          <Text
+            style={{
+              fontSize: 11,
+              fontWeight: '700',
+              letterSpacing: 1,
+              textTransform: 'uppercase',
+              color: theme.textTertiary,
+              marginBottom: 8,
+            }}
+          >
+            {t('settings.lightThemes')}
+          </Text>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 12 }}>
-            {THEME_IDS.map((id) => (
+            {THEME_IDS.filter((id) => THEMES[id].isLight).map((id) => (
               <ThemeTile key={id} id={id} active={id === themeId} onPress={() => setThemeId(id)} />
             ))}
           </View>

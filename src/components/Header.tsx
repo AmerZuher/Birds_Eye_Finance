@@ -12,7 +12,6 @@ import { useLanguage } from '@/context/LanguageContext';
 import { useUser } from '@/context/UserContext';
 import { FONTS } from '@/constants/theme';
 
-const APP_LOGO = require('../../assets/icon.png');
 
 const SETTINGS_TITLES: Record<string, string> = {
   '/settings': 'settings.title',
@@ -31,6 +30,7 @@ export function Header() {
   const { theme } = useTheme();
   const { t } = useLanguage();
   const { profile } = useUser();
+  const appLogo = require('../../assets/icon.png');
 
   const isSettings = pathname.startsWith('/settings');
   const isAbout = pathname === '/about';
@@ -77,14 +77,11 @@ export function Header() {
             // on. Radius scaled proportionally with it (10/32 → 12.5, ~13).
             width: 40,
             height: 40,
-            borderRadius: 13,
             overflow: 'hidden',
-            backgroundColor: theme.accent1,
-            borderWidth: 1,
             borderColor: `rgba(${theme.glow.a},0.3)`,
           }}
         >
-          <Image source={APP_LOGO} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
+          <Image source={appLogo} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
         </View>
         {/* Stacked lockup: the app name split across two lines rather than one
             long title. The subtitle reuses the existing name rather than
