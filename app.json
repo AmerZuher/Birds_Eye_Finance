@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "BirdsEye Finance",
+    "name": "Bird's Eye Finance",
     "slug": "birdseye-finance",
     "scheme": "birdseyefinance",
     "version": "1.0.0",
@@ -11,7 +11,7 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.birdseye.finance",
       "infoPlist": {
-        "NSContactsUsageDescription": "BirdsEye Finance uses your contacts to quickly link a debt entry to a person's name, phone, and photo."
+        "NSContactsUsageDescription": "Bird's Eye Finance uses your contacts to quickly link a debt entry to a person's name, phone, and photo."
       }
     },
     "android": {
@@ -47,14 +47,14 @@
       [
         "expo-contacts",
         {
-          "contactsPermission": "BirdsEye Finance uses your contacts to quickly link a debt entry to a person's name, phone, and photo."
+          "contactsPermission": "Bird's Eye Finance uses your contacts to quickly link a debt entry to a person's name, phone, and photo."
         }
       ],
       "expo-sharing",
       [
         "expo-image-picker",
         {
-          "photosPermission": "BirdsEye Finance uses your photo library to set your profile picture."
+          "photosPermission": "Bird'sEye Finance uses your photo library to set your profile picture."
         }
       ]
     ]

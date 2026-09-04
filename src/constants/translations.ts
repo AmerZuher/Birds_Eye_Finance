@@ -7,8 +7,8 @@ export const TRANSLATIONS: Record<Language, Record<string, string>> = {
     'nav.expenses': 'Expenses',
     'nav.debts': 'Debts',
 
-    'app.name': 'BirdsEye Finance',
-    'app.shortName': 'BirdsEye',
+    'app.name': 'Bird\'s Eye Finance',
+    'app.shortName': 'Bird\'s Eye',
     'app.subtitle': 'Finance',
 
     'settings.title': 'Settings',
