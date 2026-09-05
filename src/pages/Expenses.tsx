@@ -96,8 +96,8 @@ export default function Expenses() {
           keyExtractor={(item) => String(item.id)}
           contentContainerStyle={{
             paddingHorizontal: 16,
-            paddingTop: headerHeight + 16,
-            paddingBottom: navbarHeight + 90,
+            paddingTop: headerHeight + 20,
+            paddingBottom: navbarHeight + 45,
           }}
           ListHeaderComponent={
             <View style={{ marginBottom: 16 }}>

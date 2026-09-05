@@ -74,7 +74,7 @@ export default function Dashboard() {
         contentContainerStyle={{
           padding: 16,
           paddingTop: headerHeight + 20,
-          paddingBottom: navbarHeight + 24,
+          paddingBottom: navbarHeight + 45,
           gap: 16,
         }}
         showsVerticalScrollIndicator={false}
@@ -110,7 +110,7 @@ export default function Dashboard() {
         </Animated.View>
 
 
-        
+
       </ScrollView>
     </PageTransition>
   );

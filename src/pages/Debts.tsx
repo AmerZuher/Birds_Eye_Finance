@@ -143,13 +143,13 @@ export default function Debts() {
     setCreatePrefill(
       selectedGroup
         ? {
-            name: selectedGroup.name,
-            phone: selectedGroup.phone,
-            email: selectedGroup.email,
-            company: selectedGroup.company,
-            avatar: selectedGroup.avatar,
-            contactId: selectedGroup.contactId,
-          }
+          name: selectedGroup.name,
+          phone: selectedGroup.phone,
+          email: selectedGroup.email,
+          company: selectedGroup.company,
+          avatar: selectedGroup.avatar,
+          contactId: selectedGroup.contactId,
+        }
         : null,
     );
     setModalOpen(true);
@@ -315,8 +315,8 @@ function SummaryView({
         keyExtractor={(item) => item.name}
         contentContainerStyle={{
           paddingHorizontal: 16,
-          paddingTop: headerHeight + 16,
-          paddingBottom: navbarHeight + 90,
+          paddingTop: headerHeight + 20,
+          paddingBottom: navbarHeight + 45,
         }}
         ListHeaderComponent={
           <View style={{ marginBottom: 16 }}>
@@ -409,17 +409,24 @@ function PersonRow({ group, onPress }: { group: DebtGroup; onPress: () => void }
       leading={<Avatar name={group.name} photoUri={group.avatar} ring={group.type} size={44} />}
       title={group.name}
       subtitle={
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 2 }}>
-          {group.phone ? (
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
-              <BrandGlyph slug="whatsapp" size={10} />
-              <Text style={{ fontSize: 10.5, color: theme.textTertiary }}>{group.phone}</Text>
-            </View>
-          ) : null}
-          <Text style={{ fontSize: 10.5, color: theme.textTertiary }}>
-            {t('debts.transactionCount', { count: group.transactions.length })}
-          </Text>
-        </View>
+        group.phone ? (
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 3,
+              marginTop: 2,
+            }}
+          >
+            <BrandGlyph slug="whatsapp" size={10} />
+            <Text
+              numberOfLines={1}
+              style={{ fontSize: 10.5, color: theme.textTertiary, flexShrink: 1 }}
+            >
+              {group.phone}
+            </Text>
+          </View>
+        ) : undefined
       }
       trailing={
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>

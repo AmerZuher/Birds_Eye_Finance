@@ -101,7 +101,7 @@ export default function Analytics() {
         contentContainerStyle={{
           padding: 16,
           paddingTop: headerHeight + 20,
-          paddingBottom: navbarHeight + 24,
+          paddingBottom: navbarHeight + 45,
           gap: 16,
         }}
         showsVerticalScrollIndicator={false}
