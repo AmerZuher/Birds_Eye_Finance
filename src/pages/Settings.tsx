@@ -26,7 +26,7 @@ export default function Settings() {
   const router = useRouter();
   const { theme, themeId, setThemeId, fontScale, setFontScale } = useTheme();
   const { language, setLanguage, t } = useLanguage();
-  const { baseCurrency, setBaseCurrency, currencies } = useCurrency();
+  const { baseCurrency, setBaseCurrency, currencies, recordCurrencyUsage } = useCurrency();
   const { profile } = useUser();
   const { totalMonthlyIncomeBase } = useFinance();
   const { headerHeight } = useChrome();
@@ -200,7 +200,10 @@ export default function Settings() {
               <CustomSelect
                 value={baseCurrency}
                 options={currencyOptions}
-                onChange={setBaseCurrency}
+                onChange={(v) => {
+                  setBaseCurrency(v);
+                  recordCurrencyUsage(v);
+                }}
                 searchable
                 searchPlaceholder="Search currency"
                 sheetTitle={t('settings.baseCurrency')}

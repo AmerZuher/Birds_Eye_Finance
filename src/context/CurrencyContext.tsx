@@ -1,12 +1,16 @@
 import React, { createContext, useCallback, useContext, useMemo, useState } from 'react';
 
 import { CURRENCIES, DEFAULT_CURRENCY_CODE, getCurrency } from '@/constants/currencies';
-import { storage, StorageKeys } from '@/lib/mmkv';
+import { getJSON, setJSON, storage, StorageKeys } from '@/lib/mmkv';
 import { useLanguage } from '@/context/LanguageContext';
 
 export function readInitialBaseCurrency(): string {
   const stored = storage.getString(StorageKeys.baseCurrency);
   return stored && CURRENCIES.some((c) => c.code === stored) ? stored : DEFAULT_CURRENCY_CODE;
+}
+
+function readInitialUsage(): Record<string, number> {
+  return getJSON<Record<string, number>>(StorageKeys.currencyUsage) ?? {};
 }
 
 const CODE_LIKE = /^[A-Za-z]+$/;
@@ -40,7 +44,16 @@ export interface MoneyParts {
 interface CurrencyContextValue {
   baseCurrency: string;
   setBaseCurrency: (code: string) => void;
+  /** CURRENCIES re-sorted by how often each code has actually been picked
+   * (most-picked first, ties keep CURRENCIES' own order) — every picker in
+   * the app reads from this instead of the static table directly, so the
+   * currencies someone actually uses surface at the top of the list instead
+   * of staying buried behind an alphabetical/static ordering. */
   currencies: typeof CURRENCIES;
+  /** Call when the user picks a currency anywhere (debt/expense/balance/
+   * income/base-currency) — the only input `currencies`' ordering above is
+   * derived from. */
+  recordCurrencyUsage: (code: string) => void;
   convertToBase: (amount: number, fromCurrency: string) => number;
   formatMoney: (amount: number, currencyCode?: string) => string;
   formatOriginalMoney: (amount: number, currencyCode: string) => string;
@@ -57,11 +70,27 @@ const CurrencyContext = createContext<CurrencyContextValue | null>(null);
 export function CurrencyProvider({ children }: { children: React.ReactNode }) {
   const { language } = useLanguage();
   const [baseCurrency, setBaseCurrencyState] = useState<string>(readInitialBaseCurrency);
+  const [usageCounts, setUsageCounts] = useState<Record<string, number>>(readInitialUsage);
 
   const setBaseCurrency = useCallback((code: string) => {
     storage.set(StorageKeys.baseCurrency, code);
     setBaseCurrencyState(code);
   }, []);
+
+  const recordCurrencyUsage = useCallback((code: string) => {
+    setUsageCounts((prev) => {
+      const next = { ...prev, [code]: (prev[code] ?? 0) + 1 };
+      setJSON(StorageKeys.currencyUsage, next);
+      return next;
+    });
+  }, []);
+
+  // Stable sort (guaranteed since ES2019) — ties fall back to CURRENCIES'
+  // own order, so a never-picked list still reads exactly as it always has.
+  const sortedCurrencies = useMemo(
+    () => [...CURRENCIES].sort((a, b) => (usageCounts[b.code] ?? 0) - (usageCounts[a.code] ?? 0)),
+    [usageCounts],
+  );
 
   const convertToBase = useCallback(
     (amount: number, fromCurrency: string) => {
@@ -158,7 +187,8 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
     () => ({
       baseCurrency,
       setBaseCurrency,
-      currencies: CURRENCIES,
+      currencies: sortedCurrencies,
+      recordCurrencyUsage,
       convertToBase,
       formatMoney,
       formatOriginalMoney,
@@ -168,6 +198,8 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
     [
       baseCurrency,
       setBaseCurrency,
+      sortedCurrencies,
+      recordCurrencyUsage,
       convertToBase,
       formatMoney,
       formatOriginalMoney,

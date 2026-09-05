@@ -35,7 +35,7 @@ export function DonutChart({
   size = 160,
   strokeWidth = 16,
   children,
-  gap = 3,
+  gap = 1,
 }: DonutChartProps) {
   const { theme } = useTheme();
   const radius = (size - strokeWidth) / 2;

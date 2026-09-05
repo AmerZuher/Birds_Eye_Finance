@@ -2,9 +2,11 @@ import React, { useCallback, useMemo, useState } from 'react';
 import { ScrollView, Text, View } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import { FlashList } from '@shopify/flash-list';
-import { ChevronRight } from 'lucide-react-native';
+import { ChevronRight, StickyNote } from 'lucide-react-native';
 
 import { PageTransition } from '@/components/PageTransition';
+import { GlassModal } from '@/components/ui/GlassModal';
+import { GradientButton } from '@/components/ui/GradientButton';
 import { ListCard } from '@/components/ui/ListCard';
 import { ListRow } from '@/components/ui/ListRow';
 import { SearchInput } from '@/components/ui/SearchInput';
@@ -21,7 +23,7 @@ import { useTheme } from '@/context/ThemeContext';
 import { useChrome } from '@/context/ChromeContext';
 import { useFinance } from '@/context/FinanceContext';
 import type { Expense } from '@/db/schema';
-import { FONTS } from '@/constants/theme';
+import { FONTS, RADII } from '@/constants/theme';
 import type { ExpenseCategory } from '@/utils/expenseIcon';
 import { EXPENSE_CATEGORIES } from '@/utils/expenseIcon';
 
@@ -43,6 +45,11 @@ export default function Expenses() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Expense | null>(null);
+  // Data and visibility kept separate (mirrors DebtModal's own
+  // editingDebt/modalOpen split) so the sheet's content doesn't blank out
+  // mid-close — `detailTarget` only ever changes when a new row is tapped.
+  const [detailTarget, setDetailTarget] = useState<Expense | null>(null);
+  const [detailOpen, setDetailOpen] = useState(false);
 
   const openCreateModal = useCallback(() => {
     setEditingExpense(null);
@@ -140,11 +147,28 @@ export default function Expenses() {
           ListEmptyComponent={<EmptyState caption={t('expenses.empty')} />}
           renderItem={({ item, index }) => (
             <ListCard isLast={index === filteredExpenses.length - 1}>
-              <ExpenseRow expense={item} onPress={() => openEditModal(item)} />
+              <ExpenseRow
+                expense={item}
+                onPress={() => {
+                  setDetailTarget(item);
+                  setDetailOpen(true);
+                }}
+                onEditPress={() => openEditModal(item)}
+              />
             </ListCard>
           )}
         />
       </PageTransition>
+
+      <ExpenseDetailSheet
+        visible={detailOpen}
+        expense={detailTarget}
+        onClose={() => setDetailOpen(false)}
+        onEdit={() => {
+          setDetailOpen(false);
+          if (detailTarget) openEditModal(detailTarget);
+        }}
+      />
 
       <ExpenseModal
         visible={modalOpen}
@@ -172,71 +196,122 @@ export default function Expenses() {
 interface ExpenseRowProps {
   expense: Expense;
   onPress: () => void;
+  onEditPress: () => void;
 }
 
-function ExpenseRow({ expense, onPress }: ExpenseRowProps) {
+/** Same shape as the Debts transaction row (CLAUDE.md rule 4): tapping the
+ * row opens a quick read-only detail sheet (category/period, notes); the
+ * trailing chevron is its own tap target that jumps straight into
+ * ExpenseModal's edit form. Notes no longer render inline here — that
+ * cramped, always-on text block under the divider is what the sheet
+ * replaces. */
+function ExpenseRow({ expense, onPress, onEditPress }: ExpenseRowProps) {
   const { t } = useLanguage();
-  const { theme } = useTheme();
   const unconfigured = expense.amount === 0;
   // FEATURE_SPEC 2.5: period Badge only when amount > 0.
   const showPeriodBadge = !unconfigured;
 
   return (
-    <View>
-      <ListRow
-        onPress={onPress}
-        showBottomBorder={!!expense.notes}
-        // 50, not the tile's own 34 default — Debts' PersonRow leading is
-        // Avatar at size=44, but Avatar draws its ring 3px outside the given
-        // size (see Avatar.tsx), so its real footprint is 44+6=50. IconTile
-        // has no such padding: its `size` is the literal rendered box, so
-        // matching Avatar's true footprint here (not its size prop) is what
-        // makes the two rows the same height.
-        leading={<ExpenseIconTile icon={expense.icon} name={expense.name} size={50} />}
-        title={expense.name}
-        subtitle={
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 3 }}>
-            <Badge label={t(`expenses.category.${expense.category}`)} variant="accent" />
-            {showPeriodBadge ? <Badge label={t(`expenses.period.${expense.period}`)} /> : null}
-          </View>
-        }
-        trailing={
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-            {unconfigured ? (
-              <Text style={{ fontSize: 11, fontWeight: '700', color: '#fbbf24' }}>
-                {t('expenses.setupCost')}
-              </Text>
-            ) : (
-              <MoneyAmount amount={expense.amount} currencyCode={expense.currency ?? 'SAR'} size={17} />
-            )}
-            {/* Decorative, like the Debts person row's chevron — the row
-                itself (via `onPress` above) is what's tappable, opening this
-                expense in edit mode. */}
-            <IconButton
-              icon={ChevronRight}
-              accessibilityLabel={t('expenses.editExpense')}
-              directional
-              size={22}
-              iconSize={11}
-            />
-          </View>
-        }
-      />
+    <ListRow
+      onPress={onPress}
+      showBottomBorder={false}
+      // 50, not the tile's own 34 default — Debts' PersonRow leading is
+      // Avatar at size=44, but Avatar draws its ring 3px outside the given
+      // size (see Avatar.tsx), so its real footprint is 44+6=50. IconTile
+      // has no such padding: its `size` is the literal rendered box, so
+      // matching Avatar's true footprint here (not its size prop) is what
+      // makes the two rows the same height.
+      leading={<ExpenseIconTile icon={expense.icon} name={expense.name} size={50} />}
+      title={expense.name}
+      subtitle={
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 3 }}>
+          <Badge label={t(`expenses.category.${expense.category}`)} variant="accent" />
+          {showPeriodBadge ? <Badge label={t(`expenses.period.${expense.period}`)} /> : null}
+        </View>
+      }
+      trailing={
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+          {unconfigured ? (
+            <Text style={{ fontSize: 11, fontWeight: '700', color: '#fbbf24' }}>
+              {t('expenses.setupCost')}
+            </Text>
+          ) : (
+            <MoneyAmount amount={expense.amount} currencyCode={expense.currency ?? 'SAR'} size={17} />
+          )}
+          <IconButton
+            icon={ChevronRight}
+            accessibilityLabel={t('expenses.editExpense')}
+            onPress={onEditPress}
+            directional
+            size={22}
+            iconSize={11}
+          />
+        </View>
+      }
+    />
+  );
+}
+
+/** Read-only "what is this expense" sheet — mirrors Debts'
+ * TransactionDetailSheet. One Edit button hands off to ExpenseModal when you
+ * actually want to change something. `expense` stays set across the close
+ * animation (mirrors ExpenseModal's editingExpense/visible split) so the
+ * sheet's content doesn't blank out mid-slide-down. */
+function ExpenseDetailSheet({
+  visible,
+  expense,
+  onClose,
+  onEdit,
+}: {
+  visible: boolean;
+  expense: Expense | null;
+  onClose: () => void;
+  onEdit: () => void;
+}) {
+  const { t } = useLanguage();
+  const { theme } = useTheme();
+
+  if (!expense) return <GlassModal visible={visible} onClose={onClose}>{null}</GlassModal>;
+
+  const unconfigured = expense.amount === 0;
+
+  return (
+    <GlassModal visible={visible} onClose={onClose} title={expense.name}>
+      <View style={{ alignItems: 'center', gap: 10, paddingVertical: 4 }}>
+        <ExpenseIconTile icon={expense.icon} name={expense.name} size={56} />
+        {unconfigured ? (
+          <Text style={{ fontSize: 13, fontWeight: '700', color: '#fbbf24' }}>
+            {t('expenses.setupCost')}
+          </Text>
+        ) : (
+          <MoneyAmount amount={expense.amount} currencyCode={expense.currency ?? 'SAR'} size={30} />
+        )}
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+          <Badge label={t(`expenses.category.${expense.category}`)} variant="accent" />
+          {!unconfigured ? <Badge label={t(`expenses.period.${expense.period}`)} /> : null}
+        </View>
+      </View>
+
       {expense.notes ? (
-        // No bottom border here — the card itself (ListCard) now closes off
-        // the whole item, so there's nothing left below this to divide from.
-        <Text
+        <View
           style={{
-            fontSize: 11,
-            color: theme.textTertiary,
-            paddingStart: 50,
-            paddingEnd: 12,
-            paddingBottom: 12,
+            flexDirection: 'row',
+            gap: 10,
+            padding: 14,
+            borderRadius: RADII.field,
+            backgroundColor: theme.surfaceAlt,
+            borderWidth: 1,
+            borderColor: theme.border,
           }}
         >
-          {expense.notes}
-        </Text>
+          <StickyNote size={15} color={theme.textTertiary} />
+          <Text style={{ flex: 1, fontSize: 12.5, color: theme.textSecondary, lineHeight: 18 }}>
+            {expense.notes}
+          </Text>
+        </View>
       ) : null}
-    </View>
+
+      <GradientButton label={t('expenses.editExpense')} onPress={onEdit} />
+    </GlassModal>
   );
 }

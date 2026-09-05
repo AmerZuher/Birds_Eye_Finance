@@ -160,9 +160,9 @@ export default function Analytics() {
               ) : (
                 <>
                   <View style={{ alignItems: 'center', gap: 10 }}>
-                    <DonutChart slices={slices} size={210} strokeWidth={20} gap={4}>
+                    <DonutChart slices={slices} size={225} strokeWidth={18} gap={4}>
                       <View style={{ alignItems: 'center', gap: 3 }}>
-                        <MoneyAmount amount={chartTotal} size={43} align="center" shrinkToFit />
+                        <MoneyAmount amount={chartTotal} size={40} align="center" shrinkToFit />
                         <Text
                           style={{ fontSize: 10.5, color: theme.textTertiary, letterSpacing: 0.5 }}
                         >

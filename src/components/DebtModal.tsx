@@ -140,7 +140,7 @@ export function DebtModal({
 }: DebtModalProps) {
   const { theme } = useTheme();
   const { t } = useLanguage();
-  const { currencies, baseCurrency } = useCurrency();
+  const { currencies, baseCurrency, recordCurrencyUsage } = useCurrency();
   const { groupedDebts, addDebt, updateDebt } = useFinance();
 
   const { watch, setValue, reset, handleSubmit } = useForm<FormValues>({
@@ -479,6 +479,7 @@ export function DebtModal({
           options={currencyOptions}
           onChange={(v) => {
             setValue('currency', v);
+            recordCurrencyUsage(v);
             clearError();
           }}
           searchable

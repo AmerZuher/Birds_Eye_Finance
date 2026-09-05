@@ -356,7 +356,7 @@ function EntryManager({
 }: EntryManagerProps) {
   const { theme } = useTheme();
   const { t } = useLanguage();
-  const { currencies, baseCurrency } = useCurrency();
+  const { currencies, baseCurrency, recordCurrencyUsage } = useCurrency();
 
   const [entryName, setEntryName] = useState('');
   const [amountText, setAmountText] = useState('');
@@ -455,7 +455,10 @@ function EntryManager({
         <CustomSelect
           value={currencyCode}
           options={currencyOptions}
-          onChange={setCurrencyCode}
+          onChange={(v) => {
+            setCurrencyCode(v);
+            recordCurrencyUsage(v);
+          }}
           searchable
           searchPlaceholder={t('settings.baseCurrency')}
           sheetTitle={t('settings.baseCurrency')}

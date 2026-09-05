@@ -123,7 +123,7 @@ export function ExpenseModal({
 }: ExpenseModalProps) {
   const { theme } = useTheme();
   const { t } = useLanguage();
-  const { currencies, baseCurrency, convertToBase } = useCurrency();
+  const { currencies, baseCurrency, convertToBase, recordCurrencyUsage } = useCurrency();
   const { expenses, addExpense, updateExpense } = useFinance();
 
   const { watch, setValue, reset, handleSubmit } = useForm<FormValues>({
@@ -319,6 +319,7 @@ export function ExpenseModal({
         options={currencyOptions}
         onChange={(v) => {
           setValue('currency', v);
+          recordCurrencyUsage(v);
           clearError();
         }}
         searchable

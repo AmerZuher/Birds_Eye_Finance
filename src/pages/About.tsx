@@ -149,7 +149,7 @@ export default function About() {
                 borderRadius: 25,
               }}
             />
-            <View style={{ width: 104, height: 104 }}>
+            <View style={{ width: 100, height: 100 }}>
               <Image source={appLogo} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
             </View>
           </View>

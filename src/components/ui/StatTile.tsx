@@ -6,7 +6,7 @@ import type { LucideIcon } from 'lucide-react-native';
 import { useTheme } from '@/context/ThemeContext';
 import { IconTile } from '@/components/ui/IconTile';
 import { MoneyAmount } from '@/components/ui/MoneyAmount';
-import { RADII } from '@/constants/theme';
+import { FONTS, RADII } from '@/constants/theme';
 
 interface StatTileProps {
   icon: LucideIcon;
@@ -83,8 +83,12 @@ export function StatTile({
             shrinkToFit
           />
         ) : (
+          // Matches MoneyAmount's own integer treatment (FONTS.display,
+          // same 26 size, tinted by `accent`) even though this isn't money —
+          // a bare count previously read as a plain, unstyled afterthought
+          // next to the other three bold colored tiles in the same grid.
           <Text
-            style={{ fontSize: 20, color: theme.textPrimary }}
+            style={{ fontSize: 26, fontFamily: FONTS.display, color: accent ?? theme.textPrimary }}
             numberOfLines={1}
             adjustsFontSizeToFit
           >

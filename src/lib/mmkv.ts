@@ -13,6 +13,7 @@ export const StorageKeys = {
   settingsScreen: 'nav.settingsScreen',
   autoBackupMeta: 'backup.meta',
   autoBackupSnapshot: 'backup.snapshot',
+  currencyUsage: 'settings.currencyUsage',
 } as const;
 
 export function getString(key: string): string | undefined {
