@@ -11,6 +11,7 @@ Android · Arabic & English · 100% offline, nothing ever leaves your phone
 </div>
 
 ---
+<img width="1208" height="679" alt="BirdsEyeCover" src="https://github.com/user-attachments/assets/5242c968-3ada-4ea7-91de-c2d6c2399909" />
 
 ## What it is
 
