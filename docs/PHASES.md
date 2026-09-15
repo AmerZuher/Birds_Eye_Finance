@@ -226,5 +226,9 @@ Release steps (full detail in `docs/DEVELOPMENT.md` → Release builds):
 - Splash logo was cropped top and bottom on Android 12+. The system shows expo-splash-screen's 288dp canvas through a 192dp circle, and the logo was drawn at `imageWidth` 220dp, which put the wingtip and wallet corner 102dp from centre (mask radius 96dp). `imageWidth` → 190dp: simulating the mask on the real asset gives 0 artwork pixels outside the circle (farthest 88dp), vs 174 sampled pixels cut before. iOS and pre-12 Android show the logo about 14% smaller.
 - About page, look unchanged: support-button colors are `SUPPORT_TINTS` tokens holding the exact values it used; its buttons are `SecondaryButton variant="pill"` (accent / tinted / neutral tones reproduce the previous pills value-for-value; new `leading`/`trailingIcon` slots for the GitHub repo button); the logo glow radius is the new `RADII.logoTile` (25, as before). No hardcoded colors remain anywhere, and ESLint now errors on new ones.
 - [ ] After prebuild, on a device: splash logo fully visible on Android 12+; About shows "Version 2.0.1"; About looks exactly as before on a dark and a light theme.
+- Published 2026-09-15. The GitHub Release was first created under tag/title `v2.1.0` while its APK is 2.0.1 (versionName `2.0.1`, versionCode `2`); the user chose to rename it to `v2.0.1` rather than rebuild. The release rule now requires the tag to be exactly `v<version>` (CLAUDE.md rule 17, DEVELOPMENT.md → Release builds).
+
+## Unreleased (next planned: 2.2.0)
+- About → Website now opens `https://amer-alreyahi.vercel.app/` (was the GitHub profile). Changed after the 2.0.1 APK was built, so it isn't in 2.0.1.
 
 Note: `docs/ENHANCEMENT_PLAN.md` §7 proposes its own "Phase 6–9" numbering. That plan is not approved yet; renumber it after this phase when it is.

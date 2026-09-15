@@ -46,6 +46,7 @@ Local-first Expo/React Native app. Read `docs/FEATURE_SPEC.md` for full screen-b
    - `app.json` → `expo.android.versionCode`: increase by 1 on every release, even if only `version` changed.
    - Do **not** edit `android/` (generated and gitignored — `versionName`/`versionCode` in `android/app/build.gradle` come from `app.json`) or `package.json`'s `version` (not the app version).
    - Add a "Release x.y.z" entry to `docs/PHASES.md`.
+   - The GitHub Release tag and title must be exactly `v<version>` (e.g. `v2.0.1`), matching `app.json` and the APK name — 2.0.1 was once published under a `v2.1.0` tag by mistake.
    - Remind the user that the native project must be regenerated before building: `npx expo prebuild --platform android --clean`, then `npx expo run:android --variant release`, then upload `apk/birdsEyeFinance_V<version>.apk`. `expo run:android` alone does not re-apply `app.json` changes to an existing `android/` folder. Full steps: `docs/DEVELOPMENT.md` → Release builds.
    - Anything that must end up in `android/` belongs in a config plugin under `plugins/` (e.g. `plugins/withReleaseApk.js`), never a hand edit — `prebuild --clean` wipes hand edits.
 

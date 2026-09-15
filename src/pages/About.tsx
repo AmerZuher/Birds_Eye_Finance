@@ -27,11 +27,9 @@ import { SecondaryButton } from '@/components/ui/SecondaryButton';
 import { FONTS, RADII, SUPPORT_TINTS } from '@/constants/theme';
 import { HIDDEN_SCROLLBARS } from '@/lib/scroll';
 
-// TODO real values — see chat: repo URL is a placeholder (unknown actual
-// from the GitHub handle (not confirmed real), and the email domain looks
-// like a typo for "outlook.com" — confirm before shipping.
+// Developer contact details — confirmed by the developer (2026-09-15).
 const DEVELOPER_EMAIL = 'amerzuher@outlook.com';
-const DEVELOPER_WEBSITE = 'https://github.com/AmerZuher';
+const DEVELOPER_WEBSITE = 'https://amer-alreyahi.vercel.app/';
 // GitHub always redirects this to whatever avatar is currently set on the
 // profile — no re-uploading to assets/ every time it changes.
 const DEVELOPER_AVATAR = 'https://github.com/AmerZuher.png';

@@ -231,7 +231,7 @@ Release APK output comes from a local config plugin, **`plugins/withReleaseApk.j
    ```bash
    npx expo run:android --variant release
    ```
-4. Upload `apk/birdsEyeFinance_V<version>.apk` to a new GitHub Release.
+4. Upload `apk/birdsEyeFinance_V<version>.apk` to a new GitHub Release whose **tag and title are exactly `v<version>`** — the same version as `app.json` and the APK filename (e.g. tag `v2.0.1` for `birdsEyeFinance_V2.0.1.apk`). A mismatched tag misleads users, and would break any future update check that compares the latest tag with the installed version.
 
 **Things to know:**
 
