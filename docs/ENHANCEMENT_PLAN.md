@@ -177,3 +177,65 @@ This also fixes the current bug-shaped behavior where Home/Analytics silently in
   price entry, no external API per rule 1), manually-entered annual inflation rate for a
   real/nominal savings-rate view, expense category anomaly flags, debt payoff velocity,
   financial-health history trend.
+
+---
+
+## 8. Online backup — method to be chosen by the user
+
+Separate topic from the reconciliation/targets/investments work above. Added 2026-09-15 from a
+conversation about backups. **Nothing here is decided or built.** The user picks a method here
+before any work starts.
+
+### Why
+- The app's only way to move data today is a JSON export/import. It carries every record, but **not
+  the attachment files (receipt photos, screenshots, PDFs) or app-picked person/profile photos**,
+  so importing on a new phone loses every proof. Proofs are important and must travel with the data.
+- The in-app local auto-backup (a snapshot in MMKV with Restore) is being removed in 2.0.2 — the
+  user wants data always current, and the Data screen to be import/export only, plus online backup
+  later. So online backup is the one planned backup feature.
+- Android's built-in Auto Backup (`android:allowBackup="true"` today) is not a substitute: it's
+  silent, has no user control, and skips the whole app once its data passes 25 MB, which proofs
+  will. Decide separately whether to keep it on, restrict it, or turn it off, so a system restore
+  can't bring back a database without its files.
+
+### Needed by either option
+- **A full backup file**: one archive (e.g. `.zip`) holding the data JSON plus every attachment and
+  app-picked photo, restorable on a new phone with ids and file names remapped (reuse
+  `appendSnapshot`/`insertDebtGraph`). Needs a native zip library.
+- **Restore semantics**: replace everything vs. add to existing data — ask the user.
+- **Optional password encryption** of the backup file (financial data and proofs).
+- Large files: proofs can make backups big — show size and progress, and handle low storage.
+
+### Option A — Google Drive integration, WhatsApp-style
+The user signs in with Google in the app; backups upload to a hidden app folder on their Drive
+(`appDataFolder`), on a schedule and on demand; a new phone lists and restores them after sign-in.
+- **Pros:** closest to WhatsApp; restore is discoverable right after signing in.
+- **Cons / requirements:**
+  - CLAUDE.md **rule 1 exception** — the app itself calls Google's APIs.
+  - Google Cloud project, OAuth consent screen, native Google Sign-In module, token handling.
+  - OAuth is tied to the app's **signing key**: move off the public debug key first (existing users
+    reinstall once), or the Drive client is bound to an insecure key.
+  - Changes the "completely local and private" promise on the About page and README.
+  - More code to maintain: upload retries, background scheduling, Google API changes.
+
+### Option B — full backup file to a folder the user picks (can be a Google Drive folder)
+The user picks a folder once through Android's folder picker (`Directory.pickDirectoryAsync` in
+expo-file-system). The Google Drive app appears there, so a Drive folder works. The app writes the
+full backup file there on a schedule or on demand; the Drive app syncs it. A new phone imports by
+picking that file.
+- **Pros:** no sign-in or Google API in the app — the app never contacts the internet itself, so it
+  fits rule 1 almost as-is; works with Drive, OneDrive, local storage, a USB drive; no Google Cloud
+  setup; independent of the signing key.
+- **Cons / requirements:**
+  - Restore is manual (pick the file), not listed automatically.
+  - Background writes into a Drive-provided folder must be verified on real devices.
+  - Needs the same native zip library and full-backup format as option A.
+
+### Decision (to fill in)
+- Method: A / B
+- Restore semantics: replace / add
+- Password encryption: yes / no
+- Schedule options: e.g. off / daily / weekly
+- Android Auto Backup: keep / restrict / off
+- Target release: e.g. 2.1.0
+
