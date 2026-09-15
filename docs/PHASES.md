@@ -213,7 +213,15 @@ Definition of Done:
 - [x] About's support-button tints moved to `SUPPORT_TINTS` in `theme.ts` (user sign-off 2026-09-16); the lint rule is now `error`.
 
 ## Release 2.0.1 (prep, 2026-09-16)
-Status: code/config done, typecheck/lint clean — **needs `npx expo prebuild --platform android --clean`** before building (`android/` is CNG-managed: the version and splash drawables only reach it through prebuild), then an on-device check.
+Status: code/config done, typecheck/lint clean, prebuild re-run and checked — on-device check pending.
+
+Release steps (full detail in `docs/DEVELOPMENT.md` → Release builds):
+1. `npx expo prebuild --platform android --clean` — the version, splash drawables and permissions only reach the generated `android/` through prebuild.
+2. `npx expo run:android --variant release`.
+3. Upload `apk/birdsEyeFinance_V2.0.1.apk` to a new GitHub Release.
+
+- **Lost and restored: the release-APK copy step.** It used to be a hand edit in the generated, gitignored `android/app/build.gradle` (rename to `birdsEyeFinance_V<versionName>.apk`, copy to `apk/`). The `prebuild --clean` needed for this release wiped it. It now lives in a local config plugin, `plugins/withReleaseApk.js` (registered in `app.json`), which re-adds the Gradle task on every prebuild. The build output keeps Android's default `app-release.apk` so `expo run:android --variant release` can still install it; the renamed copy lands in `apk/`. Also note: a non-interactive `expo prebuild` clears `android/` on its own if it considers the project malformed — another reason nothing may be hand-edited there.
+- Release signing is unchanged: the regenerated `android/app/debug.keystore` is React Native's standard debug key (SHA-256 `FA:C6:17:45:…:03:3B:9C`), the same one earlier releases used, so 2.0.1 installs over 2.0.0.
 - Version `2.0.0` → `2.0.1` (`app.json` `expo.version`, shown on About via `expo-constants`); `android.versionCode` `1` → `2` — the Play Store rejects an upload that doesn't increase it, and installers compare it for updates.
 - Splash logo was cropped top and bottom on Android 12+. The system shows expo-splash-screen's 288dp canvas through a 192dp circle, and the logo was drawn at `imageWidth` 220dp, which put the wingtip and wallet corner 102dp from centre (mask radius 96dp). `imageWidth` → 190dp: simulating the mask on the real asset gives 0 artwork pixels outside the circle (farthest 88dp), vs 174 sampled pixels cut before. iOS and pre-12 Android show the logo about 14% smaller.
 - About page, look unchanged: support-button colors are `SUPPORT_TINTS` tokens holding the exact values it used; its buttons are `SecondaryButton variant="pill"` (accent / tinted / neutral tones reproduce the previous pills value-for-value; new `leading`/`trailingIcon` slots for the GitHub repo button); the logo glow radius is the new `RADII.logoTile` (25, as before). No hardcoded colors remain anywhere, and ESLint now errors on new ones.

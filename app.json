@@ -58,7 +58,8 @@
           "photosPermission": "Bird's Eye Finance uses your photo library to set profile and contact photos, and to attach receipts or screenshots as proof for a debt.",
           "cameraPermission": "Bird's Eye Finance uses your camera to photograph receipts as proof for a debt."
         }
-      ]
+      ],
+      "./plugins/withReleaseApk"
     ]
   }
 }

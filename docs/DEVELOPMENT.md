@@ -101,7 +101,7 @@ android/            Generated native project (gitignored)
 - **`src/lib/mmkv.ts`** — the single `react-native-mmkv` instance, typed `StorageKeys`, and `getJSON`/`setJSON` helpers.
 - **`scripts/`** — one-off build-time scripts (brand icon curation); not part of the shipped app.
 - **`docs/`** — this file, `FEATURE_SPEC.md`, `PHASES.md`, `gallery/` (the README's screenshots).
-- **`android/`** — the generated native Android project. Gitignored — don't hand-edit it expecting changes to survive `expo prebuild --clean` (see [Release builds](#release-builds) for the one exception currently made here).
+- **`android/`** — the generated native Android project. Gitignored — don't hand-edit it expecting changes to survive `expo prebuild --clean` — nothing in it is hand-edited; the release-APK output step comes from `plugins/withReleaseApk.js` (see [Release builds](#release-builds)).
 
 ## App boot sequence & provider tree
 
@@ -213,16 +213,31 @@ Or, equivalently — also installs the result on a connected device/emulator aft
 npx expo run:android --variant release
 ```
 
-Two customizations already live in `android/app/build.gradle`, both hooked to the `release` build type / the `assembleRelease` task:
+Release APK output comes from a local config plugin, **`plugins/withReleaseApk.js`** (registered in `app.json`), which appends a Gradle task to the generated `android/app/build.gradle` on every prebuild: after `assembleRelease`, `copyReleaseApkToRoot` copies `app-release.apk` into an `apk/` folder at the project root as **`birdsEyeFinance_V<versionName>.apk`**. The build output itself keeps Android's default name, so `expo run:android --variant release` can still find and install it. `apk/` is gitignored — upload the file as a binary asset on a new [GitHub Release](../../../releases/new) rather than committing it (GitHub hard-rejects any file over 100MB, and this APK is already well past that).
 
-1. **Output filename** — every release APK is renamed from Android's default `app-release.apk` to `birdsEyeFinance_V<versionName>.apk`, reading `versionName` directly. Bump the version there before building and the filename follows automatically.
-2. **Output location** — a Gradle task (`copyReleaseApkToRoot`) runs after `assembleRelease` and copies that renamed APK into an `apk/` folder at the project root, instead of leaving it buried in `android/app/build/outputs/apk/release/`. `apk/` is gitignored — from there, upload the file as a binary asset on a new [GitHub Release](../../../releases/new) rather than committing it (GitHub hard-rejects any file over 100MB, and this APK is already well past that).
+**Cutting a release:**
 
-**Two things to know before you rely on either of these, or on release builds in general:**
+1. **Agree on the version number first** — a Claude session proposes it and waits for confirmation before touching anything (CLAUDE.md rule 17). Then update, in `app.json` only:
+   - `expo.version` — the version users see (e.g. `2.0.1`). About reads it through `expo-constants`, the generated `android/app/build.gradle` takes `versionName` from it, and the APK filename follows it.
+   - `expo.android.versionCode` — increase by 1 on every release (e.g. `1` → `2`), even if only `version` changed.
 
-- **`android/` is gitignored.** These two customizations live in a generated file. They work today because nothing in this project's current workflow regenerates `android/` (you always build against the existing one). If you ever run `npx expo prebuild --clean`, or delete `android/` and let `expo run:android` regenerate it from scratch, **both customizations are wiped** and need to be re-added by hand. If that becomes a recurring pain, the durable fix is a small local Expo [config plugin](https://docs.expo.dev/config-plugins/introduction/) registered in `app.json` instead of a direct edit — not yet done here.
+   Don't edit `package.json`'s `version` (it isn't the app version) or anything inside `android/`. Add a "Release x.y.z" entry to `docs/PHASES.md`.
+2. Regenerate the native project so the version, splash, permissions and plugins actually reach it:
+   ```bash
+   npx expo prebuild --platform android --clean
+   ```
+   `--clean` is safe: nothing in `android/` is hand-edited anymore. Don't skip this step: `npx expo run:android` on its own does **not** re-apply `app.json` changes to an `android/` folder that already exists, so it would build with the old version, splash and permissions.
+3. Build (and install on a connected device):
+   ```bash
+   npx expo run:android --variant release
+   ```
+4. Upload `apk/birdsEyeFinance_V<version>.apk` to a new GitHub Release.
+
+**Things to know:**
+
+- **`android/` is gitignored and fully generated.** Never hand-edit it expecting the change to last — `prebuild --clean` wipes it. Until 2.0.1 the APK rename/copy lived as a direct edit there and was lost to a clean prebuild; it now lives in the plugin. Anything else that must survive belongs in a config plugin too.
 - **Release builds are signed with the debug keystore.** `android/app/build.gradle`'s `release` build type explicitly points `signingConfig signingConfigs.debug` at `android/app/debug.keystore`, with a code comment ("Caution! In production, you need to generate your own keystore file") that's never actually been acted on. This is fine for sideloading APKs the way this project currently distributes them, but **this build is not Play-Store-distributable and not meaningfully more secure than a debug build** — anyone with the (checked-in, well-known) debug keystore could resign an update. Generating a real release keystore and wiring it in is a prerequisite for any distribution channel beyond "hand someone the APK."
-- `versionCode` is hardcoded to `1` and has never been bumped. Harmless for sideloading (Android doesn't enforce anything from it outside the Play Store's own upgrade-path checks), but if this project ever ships through the Play Store, `versionCode` needs to increment on every submitted build — `versionName` alone isn't what the Store tracks.
+- **`versionCode` lives in `app.json`** (`android.versionCode`, `2` as of 2.0.1). Sideloading doesn't enforce it, but increase it with every release anyway — the Play Store requires it, and `versionName` alone isn't what the Store tracks.
 
 ## CI/CD
 

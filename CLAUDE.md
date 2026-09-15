@@ -41,5 +41,13 @@ Local-first Expo/React Native app. Read `docs/FEATURE_SPEC.md` for full screen-b
 
 16. **About screen** has no content spec anywhere — it's only referenced via routing. Build it as a stub: logo, app name, version number, nothing invented.
 
+17. **Releases and version bumps.** Never change the app version on your own. When a release is being prepared, propose the next version (e.g. `2.0.1` → `2.0.2` or `2.1.0`) and **ask the user to confirm it before editing anything**. Once confirmed:
+   - `app.json` → `expo.version`: the version users see. The About screen reads it through `expo-constants`, and the release APK is named from it.
+   - `app.json` → `expo.android.versionCode`: increase by 1 on every release, even if only `version` changed.
+   - Do **not** edit `android/` (generated and gitignored — `versionName`/`versionCode` in `android/app/build.gradle` come from `app.json`) or `package.json`'s `version` (not the app version).
+   - Add a "Release x.y.z" entry to `docs/PHASES.md`.
+   - Remind the user that the native project must be regenerated before building: `npx expo prebuild --platform android --clean`, then `npx expo run:android --variant release`, then upload `apk/birdsEyeFinance_V<version>.apk`. `expo run:android` alone does not re-apply `app.json` changes to an existing `android/` folder. Full steps: `docs/DEVELOPMENT.md` → Release builds.
+   - Anything that must end up in `android/` belongs in a config plugin under `plugins/` (e.g. `plugins/withReleaseApk.js`), never a hand edit — `prebuild --clean` wipes hand edits.
+
 ## Priority when things conflict
 Visual details (colors, exact radii/spacing) → the locked tokens and approved design preview win. Everything about *what a screen does* → `docs/FEATURE_SPEC.md` wins. Anything about *how the codebase is organized* → this file wins.
