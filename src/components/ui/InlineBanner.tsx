@@ -2,6 +2,9 @@ import React, { useEffect } from 'react';
 import { Text, View } from 'react-native';
 import { AlertTriangle, CheckCircle2, XCircle } from 'lucide-react-native';
 
+import { RADII, SEMANTIC } from '@/constants/theme';
+import { withAlpha } from '@/utils/color';
+
 export type BannerKind = 'success' | 'warning' | 'error';
 
 interface InlineBannerProps {
@@ -12,9 +15,9 @@ interface InlineBannerProps {
 }
 
 const KIND_STYLE: Record<BannerKind, { bg: string; fg: string; Icon: typeof CheckCircle2 }> = {
-  success: { bg: 'rgba(52,211,153,0.14)', fg: '#34d399', Icon: CheckCircle2 },
-  warning: { bg: 'rgba(251,191,36,0.14)', fg: '#fbbf24', Icon: AlertTriangle },
-  error: { bg: 'rgba(251,113,133,0.14)', fg: '#fb7185', Icon: XCircle },
+  success: { bg: withAlpha(SEMANTIC.positive, 0.14), fg: SEMANTIC.positive, Icon: CheckCircle2 },
+  warning: { bg: withAlpha(SEMANTIC.warning, 0.14), fg: SEMANTIC.warning, Icon: AlertTriangle },
+  error: { bg: withAlpha(SEMANTIC.negative, 0.14), fg: SEMANTIC.negative, Icon: XCircle },
 };
 
 /** The one component behind every message and every modal validation error. */
@@ -33,7 +36,7 @@ export function InlineBanner({ kind, message, onDismiss, autoDismissMs }: Inline
         flexDirection: 'row',
         alignItems: 'center',
         gap: 8,
-        borderRadius: 14,
+        borderRadius: RADII.tileLg,
         paddingVertical: 10,
         paddingHorizontal: 12,
         backgroundColor: bg,

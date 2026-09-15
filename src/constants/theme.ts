@@ -266,7 +266,16 @@ export function getTheme(id: ThemeId): ThemeShape {
   return THEMES[id] ?? THEMES[DEFAULT_THEME_ID];
 }
 
-export const SEMANTIC = { positive: '#10b981', negative: '#f43f5e' };
+// warning: added 2026-09-15 with user sign-off — the amber previously hardcoded
+// in InlineBanner/Expenses, now the one shared status color for caution states
+// (warning banners, "Setup cost", "Partially paid").
+export const SEMANTIC = { positive: '#10b981', negative: '#f43f5e', warning: '#fbbf24' };
+
+// Support-button accents on the About page (GitHub Sponsors pink, PayPal blue)
+// — added 2026-09-16 with user sign-off, holding the exact values the page
+// already used so it looks the same on every theme. Deliberately not the
+// services' real brand hexes (PayPal's #002991 is unreadable on a dark ground).
+export const SUPPORT_TINTS = { sponsor: '#ec4899', paypal: '#60a5fa' } as const;
 
 // Google Fonts via @expo-google-fonts/*
 export const FONTS = {
@@ -346,4 +355,6 @@ export const RADII = {
   tileSm: 11,
   tileLg: 14,
   iconTile: 8,
+  // About's hero logo glow — added 2026-09-16 so the page keeps its exact look without a one-off value.
+  logoTile: 25,
 };

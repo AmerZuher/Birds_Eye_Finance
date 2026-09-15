@@ -6,6 +6,8 @@ import { GlassModal } from '@/components/ui/GlassModal';
 import { GradientButton } from '@/components/ui/GradientButton';
 import { SecondaryButton } from '@/components/ui/SecondaryButton';
 import { useTheme } from '@/context/ThemeContext';
+import { SEMANTIC } from '@/constants/theme';
+import { withAlpha } from '@/utils/color';
 
 interface ConfirmModalProps {
   visible: boolean;
@@ -37,12 +39,12 @@ export function ConfirmModal({
             width: 52,
             height: 52,
             borderRadius: 26,
-            backgroundColor: 'rgba(251,113,133,0.14)',
+            backgroundColor: withAlpha(SEMANTIC.negative, 0.14),
             alignItems: 'center',
             justifyContent: 'center',
           }}
         >
-          <Trash2 size={22} color="#fb7185" />
+          <Trash2 size={22} color={SEMANTIC.negative} />
         </View>
         <Text
           style={{ fontSize: 15, fontWeight: '700', color: theme.textPrimary, textAlign: 'center' }}

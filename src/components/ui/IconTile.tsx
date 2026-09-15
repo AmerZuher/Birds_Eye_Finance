@@ -2,6 +2,7 @@ import React from 'react';
 import { View } from 'react-native';
 
 import { useTheme } from '@/context/ThemeContext';
+import { RADII } from '@/constants/theme';
 
 interface IconTileProps {
   children: React.ReactNode;
@@ -15,7 +16,7 @@ interface IconTileProps {
 export function IconTile({
   children,
   size = 34,
-  radius = 11,
+  radius = RADII.tileSm,
   tint = 'accent',
   backgroundColor,
 }: IconTileProps) {

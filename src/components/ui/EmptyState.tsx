@@ -4,6 +4,7 @@ import type { LucideIcon } from 'lucide-react-native';
 import { Inbox } from 'lucide-react-native';
 
 import { useTheme } from '@/context/ThemeContext';
+import { RADII } from '@/constants/theme';
 
 interface EmptyStateProps {
   icon?: LucideIcon;
@@ -21,7 +22,7 @@ export function EmptyState({ icon: Icon = Inbox, caption }: EmptyStateProps) {
         justifyContent: 'center',
         gap: 8,
         paddingVertical: 32,
-        borderRadius: 20,
+        borderRadius: RADII.txList,
         borderWidth: 1,
         borderStyle: 'dashed',
         borderColor: theme.border,

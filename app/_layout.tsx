@@ -32,6 +32,9 @@ import { ModalPortalProvider, ModalPortalOutlet } from '@/context/ModalPortalCon
 import { Header } from '@/components/Header';
 import { Navbar } from '@/components/Navbar';
 import { THEMES } from '@/constants/theme';
+import { KeyboardProvider } from 'react-native-keyboard-controller';
+import { DatabaseProvider } from '@/context/DatabaseContext';
+import { DebtsProvider } from '@/context/DebtsContext';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
@@ -138,21 +141,28 @@ export default function RootLayout() {
     <View style={{ flex: 1, backgroundColor: initialGround }}>
       <GestureHandlerRootView style={{ flex: 1 }}>
         <SafeAreaProvider>
-          <ThemeProvider>
-            <LanguageProvider>
-              <CurrencyProvider>
-                <UserProvider>
-                  <FinanceProvider>
-                    <ChromeProvider>
-                      <ModalPortalProvider>
-                        <RootLayoutInner />
-                      </ModalPortalProvider>
-                    </ChromeProvider>
-                  </FinanceProvider>
-                </UserProvider>
-              </CurrencyProvider>
-            </LanguageProvider>
-          </ThemeProvider>
+          {/* Edge-to-edge on Android (gradle.properties) — both bars are translucent. */}
+          <KeyboardProvider statusBarTranslucent navigationBarTranslucent>
+            <ThemeProvider>
+              <LanguageProvider>
+                <CurrencyProvider>
+                  <UserProvider>
+                    <DatabaseProvider>
+                      <DebtsProvider>
+                        <FinanceProvider>
+                          <ChromeProvider>
+                            <ModalPortalProvider>
+                              <RootLayoutInner />
+                            </ModalPortalProvider>
+                          </ChromeProvider>
+                        </FinanceProvider>
+                      </DebtsProvider>
+                    </DatabaseProvider>
+                  </UserProvider>
+                </CurrencyProvider>
+              </LanguageProvider>
+            </ThemeProvider>
+          </KeyboardProvider>
         </SafeAreaProvider>
       </GestureHandlerRootView>
     </View>

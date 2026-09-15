@@ -23,9 +23,10 @@ import { useTheme } from '@/context/ThemeContext';
 import { useChrome } from '@/context/ChromeContext';
 import { useFinance } from '@/context/FinanceContext';
 import type { Expense } from '@/db/schema';
-import { FONTS, RADII } from '@/constants/theme';
+import { FONTS, RADII, SEMANTIC } from '@/constants/theme';
 import type { ExpenseCategory } from '@/utils/expenseIcon';
 import { EXPENSE_CATEGORIES } from '@/utils/expenseIcon';
+import { HIDDEN_SCROLLBARS } from '@/lib/scroll';
 
 type CategoryFilter = 'all' | ExpenseCategory;
 
@@ -94,6 +95,9 @@ export default function Expenses() {
         <FlashList
           data={filteredExpenses}
           keyExtractor={(item) => String(item.id)}
+          {...HIDDEN_SCROLLBARS}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
           contentContainerStyle={{
             paddingHorizontal: 16,
             paddingTop: headerHeight + 20,
@@ -125,7 +129,7 @@ export default function Expenses() {
 
               <ScrollView
                 horizontal
-                showsHorizontalScrollIndicator={false}
+                {...HIDDEN_SCROLLBARS}
                 contentContainerStyle={{ gap: 8, marginTop: 12, paddingEnd: 4 }}
               >
                 <FilterChip
@@ -232,11 +236,15 @@ function ExpenseRow({ expense, onPress, onEditPress }: ExpenseRowProps) {
       trailing={
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
           {unconfigured ? (
-            <Text style={{ fontSize: 11, fontWeight: '700', color: '#fbbf24' }}>
+            <Text style={{ fontSize: 11, fontWeight: '700', color: SEMANTIC.warning }}>
               {t('expenses.setupCost')}
             </Text>
           ) : (
-            <MoneyAmount amount={expense.amount} currencyCode={expense.currency ?? 'SAR'} size={17} />
+            <MoneyAmount
+              amount={expense.amount}
+              currencyCode={expense.currency ?? 'SAR'}
+              size={17}
+            />
           )}
           <IconButton
             icon={ChevronRight}
@@ -271,7 +279,12 @@ function ExpenseDetailSheet({
   const { t } = useLanguage();
   const { theme } = useTheme();
 
-  if (!expense) return <GlassModal visible={visible} onClose={onClose}>{null}</GlassModal>;
+  if (!expense)
+    return (
+      <GlassModal visible={visible} onClose={onClose}>
+        {null}
+      </GlassModal>
+    );
 
   const unconfigured = expense.amount === 0;
 
@@ -280,7 +293,7 @@ function ExpenseDetailSheet({
       <View style={{ alignItems: 'center', gap: 10, paddingVertical: 4 }}>
         <ExpenseIconTile icon={expense.icon} name={expense.name} size={56} />
         {unconfigured ? (
-          <Text style={{ fontSize: 13, fontWeight: '700', color: '#fbbf24' }}>
+          <Text style={{ fontSize: 13, fontWeight: '700', color: SEMANTIC.warning }}>
             {t('expenses.setupCost')}
           </Text>
         ) : (

@@ -4,6 +4,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 
 import { useTheme } from '@/context/ThemeContext';
+import { RADII } from '@/constants/theme';
 
 interface ProgressBarProps {
   /** Progress in 0..1 (clamped). */
@@ -20,7 +21,12 @@ interface ProgressBarProps {
  * Animated horizontal progress bar — a soft themed track with a gradient fill
  * whose width eases from 0 → value on mount and whenever `progress` changes.
  */
-export function ProgressBar({ progress, height = 8, radius = 999, colors }: ProgressBarProps) {
+export function ProgressBar({
+  progress,
+  height = 8,
+  radius = RADII.pill,
+  colors,
+}: ProgressBarProps) {
   const { theme } = useTheme();
   const clamped = Math.min(1, Math.max(0, progress));
   const width = useSharedValue(0);

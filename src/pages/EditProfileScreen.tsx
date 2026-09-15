@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { Pressable, Text, TextInput, View } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
 import { File, Paths } from 'expo-file-system';
@@ -24,7 +24,9 @@ import { useFinance } from '@/context/FinanceContext';
 import { useChrome } from '@/context/ChromeContext';
 import { RADII } from '@/constants/theme';
 import type { StartBalance } from '@/constants/initialData';
-import { healthTierColor } from '@/utils/color';
+import { healthTierColor, withAlpha } from '@/utils/color';
+import { HIDDEN_SCROLLBARS } from '@/lib/scroll';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 
 interface Entry {
   id: number;
@@ -180,7 +182,9 @@ export default function EditProfileScreen() {
 
   return (
     <PageTransition>
-      <ScrollView
+      <KeyboardAwareScrollView
+        bottomOffset={24}
+        keyboardShouldPersistTaps="handled"
         style={{ backgroundColor: theme.ground }}
         contentContainerStyle={{
           padding: 16,
@@ -188,7 +192,7 @@ export default function EditProfileScreen() {
           gap: 14,
           paddingBottom: 40,
         }}
-        showsVerticalScrollIndicator={false}
+        {...HIDDEN_SCROLLBARS}
       >
         <SettingsCard>
           <View style={{ alignItems: 'center', gap: 10 }}>
@@ -252,7 +256,7 @@ export default function EditProfileScreen() {
                 paddingHorizontal: 10,
                 paddingVertical: 4,
                 borderRadius: RADII.pill,
-                backgroundColor: `${healthTierColor(financialHealth, theme)}22`,
+                backgroundColor: withAlpha(healthTierColor(financialHealth, theme), 0.13),
               }}
             >
               <Text
@@ -323,7 +327,7 @@ export default function EditProfileScreen() {
             </>
           }
         />
-      </ScrollView>
+      </KeyboardAwareScrollView>
     </PageTransition>
   );
 }

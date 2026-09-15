@@ -1,5 +1,6 @@
 import React from 'react';
 import Svg, { Path } from 'react-native-svg';
+import { useTheme } from '@/context/ThemeContext';
 
 // Path data copied verbatim from assets/Saudi_Riyal_Symbol.svg (SAMA's
 // official mark) — not retyped/approximated. See RiyalSymbol below for why
@@ -27,11 +28,13 @@ interface RiyalSymbolProps {
  * fix as BrandGlyph uses for brand marks lucide/simple-icons don't cover
  * as an icon font (CLAUDE.md rule 7): draw it instead of relying on text.
  */
-export function RiyalSymbol({ size = 16, color = '#000000' }: RiyalSymbolProps) {
+export function RiyalSymbol({ size = 16, color }: RiyalSymbolProps) {
+  const { theme } = useTheme();
+  const fill = color ?? theme.textPrimary;
   return (
     <Svg width={size * ASPECT} height={size} viewBox={VIEWBOX}>
       {PATHS.map((d) => (
-        <Path key={d} d={d} fill={color} />
+        <Path key={d} d={d} fill={fill} />
       ))}
     </Svg>
   );

@@ -3,6 +3,7 @@ import { Pressable, TextInput, View } from 'react-native';
 import { Search, X } from 'lucide-react-native';
 
 import { useTheme } from '@/context/ThemeContext';
+import { RADII } from '@/constants/theme';
 
 interface SearchInputProps {
   value: string;
@@ -20,7 +21,7 @@ export function SearchInput({ value, onChangeText, placeholder }: SearchInputPro
         flexDirection: 'row',
         alignItems: 'center',
         gap: 8,
-        borderRadius: 16,
+        borderRadius: RADII.field,
         paddingHorizontal: 12,
         paddingVertical: 10,
         backgroundColor: theme.surfaceAlt,

@@ -3,6 +3,7 @@ import { Pressable } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 
 import { useTheme } from '@/context/ThemeContext';
+import { RADII } from '@/constants/theme';
 
 interface ToggleSwitchProps {
   value: boolean;
@@ -27,7 +28,7 @@ export function ToggleSwitch({
 
   const knobStyle = useAnimatedStyle(() => ({
     start: 2 + progress.value * 15,
-    backgroundColor: progress.value > 0.5 ? '#ffffff' : 'rgba(165,154,138,1)',
+    backgroundColor: progress.value > 0.5 ? theme.buttonText : theme.textSecondary,
   }));
 
   return (
@@ -40,7 +41,7 @@ export function ToggleSwitch({
       style={{
         width: 34,
         height: 19,
-        borderRadius: 999,
+        borderRadius: RADII.pill,
         backgroundColor: value ? theme.accent1 : theme.surfaceAlt,
         borderWidth: value ? 0 : 1,
         borderColor: theme.border,
@@ -49,7 +50,7 @@ export function ToggleSwitch({
     >
       <Animated.View
         style={[
-          { width: 13, height: 13, borderRadius: 999, position: 'absolute', top: 2 },
+          { width: 13, height: 13, borderRadius: RADII.pill, position: 'absolute', top: 2 },
           knobStyle,
         ]}
       />

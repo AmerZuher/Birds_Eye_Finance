@@ -1,5 +1,5 @@
 import React from 'react';
-import { Image, Linking, Pressable, ScrollView, Text, View } from 'react-native';
+import { Image, Linking, ScrollView, Text, View } from 'react-native';
 import Constants from 'expo-constants';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
@@ -23,19 +23,20 @@ import { Avatar } from '@/components/ui/Avatar';
 import { InlineBanner } from '@/components/ui/InlineBanner';
 import { SettingsCard } from '@/components/ui/SettingsCard';
 import { BrandGlyph } from '@/components/BrandGlyph';
-import { FONTS, RADII } from '@/constants/theme';
-
+import { SecondaryButton } from '@/components/ui/SecondaryButton';
+import { FONTS, RADII, SUPPORT_TINTS } from '@/constants/theme';
+import { HIDDEN_SCROLLBARS } from '@/lib/scroll';
 
 // TODO real values — see chat: repo URL is a placeholder (unknown actual
 // from the GitHub handle (not confirmed real), and the email domain looks
 // like a typo for "outlook.com" — confirm before shipping.
-const DEVELOPER_EMAIL = 'amerzuher@oultook.com';
+const DEVELOPER_EMAIL = 'amerzuher@outlook.com';
 const DEVELOPER_WEBSITE = 'https://github.com/AmerZuher';
 // GitHub always redirects this to whatever avatar is currently set on the
 // profile — no re-uploading to assets/ every time it changes.
 const DEVELOPER_AVATAR = 'https://github.com/AmerZuher.png';
 const LINKS = {
-  repo: 'https://github.com/AmerZuher/BirdEyeFinance',
+  repo: 'https://github.com/AmerZuher/Birds_Eye_Finance',
   githubSponsor: 'https://github.com/sponsors/AmerZuher',
   paypal: 'https://paypal.me/amerzuher',
 };
@@ -63,64 +64,13 @@ function CardTitle({ icon: Icon, label }: { icon: LucideIcon; label: string }) {
   );
 }
 
-interface SupportButtonProps {
-  icon: LucideIcon;
-  brandGlyphSlug?: string;
-  label: string;
-  tint: { bg: string; border: string; fg: string };
-  onPress: () => void;
-}
-
-/** Page-local pill button, not a shared primitive — GradientButton/
- * SecondaryButton are fixed to the theme accent gradient / a neutral ghost
- * fill, neither of which fits a per-service brand tint (amber/pink/blue),
- * so this composes the same bordered-pill shape locally instead of forcing
- * those two to grow a one-off variant only About.tsx would ever use. */
-function SupportButton({ icon: Icon, label, tint, onPress }: SupportButtonProps) {
-  return (
-    <Pressable
-      onPress={onPress}
-      accessibilityRole="button"
-      accessibilityLabel={label}
-      style={{
-        flex: 1,
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: 8,
-        paddingVertical: 13,
-        borderRadius: RADII.pill,
-        backgroundColor: tint.bg,
-        borderWidth: 1,
-        borderColor: tint.border,
-      }}
-    >
-      <Icon size={15} color={tint.fg} />
-      <Text style={{ fontSize: 12.5, fontWeight: '700', color: tint.fg }}>{label}</Text>
-    </Pressable>
-  );
-}
-
 export default function About() {
   const { theme } = useTheme();
   const { t } = useLanguage();
-  const { headerHeight, navbarHeight } = useChrome();
+  const { headerHeight } = useChrome();
   const version = Constants.expoConfig?.version ?? '1.0.0';
   const year = new Date().getFullYear();
   const appLogo = require('../../assets/icon.png');
-
-  const supportTints = {
-    sponsor: { bg: 'rgba(236,72,153,0.14)', border: 'rgba(236,72,153,0.3)', fg: '#ec4899' },
-    paypal: { bg: 'rgba(96,165,250,0.14)', border: 'rgba(96,165,250,0.3)', fg: '#60a5fa' },
-  };
-  // Not brand-tinted like the support buttons above — email/website aren't
-  // tied to a third-party service's own color, so this uses the theme's own
-  // accent instead, same convention as the version pill.
-  const contactTint = {
-    bg: `rgba(${theme.glow.a},0.14)`,
-    border: `rgba(${theme.glow.a},0.3)`,
-    fg: theme.accent2,
-  };
 
   return (
     <PageTransition>
@@ -132,7 +82,7 @@ export default function About() {
           gap: 14,
           paddingBottom: 40,
         }}
-        showsVerticalScrollIndicator={false}
+        {...HIDDEN_SCROLLBARS}
       >
         {/* Hero */}
         <Animated.View
@@ -146,11 +96,15 @@ export default function About() {
                 position: 'absolute',
                 width: 120,
                 height: 120,
-                borderRadius: 25,
+                borderRadius: RADII.logoTile,
               }}
             />
-            <View style={{ width: 100, height: 100 }}>
-              <Image source={appLogo} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
+            <View style={{ width: 80, height: 80 }}>
+              <Image
+                source={appLogo}
+                style={{ width: '100%', height: '100%' }}
+                resizeMode="cover"
+              />
             </View>
           </View>
 
@@ -226,18 +180,22 @@ export default function About() {
               </View>
 
               <View style={{ flexDirection: 'row', gap: 10 }}>
-                <SupportButton
-                  icon={Globe}
-                  label={t('about.websiteButton')}
-                  tint={contactTint}
-                  onPress={() => Linking.openURL(DEVELOPER_WEBSITE)}
-                />
-                <SupportButton
-                  icon={Mail}
-                  label={t('about.emailButton')}
-                  tint={contactTint}
-                  onPress={() => Linking.openURL(`mailto:${DEVELOPER_EMAIL}`)}
-                />
+                <View style={{ flex: 1 }}>
+                  <SecondaryButton
+                    variant="pill"
+                    icon={Globe}
+                    label={t('about.websiteButton')}
+                    onPress={() => Linking.openURL(DEVELOPER_WEBSITE)}
+                  />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <SecondaryButton
+                    variant="pill"
+                    icon={Mail}
+                    label={t('about.emailButton')}
+                    onPress={() => Linking.openURL(`mailto:${DEVELOPER_EMAIL}`)}
+                  />
+                </View>
               </View>
             </View>
           </SettingsCard>
@@ -251,28 +209,14 @@ export default function About() {
                 {t('about.description')}
               </Text>
 
-              <Pressable
+              <SecondaryButton
+                variant="pill"
+                tone="neutral"
+                leading={<BrandGlyph slug="github" size={17} color={theme.textPrimary} />}
+                trailingIcon={ExternalLink}
+                label={t('about.repoButton')}
                 onPress={() => Linking.openURL(LINKS.repo)}
-                accessibilityRole="button"
-                accessibilityLabel={t('about.repoButton')}
-                style={{
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: 10,
-                  paddingVertical: 14,
-                  borderRadius: RADII.pill,
-                  backgroundColor: theme.isLight ? 'rgba(0,0,0,0.05)' : 'rgba(0,0,0,0.35)',
-                  borderWidth: 1,
-                  borderColor: theme.border,
-                }}
-              >
-                <BrandGlyph slug="github" size={17} color={theme.textPrimary} />
-                <Text style={{ fontSize: 13, fontWeight: '700', color: theme.textPrimary }}>
-                  {t('about.repoButton')}
-                </Text>
-                <ExternalLink size={14} color={theme.textTertiary} />
-              </Pressable>
+              />
 
               <InlineBanner kind="success" message={t('about.dataSafe')} />
             </View>
@@ -287,18 +231,18 @@ export default function About() {
               <Text style={{ fontSize: 12.5, lineHeight: 19, color: theme.textSecondary }}>
                 {t('about.supportDescription')}
               </Text>
-              <View style={{ flexDirection: 'row', gap: 10 }}>
-                <SupportButton
-                  icon={Gift}
-                  label={t('about.githubSponsor')}
-                  tint={supportTints.sponsor}
-                  onPress={() => Linking.openURL(LINKS.githubSponsor)}
-                />
-              </View>
-              <SupportButton
+              <SecondaryButton
+                variant="pill"
+                icon={Gift}
+                color={SUPPORT_TINTS.sponsor}
+                label={t('about.githubSponsor')}
+                onPress={() => Linking.openURL(LINKS.githubSponsor)}
+              />
+              <SecondaryButton
+                variant="pill"
                 icon={CreditCard}
+                color={SUPPORT_TINTS.paypal}
                 label={t('about.paypalSupport')}
-                tint={supportTints.paypal}
                 onPress={() => Linking.openURL(LINKS.paypal)}
               />
             </View>
@@ -314,7 +258,6 @@ export default function About() {
             {t('about.copyright', { year, name: t('app.name') })}
           </Text>
         </Animated.View>
-
       </ScrollView>
     </PageTransition>
   );

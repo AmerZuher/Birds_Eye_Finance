@@ -6,6 +6,7 @@ import { useTheme } from '@/context/ThemeContext';
 import { useLanguage } from '@/context/LanguageContext';
 import { GlassModal } from '@/components/ui/GlassModal';
 import { SearchInput } from '@/components/ui/SearchInput';
+import { HIDDEN_SCROLLBARS } from '@/lib/scroll';
 
 export interface CustomSelectOption<T extends string> {
   label: string;
@@ -86,6 +87,9 @@ export function CustomSelect<T extends string>({
         <FlatList
           data={filtered}
           keyExtractor={(item) => item.value}
+          {...HIDDEN_SCROLLBARS}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
           style={{ maxHeight: 360 }}
           renderItem={({ item }) => {
             const isSelected = item.value === value;

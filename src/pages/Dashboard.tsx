@@ -14,6 +14,8 @@ import { useUser } from '@/context/UserContext';
 import { useFinance } from '@/context/FinanceContext';
 import { useChrome } from '@/context/ChromeContext';
 import { FONTS, SEMANTIC } from '@/constants/theme';
+import { HIDDEN_SCROLLBARS } from '@/lib/scroll';
+import { useDebts } from '@/context/DebtsContext';
 
 function greetingKey(hour: number): string {
   if (hour < 12) return 'dashboard.greeting.morning';
@@ -27,7 +29,8 @@ export default function Dashboard() {
   const { headerHeight, navbarHeight } = useChrome();
   const { convertToBase } = useCurrency();
   const { profile } = useUser();
-  const { totalMonthlyIncomeBase, totalExpenses, debtsCalculations, netSavings } = useFinance();
+  const { totalMonthlyIncomeBase, totalExpenses, netSavings } = useFinance();
+  const { debtsCalculations } = useDebts();
 
   const hour = new Date().getHours();
 
@@ -77,7 +80,7 @@ export default function Dashboard() {
           paddingBottom: navbarHeight + 45,
           gap: 16,
         }}
-        showsVerticalScrollIndicator={false}
+        {...HIDDEN_SCROLLBARS}
       >
         {/* Greeting */}
         <Animated.View entering={FadeInDown.duration(420)} style={{ gap: 2 }}>
@@ -88,14 +91,12 @@ export default function Dashboard() {
             {profile.name || t('app.shortName')}
           </Text>
           <View style={{ height: 1, backgroundColor: theme.border, marginVertical: 14 }} />
-
         </Animated.View>
 
         {/* Current balance hero */}
         <Animated.View entering={FadeInUp.duration(420).delay(60)}>
           <BalanceRevealCard label={t('dashboard.currentBalance')} amount={totalBalancesBase} />
         </Animated.View>
-
 
         {/* Stat grid */}
         <Animated.View
@@ -108,9 +109,6 @@ export default function Dashboard() {
             </View>
           ))}
         </Animated.View>
-
-
-
       </ScrollView>
     </PageTransition>
   );

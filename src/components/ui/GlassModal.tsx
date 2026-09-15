@@ -2,27 +2,33 @@
  * Reanimated shared values are mutated via `.value =` by design (not React
  * state), and this sheet's mount/unmount must lag one animation behind the
  * `visible` prop — both are false positives against the intended pattern. */
-import React, { useEffect, useId, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useId, useRef, useState } from 'react';
 import {
   BackHandler,
   Dimensions,
-  KeyboardAvoidingView,
-  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from 'react-native';
+import type { LayoutChangeEvent, NativeScrollEvent, NativeSyntheticEvent } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   Easing,
   runOnJS,
+  useAnimatedReaction,
   useAnimatedStyle,
   useSharedValue,
   withTiming,
 } from 'react-native-reanimated';
+import {
+  useKeyboardHandler,
+  useReanimatedFocusedInput,
+  useReanimatedKeyboardAnimation,
+} from 'react-native-keyboard-controller';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useTheme } from '@/context/ThemeContext';
@@ -30,10 +36,18 @@ import { useChrome } from '@/context/ChromeContext';
 import { useModalPortal } from '@/context/ModalPortalContext';
 import { ANDROID_BLUR_METHOD, GLASS_BLUR_INTENSITY, RADII, getThemeGlass } from '@/constants/theme';
 import { CHROME_GROUND_ALPHA, hexToRgb } from '@/utils/color';
+import { HIDDEN_SCROLLBARS } from '@/lib/scroll';
 
 const SCREEN_HEIGHT = Dimensions.get('window').height;
 const DISMISS_DISTANCE = 100;
 const DISMISS_VELOCITY = 800;
+// The sheet may grow to this share of the space above the keyboard (the whole
+// container when the keyboard is closed) — the old static `maxHeight: '96%'`.
+const SHEET_MAX_HEIGHT_RATIO = 0.96;
+// Breathing room kept between a focused field and the keyboard's top edge.
+const FOCUSED_INPUT_MARGIN = 24;
+// Lets the lifted sheet's new size commit to layout before measuring against it.
+const ENSURE_VISIBLE_DELAY_MS = 60;
 // The sheet travels on the same curve and duration in both directions —
 // cubic-bezier(0.22, 1, 0.36, 1) over 350ms — while the backdrop fades on a
 // plain 300ms ease, exactly as the approved motion spec describes it. The
@@ -170,9 +184,95 @@ export function GlassModal({
       }
     });
 
-  const sheetStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: translateY.value }],
-  }));
+  // Keyboard (FEATURE_SPEC 0.9). The app is edge-to-edge on Android, where
+  // `adjustResize` no longer shrinks the window, and this sheet renders in the
+  // root view via the portal — so nothing would move on its own. Instead the
+  // sheet lifts itself: its bottom margin tracks the keyboard's live height and
+  // its max height shrinks by the same amount, keeping the whole sheet (and its
+  // scroll viewport) above the keyboard on every frame of the animation. The
+  // focused field is then scrolled into that viewport. Deliberately not a
+  // KeyboardAwareScrollView as well — both would compensate for the same
+  // keyboard and over-scroll.
+  const { height: keyboardHeight } = useReanimatedKeyboardAnimation();
+  const { input: focusedInput } = useReanimatedFocusedInput();
+  const [containerHeight, setContainerHeight] = useState(SCREEN_HEIGHT);
+  const scrollRef = useRef<ScrollView>(null);
+  const scrollOffset = useRef(0);
+  const viewportHeight = useRef(0);
+  const visibleRef = useRef(visible);
+
+  useEffect(() => {
+    visibleRef.current = visible;
+  }, [visible]);
+
+  const ensureFocusedInputVisible = useCallback(() => {
+    const scroll = scrollRef.current;
+    const inner = scroll?.getInnerViewNode();
+    const input = TextInput.State.currentlyFocusedInput();
+    if (!visibleRef.current || !scroll || !inner || !input) return;
+    input.measureLayout(
+      inner,
+      (_x, y, _width, height) => {
+        const top = scrollOffset.current;
+        const viewport = viewportHeight.current;
+        if (y + height + FOCUSED_INPUT_MARGIN > top + viewport) {
+          scroll.scrollTo({ y: y + height + FOCUSED_INPUT_MARGIN - viewport, animated: true });
+        } else if (y - FOCUSED_INPUT_MARGIN < top) {
+          scroll.scrollTo({ y: Math.max(0, y - FOCUSED_INPUT_MARGIN), animated: true });
+        }
+      },
+      () => {
+        // The focused input isn't inside this sheet's scroll view (e.g. it
+        // belongs to a nested sheet on top) — not this sheet's to scroll.
+      },
+    );
+  }, []);
+
+  const scheduleEnsureVisible = useCallback(() => {
+    setTimeout(ensureFocusedInputVisible, ENSURE_VISIBLE_DELAY_MS);
+  }, [ensureFocusedInputVisible]);
+
+  useKeyboardHandler(
+    {
+      onEnd: (e) => {
+        'worklet';
+        if (e.height > 0) runOnJS(scheduleEnsureVisible)();
+      },
+    },
+    [scheduleEnsureVisible],
+  );
+
+  // Moving focus between fields while the keyboard stays open fires no
+  // keyboard event, so the focused input's identity is watched as well.
+  useAnimatedReaction(
+    () => focusedInput.value?.target ?? -1,
+    (target, previous) => {
+      if (target !== -1 && target !== previous && keyboardHeight.value !== 0) {
+        runOnJS(scheduleEnsureVisible)();
+      }
+    },
+    [scheduleEnsureVisible],
+  );
+
+  const onContainerLayout = (e: LayoutChangeEvent) => {
+    setContainerHeight(e.nativeEvent.layout.height);
+  };
+  const onViewportLayout = (e: LayoutChangeEvent) => {
+    viewportHeight.current = e.nativeEvent.layout.height;
+  };
+  const onScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+    scrollOffset.current = e.nativeEvent.contentOffset.y;
+  };
+
+  const sheetStyle = useAnimatedStyle(() => {
+    // Sign-agnostic: only the keyboard's magnitude matters here.
+    const lift = Math.abs(keyboardHeight.value);
+    return {
+      transform: [{ translateY: translateY.value }],
+      marginBottom: lift,
+      maxHeight: containerHeight * SHEET_MAX_HEIGHT_RATIO - lift,
+    };
+  });
 
   const backdropStyle = useAnimatedStyle(() => ({
     opacity: backdropOpacity.value,
@@ -180,7 +280,7 @@ export function GlassModal({
 
   const content = mounted ? (
     <View style={{ position: 'absolute', inset: 0, zIndex: 100 }}>
-      <View style={{ flex: 1, justifyContent: 'flex-end' }}>
+      <View style={{ flex: 1, justifyContent: 'flex-end' }} onLayout={onContainerLayout}>
         <Animated.View
           style={[
             { position: 'absolute', inset: 0, backgroundColor: themeGlass.overlay },
@@ -194,7 +294,6 @@ export function GlassModal({
           onLayout={onSheetLayout}
           style={[
             {
-              maxHeight: '96%',
               borderTopLeftRadius: RADII.sheet,
               borderTopRightRadius: RADII.sheet,
               borderWidth: 1,
@@ -260,7 +359,7 @@ export function GlassModal({
                     style={{
                       width: 50,
                       height: 4,
-                      borderRadius: 50,
+                      borderRadius: RADII.pill,
                       backgroundColor: `rgba(${theme.glow.a},0.5)`,
                       alignSelf: 'center',
                     }}
@@ -282,15 +381,16 @@ export function GlassModal({
                 ) : null}
               </View>
             </GestureDetector>
-            <KeyboardAvoidingView
-              behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-              style={{ flexShrink: 1, minHeight: 0 }}
-            >
+            <View style={{ flexShrink: 1, minHeight: 0 }}>
               {scrollable ? (
                 <ScrollView
+                  ref={scrollRef}
                   style={{ flexShrink: 1 }}
                   keyboardShouldPersistTaps="handled"
-                  showsVerticalScrollIndicator={false}
+                  {...HIDDEN_SCROLLBARS}
+                  scrollEventThrottle={16}
+                  onScroll={onScroll}
+                  onLayout={onViewportLayout}
                   contentContainerStyle={{
                     paddingHorizontal: 18,
                     paddingBottom: insets.bottom + 40,
@@ -304,7 +404,7 @@ export function GlassModal({
                   {children}
                 </View>
               )}
-            </KeyboardAvoidingView>
+            </View>
           </View>
         </Animated.View>
       </View>

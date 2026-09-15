@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { Pressable, ScrollView, Text, View } from 'react-native';
 import { useForm } from 'react-hook-form';
 import type { SubmitErrorHandler, SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -32,6 +32,9 @@ import {
   lucideIconValue,
   searchTemplates,
 } from '@/utils/expenseIcon';
+import { HIDDEN_SCROLLBARS } from '@/lib/scroll';
+import { withAlpha } from '@/utils/color';
+import { FormField, TextField, useTextFieldStyle } from '@/components/FormField';
 
 const PERIODS: Period[] = [
   'daily',
@@ -285,16 +288,7 @@ export function ExpenseModal({
   const currencyOptions = currencies.map((c) => ({ label: c.code, value: c.code }));
   const periodOptions = PERIODS.map((p) => ({ label: t(`expenses.period.${p}`), value: p }));
 
-  const inputStyle = {
-    fontSize: 13,
-    color: theme.textPrimary,
-    backgroundColor: theme.surfaceAlt,
-    borderRadius: RADII.field,
-    borderWidth: 1,
-    borderColor: theme.border,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-  } as const;
+  const inputStyle = useTextFieldStyle();
 
   const showTemplatesTab = !editingExpense && mode === 'templates';
   const showCustomTab = editingExpense || mode === 'custom';
@@ -343,7 +337,7 @@ export function ExpenseModal({
 
       {values.period === 'custom' ? (
         <FormField label={t('expenseModal.customDaysLabel')}>
-          <TextInput
+          <TextField
             value={values.customPeriodDays}
             onChangeText={(v) => {
               setValue('customPeriodDays', v);
@@ -351,8 +345,6 @@ export function ExpenseModal({
             }}
             keyboardType="number-pad"
             placeholder="30"
-            placeholderTextColor={theme.textTertiary}
-            style={inputStyle}
           />
         </FormField>
       ) : null}
@@ -370,22 +362,21 @@ export function ExpenseModal({
       />
 
       <FormField label={t('expenseModal.notesLabel')}>
-        <TextInput
+        <TextField
           value={values.notes}
           onChangeText={(v) => setValue('notes', v)}
           placeholder={t('expenseModal.notesPlaceholder')}
-          placeholderTextColor={theme.textTertiary}
           multiline
           numberOfLines={3}
           textAlignVertical="top"
-          style={[inputStyle, { minHeight: 70 }]}
+          style={{ minHeight: 70 }}
         />
       </FormField>
 
       <FormField label={t('expenseModal.categoryLabel')}>
         <ScrollView
           horizontal
-          showsHorizontalScrollIndicator={false}
+          {...HIDDEN_SCROLLBARS}
           contentContainerStyle={{ gap: 8, paddingEnd: 4 }}
         >
           {EXPENSE_CATEGORIES.map((category) => (
@@ -436,7 +427,7 @@ export function ExpenseModal({
                   gap: 7,
                   paddingVertical: 14,
                   borderRadius: RADII.field,
-                  backgroundColor: active ? `${theme.accent1}22` : theme.surfaceAlt,
+                  backgroundColor: active ? withAlpha(theme.accent1, 0.13) : theme.surfaceAlt,
                   borderWidth: 1.5,
                   borderColor: active ? theme.accent1 : theme.border,
                 }}
@@ -545,15 +536,13 @@ export function ExpenseModal({
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
               <ExpenseIconTile icon={values.icon || 'initial'} name={values.name} size={44} />
               <View style={{ flex: 1 }}>
-                <TextInput
+                <TextField
                   value={values.name}
                   onChangeText={(v) => {
                     setValue('name', v);
                     clearError();
                   }}
                   placeholder={t('expenseModal.namePlaceholder')}
-                  placeholderTextColor={theme.textTertiary}
-                  style={inputStyle}
                 />
               </View>
             </View>
@@ -600,7 +589,9 @@ export function ExpenseModal({
                         clearError();
                       }}
                     >
-                      <IconTile backgroundColor={active ? `${theme.accent1}33` : undefined}>
+                      <IconTile
+                        backgroundColor={active ? withAlpha(theme.accent1, 0.2) : undefined}
+                      >
                         <Icon size={16} color={active ? theme.accent2 : theme.textSecondary} />
                       </IconTile>
                     </Pressable>
@@ -637,26 +628,5 @@ export function ExpenseModal({
         </Pressable>
       ) : null}
     </GlassModal>
-  );
-}
-
-function FormField({ label, children }: { label: string; children: React.ReactNode }) {
-  const { theme } = useTheme();
-
-  return (
-    <View style={{ gap: 6 }}>
-      <Text
-        style={{
-          fontSize: 9.5,
-          fontWeight: '700',
-          letterSpacing: 0.6,
-          textTransform: 'uppercase',
-          color: theme.textTertiary,
-        }}
-      >
-        {label}
-      </Text>
-      {children}
-    </View>
   );
 }

@@ -12,6 +12,7 @@ import { MoneyAmount } from '@/components/ui/MoneyAmount';
 import { GlowBlob } from '@/components/ui/GlowBlob';
 import { RiyalSymbol } from '@/components/RiyalSymbol';
 import { FONTS, RADII } from '@/constants/theme';
+import { withAlpha } from '@/utils/color';
 
 // Mirrors MoneyAmount's own check — no font ships U+20C1 yet, so it has to
 // be drawn instead of rendered as text here too, since this masked-state
@@ -34,18 +35,29 @@ interface BalanceRevealCardProps {
  * built from the theme's own accent1/accent2 (rule 3: no hardcoded brand
  * hex), not a literal EMV chip render. Reads as "this is a card" at a
  * glance, which a plain wallet icon never will. */
-function ChipGlyph({ theme }: { theme: { accent1: string; accent2: string } }) {
+function ChipGlyph({ theme }: { theme: { accent1: string; accent2: string; ground: string } }) {
   return (
     <View style={{ width: 30, height: 21, borderRadius: 5, overflow: 'hidden' }}>
       <LinearGradient
         colors={[theme.accent2, theme.accent1]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
-        style={{ flex: 1, paddingVertical: 4, paddingHorizontal: 3, justifyContent: 'space-between' }}
+        style={{
+          flex: 1,
+          paddingVertical: 4,
+          paddingHorizontal: 3,
+          justifyContent: 'space-between',
+        }}
       >
-        <View style={{ height: 1.4, borderRadius: 1, backgroundColor: 'rgba(0,0,0,0.4)' }} />
-        <View style={{ height: 1.4, borderRadius: 1, backgroundColor: 'rgba(0,0,0,0.4)' }} />
-        <View style={{ height: 1.4, borderRadius: 1, backgroundColor: 'rgba(0,0,0,0.4)' }} />
+        <View
+          style={{ height: 1.4, borderRadius: 1, backgroundColor: withAlpha(theme.ground, 0.4) }}
+        />
+        <View
+          style={{ height: 1.4, borderRadius: 1, backgroundColor: withAlpha(theme.ground, 0.4) }}
+        />
+        <View
+          style={{ height: 1.4, borderRadius: 1, backgroundColor: withAlpha(theme.ground, 0.4) }}
+        />
       </LinearGradient>
     </View>
   );
@@ -154,7 +166,13 @@ export function BalanceRevealCard({ label, amount }: BalanceRevealCardProps) {
               so anything conditioned on isRTL risks double-flipping against
               whatever that stale native state happens to be. Fixed
               position sidesteps the whole problem. */}
-          <View style={[StyleSheet.absoluteFill, { justifyContent: 'flex-end', alignItems: 'flex-end' }]} pointerEvents="none">
+          <View
+            style={[
+              StyleSheet.absoluteFill,
+              { justifyContent: 'flex-end', alignItems: 'flex-end' },
+            ]}
+            pointerEvents="none"
+          >
             <Image
               source={APP_ICON}
               resizeMode="contain"

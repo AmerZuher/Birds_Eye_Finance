@@ -3,6 +3,8 @@ import { Image, Text, View } from 'react-native';
 
 import { useTheme } from '@/context/ThemeContext';
 import { FONTS, SEMANTIC } from '@/constants/theme';
+import type { ThemeShape } from '@/constants/theme';
+import { withAlpha } from '@/utils/color';
 
 export type AvatarRing = 'positive' | 'negative' | 'settled' | 'flat' | 'accent' | 'none';
 
@@ -20,22 +22,18 @@ function initialsOf(name?: string): string {
   return (parts[0][0] + parts[1][0]).toUpperCase();
 }
 
-function ringColor(
-  ring: AvatarRing,
-  theme: { glow: { a: string }; isLight: boolean },
-): string | null {
+function ringColor(ring: AvatarRing, theme: ThemeShape): string | null {
   switch (ring) {
     case 'positive':
-      return 'rgba(52,211,153,0.6)';
+      return withAlpha(SEMANTIC.positive, 0.6);
     case 'negative':
-      return 'rgba(251,113,133,0.6)';
+      return withAlpha(SEMANTIC.negative, 0.6);
     case 'settled':
-      return 'rgba(165,154,138,0.55)';
+      return withAlpha(theme.textSecondary, 0.55);
     case 'flat':
-      // Was a flat white-alpha regardless of theme — near-invisible against
-      // a light theme's own light `ground` (what the ring sits on, see the
-      // outer View below). Same neutral-grey intent, black-based on light.
-      return theme.isLight ? 'rgba(15,23,42,0.18)' : 'rgba(255,255,255,0.2)';
+      // A neutral grey on either kind of theme — the ring sits on the light
+      // `ground` of a light theme, where a white wash would vanish.
+      return withAlpha(theme.textPrimary, theme.isLight ? 0.18 : 0.2);
     case 'accent':
       return `rgba(${theme.glow.a},0.7)`;
     default:

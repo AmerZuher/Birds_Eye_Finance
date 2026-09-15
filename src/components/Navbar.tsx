@@ -13,7 +13,7 @@ import { useTheme } from '@/context/ThemeContext';
 import { useLanguage } from '@/context/LanguageContext';
 import { useChrome } from '@/context/ChromeContext';
 import { ANDROID_BLUR_METHOD, GLASS_BLUR_INTENSITY } from '@/constants/theme';
-import { CHROME_GROUND_ALPHA, hexToRgb } from '@/utils/color';
+import { CHROME_GROUND_ALPHA, hexToRgb, withAlpha } from '@/utils/color';
 
 type TabPath = '/' | '/analytics' | '/expenses' | '/debts';
 
@@ -119,7 +119,7 @@ export function Navbar() {
   const isTabRoute = TABS.some((tab) => tab.path === pathname);
   if (!isTabRoute) return null;
 
-  // Was a flat 'rgba(255,255,255,0.42)' regardless of theme — a neutral
+  // Was a flat white-alpha regardless of theme — a neutral
   // white-alpha grey, deliberately not theme.textTertiary (which read muddy
   // against the original cool indigo/teal themes). That reasoning holds for
   // dark themes, but the same white-alpha reads as a near-invisible pale
@@ -127,7 +127,7 @@ export function Navbar() {
   // just for an inactive-icon color instead of body text. isLight flips it
   // to a black-based alpha instead, keeping the same "neutral grey, not the
   // theme's own muted text color" intent on either kind of theme.
-  const iconInactive = theme.isLight ? 'rgba(15,23,42,0.35)' : 'rgba(255,255,255,0.42)';
+  const iconInactive = withAlpha(theme.textPrimary, theme.isLight ? 0.35 : 0.42);
 
   // Computed rather than measured: the mask's SVG needs a concrete height on
   // the very first frame, and every term here is under this component's
@@ -297,6 +297,7 @@ export function Navbar() {
               viewBox={`0 0 ${VB_WIDTH} ${barHeight}`}
               preserveAspectRatio="none"
             >
+              {/* eslint-disable-next-line no-restricted-syntax -- a mask's fill is its alpha channel, not a rendered color */}
               <Path d={barMaskPath(barHeight)} fill="#000" />
             </Svg>
           }

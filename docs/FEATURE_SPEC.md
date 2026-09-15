@@ -33,11 +33,14 @@ Languages: Arabic (ar, RTL) and English (en, LTR); persists to MMKV. Every scree
 getMonthlyEquivalent converts any billing period to a monthly equivalent for totals: daily ×30.44 · weekly ×4.345 · custom ×(30.44/customPeriodDays) · 3months ÷3 · 6months ÷6 · 9months ÷9 · yearly ÷12 · monthly ×1.
 
 0.7 Persistence map
-Relational data — expo-sqlite via Drizzle: expenses table, debts table, incomeSources table.
+Relational data — expo-sqlite via Drizzle: expenses, people, debts, debt_adjustments, debt_attachments, income_sources tables. Attachment files and app-picked person photos live in the app's document directory and are referenced by relative file name only.
 Preferences — react-native-mmkv (synchronous reads): theme id, base currency code, language, fontScale, profile blob (name, avatar, startBalances, lastReconciledDate — not relational enough to warrant a SQL table), activeTab/previousTab, settingsScreen ('main' | 'edit-profile' | 'data'), autoBackup meta ({ frequency, lastBackup }) and the autoBackup snapshot itself.
 
 0.8 Reusable UI components
 See CLAUDE.md rule 4 for the full list of 18 shared primitives and what each covers. Every screen composes these; none of them duplicate Tailwind classes or reimplement a pattern another screen already has.
+
+0.9 Scrolling & keyboard
+No visible scroll indicators anywhere in the app (vertical or horizontal, lists and scroll views alike); scrolling itself is unchanged. A focused text input is never covered by the soft keyboard: bottom sheets lift with the keyboard and scroll the focused field into view with a small margin above the keyboard; full screens (Edit Profile, Data) scroll the focused field into view. In lists with a search field, tapping a result works on the first tap while the keyboard is open, and dragging the list dismisses the keyboard.
 
 PART 1 — DEBTS SCREEN (src/pages/Debts.tsx)
 Two mutually-exclusive views driven by selectedPerson from FinanceContext.
@@ -46,35 +49,66 @@ Two mutually-exclusive views driven by selectedPerson from FinanceContext.
 Root scrollable list (FlashList per CLAUDE.md rule 6) with content padding that clears the FAB/navbar below and the glass header above. Entrance animation on mount, direction-aware.
 
 1.2 Summary view (person list) — shown when no person is selected
-Header block: page title + subtitle, hairline divider. Net base balance: label + big value = totalPositiveAmount − totalNegativeAmount (both converted to base currency), colored positive/negative by sign. **Also shown here: the aggregate monthly installment total** — sum of monthlyPayment across all negative debts with an active installment plan, converted to base currency, displayed as a secondary stat alongside the net figure (see CLAUDE.md rule 14 — this is the fix for installment info being previously buried in each person's detail view). If no debts have an installment plan, this stat is omitted rather than shown as zero.
-Smart search bar (SearchInput primitive): placeholder "search by name/date/note". Live filtering matches group name, any transaction's notes/date/stringified amount, group phone, email, or company.
-Person cards list (ListRow + Avatar primitives): empty state via EmptyState when no debts exist or search yields nothing. Each row: Avatar (photo or first-letter initial; ring colored by net status — positive/negative/settled), name, phone row with WhatsApp glyph when phone exists, transaction count, right-aligned net total colored by type, trailing chevron (IconButton, direction follows language). Card ordering: sorted by absolute net value descending, from groupedDebts.
+Header block: page title + subtitle, History IconButton (opens 1.9, all people), hairline divider. Net base balance: label + big value = outstanding total of active "owed to me" debts − outstanding total of active "I owe" debts (both converted to base currency), colored positive/negative by sign. **Also shown here: the aggregate monthly installment total** — sum of monthlyPayment across active negative debts with an installment plan, converted to base currency, displayed as a secondary stat alongside the net figure (see CLAUDE.md rule 14). If no active debt has an installment plan, this stat is omitted rather than shown as zero.
+Smart search bar (SearchInput primitive): placeholder "search by name/date/note". Live filtering matches the person's name, phone, email, or company, or any active debt's notes/date/stringified amount/ID ("#0042" or "42").
+Person cards list (ListRow + Avatar primitives, FlashList): only people with at least one active debt — a debt is active when it is neither settled (1.10) nor deleted (1.5). People whose debts are all settled leave this list and remain reachable through History (1.9) and DebtModal's person suggestions (1.7). Empty state via EmptyState when there are no active debts or search yields nothing. Each row: Avatar (photo or first-letter initial; ring colored by net status — positive/negative/settled), name, phone row with WhatsApp glyph when phone exists, right-aligned net outstanding colored by type, trailing chevron (IconButton, direction follows language). Card ordering: sorted by absolute net value descending, from groupedDebts.
 
-1.3 Grouping engine (groupedDebts in FinanceContext)
-Debts grouped by trimmed name (exact match). Each group accumulates: transactions array, running totalNet (each amount converted to base currency), and merges the first-found non-empty phone/avatar/email/company/contactId. Type classification: positive (>0), negative (<0), settled (=0). Context also exposes debtFilter ('all' | 'positive' | 'negative') for filtering groups — not currently surfaced in the UI, available for future use.
+1.3 People & grouping engine (FinanceContext)
+People are records of their own (`people` table: name, phone, email, company, avatar, contactId). Every debt belongs to exactly one person via personId. groupedDebts groups active debts by personId — never by name text — and accumulates a running net of each debt's outstanding amount converted to base currency. Contact details come from the person record; debts do not carry their own copies. Type classification: positive (>0), negative (<0), settled (=0). Context also exposes debtFilter ('all' | 'positive' | 'negative') for filtering groups — not currently surfaced in the UI, available for future use.
+Identity rules — a person is chosen, never silently re-derived from typed text:
+- Names are not unique; two different people may share a name. Names are compared on a normalized key (trimmed, inner whitespace collapsed, case-folded; Arabic diacritics and tatweel removed, أ/إ/آ/ٱ → ا, ى → ي, ة → ه). The key drives suggestions and matching only — the name is displayed exactly as entered.
+- A phone number, when present, belongs to at most one person (compared after the 1.6 normalization). A device contactId, when present, belongs to at most one person.
+- Wherever a person must be found without the user picking one (a typed name that was never bound in DebtModal, backup restore, AI-prompt import), resolution order is: contactId match → phone match → exactly one normalized-name match → otherwise a new person. If a phone is supplied and the single name match has a different phone, it is a different person. In DebtModal, two or more name matches require the user to pick (1.7); in imports they create a new person.
 
 1.4 Detail view (per-person) — shown when a person is tapped
-Header: circular back IconButton, large Avatar (96px) with type-colored ring, person name centered below. Contact chips row (only when contact info exists): phone chip (tappable → WhatsApp, see 1.6), email chip, company chip — display-only.
-Total net card: full-width, tinted by type, uppercase label + large net amount in base currency.
-Transaction history: section label, container list with dividers. Each row: icon tile (TrendingUp/emerald for money owed to me, TrendingDown/rose for money I owe), type label + optional date, amount in the transaction's original currency, edit IconButton (opens DebtModal), delete IconButton (opens ConfirmModal). Expandable info panel when notes or installment info exists: notes line, and for negative debts with monthlyPayment > 0 — "Installment details: {monthly} monthly" plus the start→end date range (or "no end date" when unset).
+Header: circular back IconButton, Edit IconButton (opens Edit Person, 1.11), History IconButton (opens 1.9 filtered to this person). Large Avatar (96px) with type-colored ring, person name centered below. Contact chips row: phone chip (tappable → WhatsApp, see 1.6), email chip, company chip; for every missing detail a dashed "+ Add phone" / "+ Add email" / "+ Add company" chip that opens Edit Person with that field focused.
+Total net card: full-width, tinted by type, uppercase label + large net outstanding in base currency. When this person has settled debts, a "Settled (n)" link below it opens History filtered to this person. When the person's net is exactly zero but active debts remain (repayments recorded earlier as opposite-type debts), a "Settle all" action is offered (1.9).
+Debts list (FlashList): this person's active debts, newest first. Each row: icon tile (TrendingUp/emerald for money owed to me, TrendingDown/rose for money I owe); title = debt ID "#0042" (zero-padded record id, always rendered left-to-right, also in Arabic); subtitle = status Badge (Open / Partially paid) + date; trailing = outstanding amount in the debt's original currency, with "of {original}" in muted text beneath when partially paid; a thin ProgressBar (paid ÷ original) under partially paid rows; chevron IconButton that opens DebtModal in edit mode. Tapping the row itself opens the debt detail sheet (1.10).
+If the person has no active debts left (all settled or deleted), the detail view closes and returns to the person list.
 
-1.5 Delete confirmation
-Uses the shared ConfirmModal primitive (icon badge, title, person name as subtitle, Cancel/Delete button pair). Delete removes the debt by id, then optimistically updates the open person view — recomputes totalNet and reclassifies type; if the person has zero remaining transactions, the detail view auto-closes.
+1.5 Delete
+Deleting a debt (from DebtModal's edit mode) uses the shared ConfirmModal primitive (icon badge, title, person name as subtitle, Cancel/Delete). Delete is a soft delete: the debt moves to History › Deleted (1.9) together with its adjustments and attachments, and every total updates live. Permanent removal is only available from History › Deleted, behind its own ConfirmModal, and also removes the debt's adjustments and attachment files.
 
 1.6 WhatsApp integration
-Triggered from the phone chip in detail view. Phone normalization: strips spaces/dashes/parentheses, removes leading + or 00, and a leading national 0 is replaced with country code 966 (Saudi default — international users should store full numbers). Builds a message: greeting with the person's name, total via formatMoney (base currency), then a bulleted per-transaction summary (type + original-currency amount + optional date). Opens the WhatsApp deep link guarded by a canOpenURL check.
+Triggered from the phone chip in detail view. Phone normalization: strips spaces/dashes/parentheses, removes leading + or 00, and a leading national 0 is replaced with country code 966 (Saudi default — international users should store full numbers). The same normalization is used to compare phones for identity (1.3). Builds a message: greeting with the person's name, net outstanding via formatMoney (base currency), then a bulleted per-debt summary of active debts (ID + type + outstanding in original currency + optional date). Opens the WhatsApp deep link guarded by a canOpenURL check.
 
 1.7 DebtModal (components/DebtModal.tsx)
-Built from GlassModal + react-hook-form/zod (CLAUDE.md rule 5). Debt-specific features:
-Contact import: "Import from Contacts" button opens ContactsPicker (1.8) when no contact is linked; once linked, shows a compact contact card with an unlink action. Editing the name manually after linking clears the link (manual entry stays authoritative).
-Name auto-suggest: existing unique debtor names matching the typed prefix appear in a floating dropdown; tapping fills the name.
-Type toggle: segmented control, "I owe" (negative) / "Owed to me" (positive) — drives accent coloring of the amount field.
-Fields: Amount (AmountInput + embedded searchable currency CustomSelect, all 20 codes) · Date (YYYY-MM-DD, pre-filled today) · Notes · Monthly payment (only when type = negative — see CLAUDE.md rule 14, this stays) · Installment dates panel (start required + end optional, only when type = negative AND monthlyPayment > 0) · Phone (LTR, phone-pad keyboard) · Email + Company.
-Validation (zod, rendered via InlineBanner): name required, amount required, date must be a valid YYYY-MM-DD date, and for negative debts with installments — valid start date required, valid end date required if provided.
-Save behavior: edit mode patches the debt by id and, if that person is currently selected, recomputes their view live; create mode prepends a new debt and, if the name matches the currently-selected person, updates the selection instantly. Installment dates are only stored for qualifying negative-installment debts, otherwise omitted.
+Built from GlassModal + react-hook-form/zod (CLAUDE.md rule 5). There are no phone, email, or company fields — contact details belong to the person (1.3) and are edited on the person's page (1.11).
+Person block (top of the form):
+- Opened from a person's detail view → a locked person card (Avatar, name, contact line); nothing to type.
+- Otherwise → a name field with live suggestions drawn from all people (including people with no active debts), matched on the normalized name key. Each suggestion shows Avatar + name + a disambiguator (last 4 phone digits, else company, else open balance). Tapping one binds that person and replaces the field with their card plus a "Change" action.
+- A typed name that was never bound is resolved on blur and again on save: exactly one person with that normalized name → bound automatically, and the card reads "Adding to {name}" with a "Not this person? Create new" link; two or more → save is blocked with a warning InlineBanner and the matching people listed to pick from, plus "Create new person"; none → a "New person" hint with an "Import from Contacts" button (1.8).
+- Importing a contact whose contactId or phone already belongs to a person binds that existing person instead of creating a duplicate, with a banner: "This number belongs to {name}".
+Type toggle: "I owe" (negative) / "Owed to me" (positive) — drives accent coloring of the amount field.
+Fields: Amount (AmountInput + embedded searchable currency CustomSelect, all 20 codes) · Date (YYYY-MM-DD, pre-filled today) · Notes · Monthly payment (only when type = negative — see CLAUDE.md rule 14, this stays) · Installment dates panel (start required + end optional, only when type = negative AND monthlyPayment > 0) · Attach proof (optional — files picked here are held until save and then attached to the new debt, 1.12).
+Validation (zod, rendered via InlineBanner): a person is required (bound, or a new name), amount required and > 0, date must be a valid YYYY-MM-DD date, and for negative debts with installments — valid start date required, valid end date required if provided. In edit mode the amount can't be lowered below what has already been paid against the debt.
+Save behavior: create mode inserts the new person (when there is one) and the debt together in a single transaction; edit mode patches the debt by id. All views update live. Installment dates are only stored for qualifying negative-installment debts, otherwise omitted.
 
 1.8 ContactsPicker (components/ContactsPicker.tsx)
-Full-screen modal launched from DebtModal. Requests contacts permission on open; loads phone numbers, emails, company, and photo. States: loading, permission-denied (with explanation + Go Back), empty ("No contacts found"), or a searchable scrollable list (SearchInput + ListRow + Avatar). Selecting emits { name, phone, avatar, email, company, contactId }, which DebtModal merges into its form.
+Full-screen modal launched from DebtModal's person block (new person) or from Edit Person (re-import). Requests contacts permission on open; loads phone numbers, emails, company, and photo. States: loading, permission-denied (with explanation + Go Back), empty ("No contacts found"), or a searchable scrollable list (SearchInput + ListRow + Avatar). Selecting emits { name, phone, avatar, email, company, contactId }, which the caller applies to the person (subject to the identity rules in 1.3).
+
+1.9 History
+Opened from the summary header (all people) or from a person's detail view (that person only). A SegmentedControl switches between Settled and Deleted.
+Settled: debts whose outstanding reached zero, newest settlement first. Each row: person name, debt ID, "Settled on {date}" (the date of the adjustment that settled it), original amount. Tapping opens the debt detail sheet (1.10), where a + adjustment reopens the debt.
+Deleted: soft-deleted debts, newest deletion first, "Deleted on {date}", each with a permanent-delete action (ConfirmModal).
+Settle all: offered on a person's detail view only when their net is exactly zero while active debts remain. After a ConfirmModal, it records a closing − adjustment for each of those debts (dated today, note "Settled together"), so they all move to Settled at once.
+
+1.10 Debt detail sheet & adjustments
+Opened by tapping a debt row. Shows: debt ID, type, status Badge, a balance card (Original · Adjustments · Outstanding), notes, installment plan (for negative debts with monthlyPayment > 0: monthly amount and start→end range, or "no end date"), Proofs (1.12), and the adjustment ledger (newest first; each entry: sign, amount, date, note, paperclip when it has attachments; tapping an entry offers edit, or delete behind a ConfirmModal). Actions: "− Record payment", "+ Add to debt", "Edit" (DebtModal), and "Move to another person" (person picker).
+Adjustment sheet: a −/+ SegmentedControl, AmountInput tinted by sign, Date (pre-filled today), Note, Attach proof. Labels follow the debt type while the sign rule stays constant: for "I owe", − reads "I paid"; for "Owed to me", − reads "They paid me"; − always reduces the outstanding amount and + always increases it. A live preview reads "Outstanding after: {amount}"; when that reaches zero it reads "This settles the debt and moves it to History."
+Adjustments are always in the debt's own currency. Validation (InlineBanner): amount required and > 0; a − adjustment can't exceed the current outstanding (no overpayment).
+Status is always derived, never stored: outstanding = original amount + sum of adjustments. Settled when outstanding ≤ 0.005; Partially paid when adjustments sum below −0.005 and the debt is not settled; otherwise Open. When an adjustment settles a debt, a success InlineBanner reads "Debt #0042 settled — moved to History", with success haptic feedback. A + adjustment on a settled debt reopens it automatically.
+Math: every Debts total — net balance, per-person net, and totalNegativeMonthly (which feeds effective income) — uses the outstanding amounts of active debts only.
+
+1.11 Edit Person sheet
+GlassModal + react-hook-form/zod. Fields: name, phone (LTR, phone-pad keyboard), email, company, avatar, and "Re-import from Contacts" (1.8). Validation (InlineBanner): name required; valid email format when provided; a phone that already belongs to another person is rejected, and the banner offers "Merge with {name}". Actions: "Merge into…" (person picker → ConfirmModal) moves every debt of this person to the chosen person, fills the chosen person's empty contact fields from this one, and removes this person. Renaming changes the single person record, so every debt follows.
+
+1.12 Attachments (proofs)
+Attached to a specific debt, and optionally linked to one of its adjustments. Added from the camera, the photo library (e.g. WhatsApp screenshots, bank receipts), or files (PDF). Images are downscaled to a 2000px long edge before saving; PDFs are accepted up to 15 MB (larger files are rejected with an error banner).
+Proofs card — the same card everywhere proofs are taken (DebtModal in create mode, the adjustment sheet, the debt detail sheet): a paperclip tile, the "Proofs" title with a summary (e.g. "Images: 2 · PDFs: 1", or "Receipts, screenshots or PDFs" when empty) and a count badge — no inline previews; the files themselves are shown in the Proofs sheet. Tapping an empty card opens the source picker directly; otherwise it opens the Proofs sheet.
+Proofs sheet: "Add proof", then every file as a row — a file-type icon tile (image or PDF, the same tile style as every list icon in the app), name (machine-generated picker names like a UUID show as "Photo" / "PDF document"), type · size · date added ("Saved with this form" while unsaved; "Linked to a payment" where relevant) — with Open with… and Remove actions. Tapping a row opens the preview.
+Preview: images full-size with pinch-to-zoom, drag while zoomed, and double-tap to reset; PDFs as a file card. Actions: Open with… (Android: the system chooser of apps that can view the file; iOS: the share sheet, which offers Quick Look and "Open in…" apps), Share (Android only — on iOS Open with… already is the share sheet), and Remove.
+Removing a saved attachment asks for confirmation; a file staged in an unsaved form is simply dropped. Editing an existing adjustment lists only that adjustment's proofs, and proofs added there are linked to it. Files are stored inside the app's private storage. Backups include attachment records but not the files themselves — the Data screen states this.
 
 PART 2 — EXPENSES SCREEN (src/pages/Expenses.tsx)
 
@@ -136,11 +170,32 @@ interface Expense {
   translationKey?: string; customPeriodDays?: number;
 }
 
+interface Person {
+  id: number; name: string; nameKey: string;        // nameKey: normalized, non-unique (1.3)
+  phone?: string; phoneKey?: string;                 // phoneKey: normalized, unique when present
+  email?: string; company?: string; avatar?: string;
+  contactId?: string;                                // unique when present
+  createdAt: string;
+}
+
 interface Debt {
-  id: number; name: string; amount: number; monthlyPayment: number;
+  id: number; personId: number; name: string;       // name: snapshot of the person's name (legacy, to be dropped)
+  amount: number; monthlyPayment: number;            // amount: original principal, never rewritten by payments
   type: 'positive' | 'negative'; date: string; notes?: string;
   startDate?: string; endDate?: string; currency?: string;
-  phone?: string; avatar?: string; email?: string; company?: string; contactId?: string;
+  deletedAt?: string;                                // soft delete (1.5)
+}
+
+interface DebtAdjustment {
+  id: number; debtId: number;
+  amount: number;                                    // signed, in the debt's currency; − reduces outstanding
+  date: string; note?: string; createdAt: string;
+}
+
+interface DebtAttachment {
+  id: number; debtId: number; adjustmentId?: number;
+  fileName: string;                                  // relative to the app's attachments folder
+  mimeType: string; originalName?: string; sizeBytes: number; createdAt: string;
 }
 
 interface Profile {
@@ -155,18 +210,21 @@ No Target type, no targets field on Profile, no emergencyBufferMonths — see CL
 
 Derived values produced by FinanceContext:
 totalExpenses — monthly-normalized, base-currency total (Expenses header).
-debtsCalculations.totalPositiveAmount / totalNegativeAmount / totalNegativeMonthly — Debts header net, effective income, and now also the Debts summary card's installment-total stat (rule 14).
-groupedDebts — per-person groups (Debts list).
+Per debt (derived, never stored): outstanding = amount + Σ adjustments · status open / partial / settled (1.10) · settled date = latest adjustment date.
+debtsCalculations.totalPositiveAmount / totalNegativeAmount / totalNegativeMonthly — computed from outstanding amounts of active debts only; Debts header net, effective income, and the Debts summary card's installment-total stat (rule 14).
+groupedDebts — per-person groups of active debts, keyed by personId (Debts list).
 effectiveIncome = income − totalNegativeMonthly · netSavings = effectiveIncome − totalExpenses · savingsRate % · financialHealth grade (EditProfile badge).
 Dashboard-related derived values (totalStartBalance / monthsElapsed / calculatedCurrentBalance) exist in the data model but are not wired into any UI yet — see CLAUDE.md rule 15.
 
 PART 6 — NOTABLE BEHAVIORS, QUIRKS & EDGE CASES
 Quick-add duplicate guard is silent — matching an already-added service does nothing.
 Subscription/service default prices convert at add-time, not dynamically — later base-currency changes don't retroactively alter saved amounts.
-Deleting a debt inside a person view optimistically patches the selection instead of waiting for regrouping.
+Deleting or settling a debt inside a person view updates the view live; when the person has no active debts left, the detail view closes.
+Names are not identity — two people can share a name, and a differently spelled name ("Ahmad" vs "Ahmed") is a different person unless the user picks the existing one or merges them later. No fuzzy matching, by design (1.3).
+Payments never rewrite a debt's original amount — they are adjustments, so status and history can always be recomputed and a settled debt can be reopened.
 WhatsApp country-code assumption: local numbers starting with 0 get Saudi 966 prefix — international users should store full numbers.
 Notifications toggle is currently decorative — no scheduler wired behind it until the notifications work (rule 10) is built.
 debtFilter exists in context (positive/negative/all) but has no UI control on the Debts screen today — available for future use.
-Import always appends — importing the same backup twice duplicates records (ids are regenerated to keep list keys unique).
+Import always appends — importing the same backup twice duplicates debts (ids are regenerated and every reference is remapped). People are the exception: imported rows resolve to existing people by contactId → phone → a single name match (1.3). Attachment files are not part of backups; restored attachment records without a file are dropped.
 Exchange rates are static constants (SAR-base) — no fetch/live-rate mechanism.
 All list empty-states share one visual language via the shared EmptyState primitive — never reimplemented per-screen.

@@ -4,6 +4,8 @@ import type { LucideIcon } from 'lucide-react-native';
 
 import { useLanguage } from '@/context/LanguageContext';
 import { useTheme } from '@/context/ThemeContext';
+import { RADII } from '@/constants/theme';
+import { withAlpha } from '@/utils/color';
 
 interface IconButtonProps {
   icon: LucideIcon;
@@ -64,17 +66,13 @@ export function IconButton({
   // either kind of theme instead of "barely-there" on light ones.
   const background =
     variant === 'surface'
-      ? theme.isLight
-        ? 'rgba(0,0,0,0.05)'
-        : 'rgba(255,255,255,0.08)'
+      ? withAlpha(theme.textPrimary, theme.isLight ? 0.05 : 0.08)
       : variant === 'tinted'
         ? `rgba(${theme.glow.a},0.16)`
         : 'transparent';
   const border =
     variant === 'surface'
-      ? theme.isLight
-        ? 'rgba(0,0,0,0.08)'
-        : 'rgba(255,255,255,0.12)'
+      ? withAlpha(theme.textPrimary, theme.isLight ? 0.08 : 0.12)
       : variant === 'tinted'
         ? `rgba(${theme.glow.a},0.28)`
         : 'transparent';
@@ -88,7 +86,7 @@ export function IconButton({
       style={{
         width: size,
         height: size,
-        borderRadius: 11,
+        borderRadius: RADII.tileSm,
         alignItems: 'center',
         justifyContent: 'center',
         backgroundColor: background,

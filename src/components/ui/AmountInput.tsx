@@ -3,6 +3,7 @@ import { Pressable, Text, TextInput, View } from 'react-native';
 
 import { useTheme } from '@/context/ThemeContext';
 import { RADII, SEMANTIC } from '@/constants/theme';
+import { withAlpha } from '@/utils/color';
 
 interface AmountInputProps {
   value: string;
@@ -33,7 +34,7 @@ export function AmountInput({
         padding: 12,
         backgroundColor: theme.surfaceAlt,
         borderWidth: 1,
-        borderColor: tintColor ? `${tintColor}55` : theme.border,
+        borderColor: tintColor ? withAlpha(tintColor, 0.33) : theme.border,
         gap: 2,
       }}
     >

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { Pressable, Text, TextInput, View } from 'react-native';
 import { File, Paths } from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import * as DocumentPicker from 'expo-document-picker';
@@ -37,6 +37,8 @@ import {
   BACKUP_FREQUENCIES,
 } from '@/utils/autoBackup';
 import type { AutoBackupMeta, BackupFrequency } from '@/utils/autoBackup';
+import { HIDDEN_SCROLLBARS } from '@/lib/scroll';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 
 export default function DataScreen() {
   const { theme, themeId } = useTheme();
@@ -194,7 +196,9 @@ export default function DataScreen() {
 
   return (
     <PageTransition>
-      <ScrollView
+      <KeyboardAwareScrollView
+        bottomOffset={24}
+        keyboardShouldPersistTaps="handled"
         style={{ backgroundColor: theme.ground }}
         contentContainerStyle={{
           padding: 16,
@@ -202,7 +206,7 @@ export default function DataScreen() {
           gap: 14,
           paddingBottom: 40,
         }}
-        showsVerticalScrollIndicator={false}
+        {...HIDDEN_SCROLLBARS}
       >
         {banner ? (
           <InlineBanner
@@ -231,50 +235,21 @@ export default function DataScreen() {
 
         <SettingsCard title={t('data.export.title')}>
           <View style={{ gap: 10 }}>
-            <Pressable
+            <GradientButton
+              icon={Download}
+              label={t('data.export.button')}
               onPress={handleExport}
               disabled={busy}
-              style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: 8,
-                backgroundColor: theme.accent1,
-                borderRadius: RADII.field,
-                paddingVertical: 12,
-                opacity: busy ? 0.6 : 1,
-              }}
-            >
-              <Download size={15} color={theme.buttonText} />
-              <Text style={{ color: theme.buttonText, fontWeight: '700', fontSize: 13 }}>
-                {t('data.export.button')}
-              </Text>
-            </Pressable>
-
-            <Pressable
+            />
+            <SecondaryButton
+              icon={Upload}
+              label={t('data.import.button')}
               onPress={handleImportFile}
               disabled={busy}
-              style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: 8,
-                // Same light/dark split as SecondaryButton's ghost fill — a
-                // flat white wash would sit invisibly flush with a light
-                // surface instead of reading as a distinct button.
-                backgroundColor: theme.isLight ? 'rgba(0,0,0,0.03)' : 'rgba(255,255,255,0.05)',
-                borderWidth: 1,
-                borderColor: theme.border,
-                borderRadius: RADII.field,
-                paddingVertical: 12,
-                opacity: busy ? 0.6 : 1,
-              }}
-            >
-              <Upload size={15} color={theme.textPrimary} />
-              <Text style={{ color: theme.textPrimary, fontWeight: '700', fontSize: 13 }}>
-                {t('data.import.button')}
-              </Text>
-            </Pressable>
+            />
+            <Text style={{ fontSize: 11, color: theme.textTertiary }}>
+              {t('data.attachmentsNote')}
+            </Text>
           </View>
         </SettingsCard>
 
@@ -367,7 +342,7 @@ export default function DataScreen() {
           confirmLabel={t('data.autoBackup.restore')}
           cancelLabel={t('common.cancel')}
         />
-      </ScrollView>
+      </KeyboardAwareScrollView>
     </PageTransition>
   );
 }

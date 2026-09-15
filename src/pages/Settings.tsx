@@ -21,6 +21,7 @@ import { THEME_IDS, THEMES, RADII } from '@/constants/theme';
 import type { ThemeId } from '@/constants/theme';
 import { FONT_SCALE_IDS, FONT_SCALE_LABELS, type FontScaleId } from '@/constants/fontScale';
 import type { Language } from '@/constants/translations';
+import { HIDDEN_SCROLLBARS } from '@/lib/scroll';
 
 export default function Settings() {
   const router = useRouter();
@@ -47,7 +48,7 @@ export default function Settings() {
           gap: 14,
           paddingBottom: 40,
         }}
-        showsVerticalScrollIndicator={false}
+        {...HIDDEN_SCROLLBARS}
       >
         <Pressable onPress={() => router.push('/settings/edit-profile')}>
           <LinearGradient

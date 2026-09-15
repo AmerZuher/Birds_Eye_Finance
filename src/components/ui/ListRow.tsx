@@ -2,6 +2,7 @@ import React from 'react';
 import { Pressable, Text, View } from 'react-native';
 
 import { useTheme } from '@/context/ThemeContext';
+import { getThemeGlass } from '@/constants/theme';
 
 interface ListRowProps {
   leading?: React.ReactNode;
@@ -38,7 +39,7 @@ export function ListRow({
         // on a light surface, so it flips to a faint darken there instead —
         // same idea (very slightly distinct from its own background) on
         // either kind of theme.
-        backgroundColor: theme.isLight ? 'rgba(0,0,0,0.02)' : 'rgba(255,255,255,0.02)',
+        backgroundColor: getThemeGlass(theme).surfaceWash,
         borderBottomWidth: showBottomBorder ? 1 : 0,
         borderBottomColor: theme.borderSoft,
       }}

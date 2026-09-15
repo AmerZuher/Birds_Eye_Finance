@@ -22,6 +22,8 @@ import { categoricalRamp } from '@/utils/color';
 import { getMonthlyEquivalent } from '@/lib/period';
 import type { Period } from '@/lib/period';
 import type { Expense } from '@/db/schema';
+import { HIDDEN_SCROLLBARS } from '@/lib/scroll';
+import { useDebts } from '@/context/DebtsContext';
 
 // The 5 canonical expense categories, in a stable order so the same category
 // always maps to the same slice color regardless of how many are present.
@@ -40,8 +42,8 @@ export default function Analytics() {
   const { t, isRTL } = useLanguage();
   const { headerHeight, navbarHeight } = useChrome();
   const { formatPercent, convertToBase } = useCurrency();
-  const { expenses, totalExpenses, totalMonthlyIncomeBase, debtsCalculations, netSavings } =
-    useFinance();
+  const { expenses, totalExpenses, totalMonthlyIncomeBase, netSavings } = useFinance();
+  const { debtsCalculations } = useDebts();
 
   // Group configured expenses by category, summing their monthly equivalent
   // in base currency. Unconfigured (amount 0) are excluded from the chart but
@@ -104,7 +106,7 @@ export default function Analytics() {
           paddingBottom: navbarHeight + 45,
           gap: 16,
         }}
-        showsVerticalScrollIndicator={false}
+        {...HIDDEN_SCROLLBARS}
       >
         <Animated.View entering={FadeInDown.duration(420)} style={{ gap: 2 }}>
           <Text style={{ fontFamily: FONTS.display, fontSize: 22, color: theme.textPrimary }}>
@@ -112,7 +114,6 @@ export default function Analytics() {
           </Text>
           <Text style={{ fontSize: 12, color: theme.textTertiary }}>{t('analytics.subtitle')}</Text>
           <View style={{ height: 1, backgroundColor: theme.border, marginVertical: 14 }} />
-
         </Animated.View>
 
         {/* Spending breakdown */}
@@ -306,9 +307,7 @@ export default function Analytics() {
               height={10}
               colors={[`rgb(${theme.glow.a})`, `rgb(${theme.glow.b})`]}
             />
-            <View
-              style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 4 }}
-            >
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 4 }}>
               <MoneyAmount amount={totalExpenses} color={theme.textTertiary} size={12} />
               <Text style={{ fontSize: 10.5, color: theme.textTertiary }}>
                 {t('analytics.expenseToIncomeMid')}
@@ -320,7 +319,6 @@ export default function Analytics() {
             </View>
           </Animated.View>
         ) : null}
-
 
         {/* Full empty state when there's literally nothing to show */}
         {!hasData ? (

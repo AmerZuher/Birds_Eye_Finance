@@ -30,6 +30,11 @@ export function hexToRgb(hex: string): string {
   return `${r},${g},${b}`;
 }
 
+/** A token color at the given opacity — the one way to derive a tint/wash from a `#rrggbb` token instead of hand-writing an `rgba(...)` literal. */
+export function withAlpha(hex: string, alpha: number): string {
+  return `rgba(${hexToRgb(hex)},${alpha})`;
+}
+
 /** Converts a `#rrggbb` hex color to an HSL tuple — h in 0..360, s/l in 0..100. */
 export function hexToHsl(hex: string): [number, number, number] {
   const [r, g, b] = hexToRgb(hex).split(',').map(Number);

@@ -30,6 +30,7 @@ import { useChrome } from '@/context/ChromeContext';
 import { useLanguage } from '@/context/LanguageContext';
 import { useModalPortal } from '@/context/ModalPortalContext';
 import { FONTS } from '@/constants/theme';
+import { HIDDEN_SCROLLBARS } from '@/lib/scroll';
 
 const FIELDS = [
   ContactField.FULL_NAME,
@@ -234,6 +235,9 @@ export function ContactsPicker({ visible, onClose, onSelect }: ContactsPickerPro
           <FlashList
             data={filtered}
             keyExtractor={(item) => item.id}
+            {...HIDDEN_SCROLLBARS}
+            keyboardShouldPersistTaps="handled"
+            keyboardDismissMode="on-drag"
             contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: insets.bottom + 24 }}
             renderItem={({ item, index }) => (
               <ListCard isLast={index === filtered.length - 1}>

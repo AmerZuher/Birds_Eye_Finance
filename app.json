@@ -3,7 +3,7 @@
     "name": "Bird's Eye Finance",
     "slug": "birdseye-finance",
     "scheme": "birdseyefinance",
-    "version": "2.0.0",
+    "version": "2.0.1",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
@@ -21,7 +21,8 @@
         "foregroundImage": "./assets/android-icon-foreground.png"
       },
       "predictiveBackGestureEnabled": false,
-      "permissions": ["READ_CONTACTS"]
+      "permissions": ["READ_CONTACTS"],
+      "versionCode": 2
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -34,7 +35,7 @@
         {
           "backgroundColor": "#0d1e33",
           "image": "./assets/splash-icon.png",
-          "imageWidth": 220
+          "imageWidth": 190
         }
       ],
       "expo-font",
@@ -54,7 +55,8 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "Bird'sEye Finance uses your photo library to set your profile picture."
+          "photosPermission": "Bird's Eye Finance uses your photo library to set profile and contact photos, and to attach receipts or screenshots as proof for a debt.",
+          "cameraPermission": "Bird's Eye Finance uses your camera to photograph receipts as proof for a debt."
         }
       ]
     ]
