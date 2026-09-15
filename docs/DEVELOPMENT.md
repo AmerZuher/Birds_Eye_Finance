@@ -6,6 +6,7 @@ Read this alongside [`FEATURE_SPEC.md`](./FEATURE_SPEC.md) (what every screen do
 
 ## Table of contents
 
+- [Common commands](#common-commands)
 - [Prerequisites](#prerequisites)
 - [Getting started](#getting-started)
 - [Project structure](#project-structure)
@@ -18,6 +19,28 @@ Read this alongside [`FEATURE_SPEC.md`](./FEATURE_SPEC.md) (what every screen do
 - [Release builds](#release-builds)
 - [CI/CD](#cicd)
 - [Known gotchas & lessons already learned](#known-gotchas--lessons-already-learned)
+
+---
+
+## Common commands
+
+Run from the project root. Details for each are further down this guide.
+
+| Task | Command |
+|---|---|
+| Install dependencies (after cloning, or when dependencies changed) | `npm install` |
+| Build and run the dev app on a connected device / emulator | `npm run android` |
+| Start the dev server for an already-installed dev build | `npm start` |
+| **Build a release APK** — regenerates `android/`, builds, copies the APK to `apk/` | `npm run release:android` |
+| Regenerate `android/` only (after `app.json` or native-dependency changes) | `npm run prebuild:android` |
+| Typecheck + lint — run before calling any change done | `npm run check` |
+| Typecheck only / lint only | `npm run typecheck` / `npm run lint` |
+| Format every file / check formatting | `npm run format` / `npm run format:check` |
+| Generate a DB migration after editing `src/db/schema.ts` | `npm run db:generate` |
+| Rebuild the curated brand-icon list | `npm run brandicons` |
+
+- A release APK lands at `apk/birdsEyeFinance_V<version>.apk`. Before building one, bump the version and follow [Release builds](#release-builds) (the GitHub Release tag must be exactly `v<version>`).
+- `npm run format:check` still reports 5 files that predate Phase 6 (README.md, Header.tsx, DonutChart.tsx, MoneyAmount.tsx, CurrencyContext.tsx).
 
 ---
 
@@ -231,6 +254,7 @@ Release APK output comes from a local config plugin, **`plugins/withReleaseApk.j
    ```bash
    npx expo run:android --variant release
    ```
+   Steps 2 and 3 in one go: `npm run release:android`.
 4. Upload `apk/birdsEyeFinance_V<version>.apk` to a new GitHub Release whose **tag and title are exactly `v<version>`** — the same version as `app.json` and the APK filename (e.g. tag `v2.0.1` for `birdsEyeFinance_V2.0.1.apk`). A mismatched tag misleads users, and would break any future update check that compares the latest tag with the installed version.
 
 **Things to know:**
