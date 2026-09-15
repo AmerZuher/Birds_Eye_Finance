@@ -190,7 +190,7 @@ before any work starts.
 - The app's only way to move data today is a JSON export/import. It carries every record, but **not
   the attachment files (receipt photos, screenshots, PDFs) or app-picked person/profile photos**,
   so importing on a new phone loses every proof. Proofs are important and must travel with the data.
-- The in-app local auto-backup (a snapshot in MMKV with Restore) is being removed in 2.0.2 — the
+- The in-app local auto-backup (a snapshot in MMKV with Restore) is removed in 2.1.0 — the
   user wants data always current, and the Data screen to be import/export only, plus online backup
   later. So online backup is the one planned backup feature.
 - Android's built-in Auto Backup (`android:allowBackup="true"` today) is not a substitute: it's

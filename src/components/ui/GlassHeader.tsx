@@ -29,8 +29,8 @@ import { CHROME_GROUND_ALPHA, hexToRgb } from '@/utils/color';
  * actually constrained anything, leaving the two rows their own, still
  * different, natural heights regardless of what this constant said.
  *
- * `minHeight`, not `height`: at a large fontScale a title is allowed to make
- * the bar taller rather than being clipped by the overflow:hidden below.
+ * `minHeight`, not `height`: at a large system font size a title is allowed to
+ * make the bar taller rather than being clipped by the overflow:hidden below.
  */
 const ROW_MIN_HEIGHT = 68;
 

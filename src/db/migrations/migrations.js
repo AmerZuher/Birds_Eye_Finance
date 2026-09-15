@@ -6,6 +6,7 @@ import m0001 from './0001_majestic_stryfe.sql';
 import m0002 from './0002_people.sql';
 import m0003 from './0003_debt_adjustments.sql';
 import m0004 from './0004_debt_attachments.sql';
+import m0005 from './0005_adjustment_entered_currency.sql';
 
   export default {
     journal,
@@ -14,7 +15,8 @@ import m0004 from './0004_debt_attachments.sql';
 m0001,
 m0002,
 m0003,
-m0004
+m0004,
+m0005
     }
   }
   

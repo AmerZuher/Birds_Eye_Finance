@@ -65,9 +65,13 @@ export type DebtPersonTarget = { personId: number } | { newPerson: PersonFields 
 
 export interface AdjustmentInput {
   debtId: number;
+  /** Signed, in the debt's own currency. */
   amount: number;
   date: string;
   note?: string | null;
+  /** The amount and currency as typed, when that wasn't the debt's currency (FEATURE_SPEC 1.10). */
+  enteredAmount?: number | null;
+  enteredCurrency?: string | null;
 }
 
 /** Another person already owns this phone number or device contact. */
@@ -376,6 +380,8 @@ export function DebtsProvider({ children }: { children: React.ReactNode }) {
         date: input.date,
         note: input.note?.trim() || null,
         createdAt: nowIso(),
+        enteredAmount: input.enteredAmount ?? null,
+        enteredCurrency: input.enteredCurrency ?? null,
       })
       .returning({ id: debtAdjustments.id })
       .get();
@@ -384,7 +390,13 @@ export function DebtsProvider({ children }: { children: React.ReactNode }) {
 
   const updateAdjustment = useCallback((id: number, patch: Omit<AdjustmentInput, 'debtId'>) => {
     db.update(debtAdjustments)
-      .set({ amount: patch.amount, date: patch.date, note: patch.note?.trim() || null })
+      .set({
+        amount: patch.amount,
+        date: patch.date,
+        note: patch.note?.trim() || null,
+        enteredAmount: patch.enteredAmount ?? null,
+        enteredCurrency: patch.enteredCurrency ?? null,
+      })
       .where(eq(debtAdjustments.id, id))
       .run();
   }, []);

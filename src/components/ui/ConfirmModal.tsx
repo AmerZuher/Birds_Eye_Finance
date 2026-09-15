@@ -1,6 +1,7 @@
 import React from 'react';
 import { Text, View } from 'react-native';
 import { Trash2 } from 'lucide-react-native';
+import type { LucideIcon } from 'lucide-react-native';
 
 import { GlassModal } from '@/components/ui/GlassModal';
 import { GradientButton } from '@/components/ui/GradientButton';
@@ -17,9 +18,18 @@ interface ConfirmModalProps {
   onConfirm: () => void;
   confirmLabel?: string;
   cancelLabel?: string;
+  /** Badge icon — a trash can unless given. */
+  icon?: LucideIcon;
+  /** `negative` (default) for deletions and other destructive actions; `accent` for a
+   * confirmation that doesn't destroy anything, e.g. Import. */
+  tone?: 'negative' | 'accent';
 }
 
-/** Delete-confirmation sheet — icon badge + title + Cancel/Delete. One implementation for Debt and Expense deletion. */
+/**
+ * Confirmation sheet — icon badge + title + Cancel/Confirm. One implementation for every
+ * confirmation: the deletion look by default (Debt and Expense deletion, merges), `icon` +
+ * `tone="accent"` for non-destructive ones.
+ */
 export function ConfirmModal({
   visible,
   title,
@@ -28,8 +38,13 @@ export function ConfirmModal({
   onConfirm,
   confirmLabel = 'Delete',
   cancelLabel = 'Cancel',
+  icon: Icon = Trash2,
+  tone = 'negative',
 }: ConfirmModalProps) {
   const { theme } = useTheme();
+  const badgeBackground =
+    tone === 'accent' ? `rgba(${theme.glow.a},0.16)` : withAlpha(SEMANTIC.negative, 0.14);
+  const badgeColor = tone === 'accent' ? theme.accent2 : SEMANTIC.negative;
 
   return (
     <GlassModal visible={visible} onClose={onCancel}>
@@ -39,12 +54,12 @@ export function ConfirmModal({
             width: 52,
             height: 52,
             borderRadius: 26,
-            backgroundColor: withAlpha(SEMANTIC.negative, 0.14),
+            backgroundColor: badgeBackground,
             alignItems: 'center',
             justifyContent: 'center',
           }}
         >
-          <Trash2 size={22} color={SEMANTIC.negative} />
+          <Icon size={22} color={badgeColor} />
         </View>
         <Text
           style={{ fontSize: 15, fontWeight: '700', color: theme.textPrimary, textAlign: 'center' }}

@@ -139,7 +139,7 @@ export function DebtModal({
 }: DebtModalProps) {
   const { theme } = useTheme();
   const { t } = useLanguage();
-  const { currencies, baseCurrency, recordCurrencyUsage, formatOriginalMoney } = useCurrency();
+  const { currencyOptions, baseCurrency, recordCurrencyUsage, formatOriginalMoney } = useCurrency();
   const { people, peopleById, debtViews, addDebt, updateDebt, updatePerson, addAttachments } =
     useDebts();
 
@@ -409,8 +409,6 @@ export function DebtModal({
     setNotice({ kind: 'error', message: t(ERROR_KEYS[key] ?? 'debtModal.error.generic') });
   };
 
-  const currencyOptions = currencies.map((c) => ({ label: c.code, value: c.code }));
-
   const personBlock = boundPerson ? (
     <PersonCard
       person={boundPerson}
@@ -587,7 +585,7 @@ export function DebtModal({
             recordCurrencyUsage(v);
           }}
           searchable
-          searchPlaceholder={t('settings.baseCurrency')}
+          searchPlaceholder={t('settings.searchCurrency')}
           sheetTitle={t('settings.baseCurrency')}
           open={currencyPickerOpen}
           onOpenChange={setCurrencyPickerOpen}

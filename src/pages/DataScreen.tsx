@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { Pressable, Text, TextInput, View } from 'react-native';
 import { File, Paths } from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
@@ -8,7 +8,6 @@ import { Check, Copy, Download, Shield, Upload } from 'lucide-react-native';
 
 import { PageTransition } from '@/components/PageTransition';
 import { SettingsCard } from '@/components/ui/SettingsCard';
-import { SegmentedControl } from '@/components/ui/SegmentedControl';
 import { InlineBanner } from '@/components/ui/InlineBanner';
 import type { BannerKind } from '@/components/ui/InlineBanner';
 import { GradientButton } from '@/components/ui/GradientButton';
@@ -26,20 +25,22 @@ import { EXPENSES_PROMPT } from '@/prompts/expensesPrompt';
 import {
   appendSnapshot,
   buildSnapshot,
-  humanizeLastBackup,
-  isBackupDue,
   parseSnapshot,
-  readAutoBackupMeta,
-  readAutoBackupSnapshot,
-  replaceWithSnapshot,
-  writeAutoBackupMeta,
-  writeAutoBackupSnapshot,
-  BACKUP_FREQUENCIES,
-} from '@/utils/autoBackup';
-import type { AutoBackupMeta, BackupFrequency } from '@/utils/autoBackup';
+  previewImport,
+  profilePatchForImport,
+} from '@/utils/dataTransfer';
+import type { BackupSnapshot, ImportPreview } from '@/utils/dataTransfer';
 import { HIDDEN_SCROLLBARS } from '@/lib/scroll';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 
+interface PendingImport {
+  snapshot: BackupSnapshot;
+  preview: ImportPreview;
+  /** Clears the paste box once imported. */
+  fromPaste: boolean;
+}
+
+/** Export and import only (FEATURE_SPEC 3.4) — the app keeps no local backups of its own. */
 export default function DataScreen() {
   const { theme, themeId } = useTheme();
   const { t } = useLanguage();
@@ -49,37 +50,13 @@ export default function DataScreen() {
 
   const [banner, setBanner] = useState<{ kind: BannerKind; message: string } | null>(null);
   const [busy, setBusy] = useState(false);
-  const [frequency, setFrequency] = useState<BackupFrequency>(() => readAutoBackupMeta().frequency);
-  const [lastBackup, setLastBackup] = useState<string | undefined>(
-    () => readAutoBackupMeta().lastBackup,
-  );
-  const [hasSnapshot, setHasSnapshot] = useState<boolean>(() => !!readAutoBackupSnapshot());
   const [pasteText, setPasteText] = useState('');
   const [copiedKey, setCopiedKey] = useState<'debts' | 'expenses' | null>(null);
-  const [restoreConfirmOpen, setRestoreConfirmOpen] = useState(false);
+  // Kept apart from the sheet's visibility so its text doesn't blank out mid-close.
+  const [pendingImport, setPendingImport] = useState<PendingImport | null>(null);
+  const [importConfirmOpen, setImportConfirmOpen] = useState(false);
 
   const showBanner = (kind: BannerKind, message: string) => setBanner({ kind, message });
-
-  useEffect(() => {
-    // Foreground auto-backup check — no background task involved (that's reserved
-    // for the notifications engine, CLAUDE.md rule 10); this just catches the app up
-    // to the chosen frequency whenever the Data screen is opened.
-    const meta = readAutoBackupMeta();
-    if (isBackupDue(meta)) {
-      void (async () => {
-        const snapshot = await buildSnapshot(profile, baseCurrency, themeId);
-        writeAutoBackupSnapshot(snapshot);
-        const nextMeta: AutoBackupMeta = {
-          frequency: meta.frequency,
-          lastBackup: snapshot.exportedAt,
-        };
-        writeAutoBackupMeta(nextMeta);
-        setLastBackup(snapshot.exportedAt);
-        setHasSnapshot(true);
-      })();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   const handleExport = async () => {
     setBusy(true);
@@ -105,75 +82,54 @@ export default function DataScreen() {
     }
   };
 
-  const applyImport = async (raw: string) => {
+  /** Parses first, so bad JSON fails before anything is asked; nothing is written until confirmed. */
+  const stageImport = (raw: string, fromPaste: boolean) => {
     const snapshot = parseSnapshot(raw);
-    const counts = await appendSnapshot(snapshot);
-    updateProfile(snapshot.profile);
-    showBanner(
-      'success',
-      t('data.import.success', {
-        expenses: counts.expenses,
-        debts: counts.debts,
-        incomes: counts.incomes,
-      }),
-    );
+    const preview = previewImport(snapshot);
+    if (preview.expenses + preview.debts + preview.incomes + preview.balances === 0) {
+      showBanner('error', t('data.import.empty'));
+      return;
+    }
+    setPendingImport({ snapshot, preview, fromPaste });
+    setImportConfirmOpen(true);
   };
 
   const handleImportFile = async () => {
     try {
       const result = await DocumentPicker.getDocumentAsync({ type: 'application/json' });
       if (result.canceled) return;
-      const content = await new File(result.assets[0].uri).text();
-      await applyImport(content);
+      stageImport(await new File(result.assets[0].uri).text(), false);
     } catch {
       showBanner('error', t('data.import.error'));
     }
   };
 
-  const handlePasteImport = async () => {
+  const handlePasteImport = () => {
     try {
-      await applyImport(pasteText);
-      setPasteText('');
+      stageImport(pasteText, true);
     } catch {
       showBanner('error', t('data.import.error'));
     }
   };
 
-  const handleFrequencyChange = (next: BackupFrequency) => {
-    setFrequency(next);
-    if (next === 'off') {
-      writeAutoBackupMeta({ frequency: 'off', lastBackup: undefined });
-      setLastBackup(undefined);
-    } else {
-      writeAutoBackupMeta({ frequency: next, lastBackup });
-    }
-  };
-
-  const handleBackupNow = async () => {
+  const confirmImport = async () => {
+    setImportConfirmOpen(false);
+    if (!pendingImport) return;
+    const { snapshot, fromPaste } = pendingImport;
     setBusy(true);
     try {
-      const snapshot = await buildSnapshot(profile, baseCurrency, themeId);
-      writeAutoBackupSnapshot(snapshot);
-      writeAutoBackupMeta({ frequency, lastBackup: snapshot.exportedAt });
-      setLastBackup(snapshot.exportedAt);
-      setHasSnapshot(true);
-      showBanner('success', t('data.autoBackup.backupSuccess'));
-    } catch {
-      showBanner('error', t('data.export.error'));
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const handleRestore = async () => {
-    setRestoreConfirmOpen(false);
-    const snapshot = readAutoBackupSnapshot();
-    if (!snapshot) return;
-    setBusy(true);
-    try {
-      await replaceWithSnapshot(snapshot);
-      updateProfile(snapshot.profile);
-      showBanner('success', t('data.autoBackup.restoreSuccess'));
+      const counts = await appendSnapshot(snapshot);
+      const profilePatch = profilePatchForImport(profile, snapshot.profile);
+      if (profilePatch) updateProfile(profilePatch);
+      if (fromPaste) setPasteText('');
+      showBanner(
+        'success',
+        t('data.import.success', {
+          expenses: counts.expenses,
+          debts: counts.debts,
+          incomes: counts.incomes,
+        }),
+      );
     } catch {
       showBanner('error', t('data.import.error'));
     } finally {
@@ -186,13 +142,6 @@ export default function DataScreen() {
     setCopiedKey(key);
     setTimeout(() => setCopiedKey(null), 2000);
   };
-
-  const frequencyOptions = BACKUP_FREQUENCIES.map((id) => ({
-    label: t(`data.autoBackup.${id}`),
-    value: id,
-  }));
-
-  const canRestore = frequency !== 'off' && hasSnapshot;
 
   return (
     <PageTransition>
@@ -253,37 +202,6 @@ export default function DataScreen() {
           </View>
         </SettingsCard>
 
-        <SettingsCard title={t('data.autoBackup.title')}>
-          <SegmentedControl<BackupFrequency>
-            options={frequencyOptions}
-            value={frequency}
-            onChange={handleFrequencyChange}
-          />
-
-          <Text style={{ fontSize: 11, color: theme.textTertiary, marginTop: 10 }}>
-            {t('data.autoBackup.status', { time: humanizeLastBackup(lastBackup, t) })}
-          </Text>
-
-          <View style={{ flexDirection: 'row', gap: 10, marginTop: 12 }}>
-            <View style={{ flex: 1 }}>
-              <SecondaryButton
-                label={t('data.autoBackup.now')}
-                onPress={handleBackupNow}
-                disabled={busy}
-              />
-            </View>
-            {canRestore ? (
-              <View style={{ flex: 1 }}>
-                <SecondaryButton
-                  label={t('data.autoBackup.restore')}
-                  onPress={() => setRestoreConfirmOpen(true)}
-                  disabled={busy}
-                />
-              </View>
-            ) : null}
-          </View>
-        </SettingsCard>
-
         <SettingsCard title={t('data.paste.title')}>
           <TextInput
             value={pasteText}
@@ -308,7 +226,7 @@ export default function DataScreen() {
             <GradientButton
               label={t('data.paste.button')}
               onPress={handlePasteImport}
-              disabled={!pasteText.trim()}
+              disabled={!pasteText.trim() || busy}
             />
           </View>
         </SettingsCard>
@@ -332,14 +250,23 @@ export default function DataScreen() {
         </SettingsCard>
 
         <ConfirmModal
-          visible={restoreConfirmOpen}
-          title={t('data.autoBackup.restoreConfirmTitle')}
-          subtitle={t('data.autoBackup.restoreConfirmSubtitle', {
-            time: humanizeLastBackup(lastBackup, t),
-          })}
-          onCancel={() => setRestoreConfirmOpen(false)}
-          onConfirm={handleRestore}
-          confirmLabel={t('data.autoBackup.restore')}
+          visible={importConfirmOpen}
+          icon={Upload}
+          tone="accent"
+          title={t('data.import.confirmTitle')}
+          subtitle={
+            pendingImport
+              ? t('data.import.confirmSubtitle', {
+                  expenses: pendingImport.preview.expenses,
+                  debts: pendingImport.preview.debts,
+                  incomes: pendingImport.preview.incomes,
+                  balances: pendingImport.preview.balances,
+                })
+              : undefined
+          }
+          onCancel={() => setImportConfirmOpen(false)}
+          onConfirm={() => void confirmImport()}
+          confirmLabel={t('data.import.confirm')}
           cancelLabel={t('common.cancel')}
         />
       </KeyboardAwareScrollView>

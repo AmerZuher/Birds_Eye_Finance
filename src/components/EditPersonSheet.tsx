@@ -4,7 +4,6 @@ import { useForm } from 'react-hook-form';
 import type { SubmitErrorHandler, SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import * as ImagePicker from 'expo-image-picker';
 import { Camera, GitMerge, Users, X } from 'lucide-react-native';
 
 import { ContactsPicker } from '@/components/ContactsPicker';
@@ -20,7 +19,12 @@ import { SecondaryButton } from '@/components/ui/SecondaryButton';
 import { PersonConflictError, useDebts } from '@/context/DebtsContext';
 import { useLanguage } from '@/context/LanguageContext';
 import type { Person } from '@/db/schema';
-import { avatarDisplayUri, deleteStoredAvatar, savePersonAvatar } from '@/lib/avatars';
+import {
+  avatarDisplayUri,
+  deleteStoredAvatar,
+  pickAvatarPhoto,
+  saveAvatarImage,
+} from '@/lib/avatars';
 
 export type PersonDetailField = 'phone' | 'email' | 'company';
 
@@ -43,6 +47,9 @@ interface EditPersonSheetProps {
   person: Person | null;
   /** Which detail field to focus on open — set by the person page's dashed "+ Add …" chips. */
   focusField?: PersonDetailField | null;
+  /** A photo recovered after Android restarted the app mid-pick (PendingPhotoRecovery) —
+   * shown as if just picked, and kept only on Save. */
+  recoveredAvatar?: string | null;
   /** Called after this person was merged into another; the caller shows the survivor. */
   onMerged: (targetPersonId: number) => void;
 }
@@ -58,6 +65,7 @@ export function EditPersonSheet({
   onClose,
   person,
   focusField,
+  recoveredAvatar,
   onMerged,
 }: EditPersonSheetProps) {
   const { t } = useLanguage();
@@ -88,7 +96,8 @@ export function EditPersonSheet({
       email: person.email ?? '',
       company: person.company ?? '',
     });
-    setAvatar(person.avatar);
+    if (recoveredAvatar) createdAvatars.current.push(recoveredAvatar);
+    setAvatar(recoveredAvatar ?? person.avatar);
     setContactId(person.contactId);
     setError('');
     setConflict(null);
@@ -108,18 +117,20 @@ export function EditPersonSheet({
   };
 
   const pickPhoto = async () => {
+    if (!person) return;
+    setError('');
     try {
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ['images'],
-        allowsEditing: true,
-        aspect: [1, 1],
-        quality: 1,
-      });
-      if (result.canceled) return;
-      const stored = await savePersonAvatar(result.assets[0].uri);
+      const picked = await pickAvatarPhoto({ kind: 'person', personId: person.id });
+      if (picked.kind === 'denied') {
+        setError(t('editPerson.error.photoPermission'));
+        return;
+      }
+      if (picked.kind === 'canceled') return;
+      const stored = await saveAvatarImage(picked.uri);
       createdAvatars.current.push(stored);
       setAvatar(stored);
-    } catch {
+    } catch (caught) {
+      console.warn('[editPerson] picking a photo failed', caught);
       setError(t('editPerson.error.photo'));
     }
   };

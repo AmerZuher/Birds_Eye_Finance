@@ -1,5 +1,13 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Pressable, View } from 'react-native';
+import Animated, {
+  Easing,
+  cancelAnimation,
+  useAnimatedStyle,
+  useSharedValue,
+  withRepeat,
+  withTiming,
+} from 'react-native-reanimated';
 import type { LucideIcon } from 'lucide-react-native';
 
 import { useLanguage } from '@/context/LanguageContext';
@@ -32,6 +40,8 @@ interface IconButtonProps {
   variant?: 'ghost' | 'surface' | 'tinted';
   /** Mirror the icon horizontally in RTL — for back arrows / chevrons. */
   directional?: boolean;
+  /** Turns the icon continuously while true — e.g. a refresh in progress. */
+  spinning?: boolean;
 }
 
 /**
@@ -55,6 +65,7 @@ export function IconButton({
   color,
   variant = 'surface',
   directional = false,
+  spinning,
 }: IconButtonProps) {
   const { isRTL } = useLanguage();
   const { theme } = useTheme();
@@ -77,11 +88,20 @@ export function IconButton({
         ? `rgba(${theme.glow.a},0.28)`
         : 'transparent';
 
+  const glyph = (
+    <Icon
+      size={iconSize}
+      color={color ?? (variant === 'tinted' ? theme.accent2 : theme.textPrimary)}
+      strokeWidth={2.4}
+    />
+  );
+
   return (
     <Pressable
       onPress={onPress}
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel}
+      accessibilityState={spinning ? { busy: true } : undefined}
       hitSlop={8}
       style={{
         width: size,
@@ -95,12 +115,27 @@ export function IconButton({
       }}
     >
       <View style={directional && isRTL ? { transform: [{ scaleX: -1 }] } : undefined}>
-        <Icon
-          size={iconSize}
-          color={color ?? (variant === 'tinted' ? theme.accent2 : theme.textPrimary)}
-          strokeWidth={2.4}
-        />
+        {spinning === undefined ? glyph : <Spin active={spinning}>{glyph}</Spin>}
       </View>
     </Pressable>
   );
+}
+
+/** Rotates its child while `active`. Separate so plain IconButtons carry no animation state. */
+function Spin({ active, children }: { active: boolean; children: React.ReactNode }) {
+  const rotation = useSharedValue(0);
+
+  useEffect(() => {
+    if (active) {
+      rotation.value = 0;
+      rotation.value = withRepeat(withTiming(360, { duration: 900, easing: Easing.linear }), -1);
+    } else {
+      cancelAnimation(rotation);
+      rotation.value = 0;
+    }
+  }, [active, rotation]);
+
+  const style = useAnimatedStyle(() => ({ transform: [{ rotate: `${rotation.value}deg` }] }));
+
+  return <Animated.View style={style}>{children}</Animated.View>;
 }

@@ -254,6 +254,95 @@ export const THEMES = {
     chromeTint: '254,243,199',
     cardShadow: 'rgba(28, 21, 8, 0.06)',
   },
+
+  // --- 13–16. Four more light themes (added 2026-09-15 at the user's request,
+  // balancing 8 dark with 8 light). Each takes a hue family no light theme had:
+  // indigo, terracotta, teal and gold were taken, so pink, ocean blue, olive
+  // green and a neutral graphite. ---
+
+  // --- 13. LIGHT BLUSH (Soft rose paper & berry pink) ---
+  blush: {
+    label: { en: 'Blush', ar: 'وردي ناعم' },
+    isLight: true,
+    ground: '#fbf1f4',
+    surface: '#ffffff',
+    surfaceAlt: '#f6dfe7',
+    accent1: '#be185d',
+    accent2: '#db2777',
+    fab: '#be185d',
+    buttonText: '#ffffff',
+    textPrimary: '#2a0f1b',
+    textSecondary: '#6b3a4f',
+    textTertiary: '#b08a9a',
+    border: 'rgba(42, 15, 27, 0.09)',
+    borderSoft: 'rgba(42, 15, 27, 0.04)',
+    glow: { a: '190,24,93', b: '219,39,119' },
+    chromeTint: '246,223,231',
+    cardShadow: 'rgba(42, 15, 27, 0.06)',
+  },
+
+  // --- 14. LIGHT COASTAL (Sea-mist ground & ocean blue) ---
+  coastal: {
+    label: { en: 'Coastal', ar: 'ساحلي' },
+    isLight: true,
+    ground: '#eef5fa',
+    surface: '#ffffff',
+    surfaceAlt: '#d9e8f2',
+    accent1: '#0369a1',
+    accent2: '#0284c7',
+    fab: '#0369a1',
+    buttonText: '#ffffff',
+    textPrimary: '#0b2233',
+    textSecondary: '#3d5a70',
+    textTertiary: '#8aa3b5',
+    border: 'rgba(11, 34, 51, 0.09)',
+    borderSoft: 'rgba(11, 34, 51, 0.04)',
+    glow: { a: '3,105,161', b: '2,132,199' },
+    chromeTint: '217,232,242',
+    cardShadow: 'rgba(11, 34, 51, 0.06)',
+  },
+
+  // --- 15. LIGHT MATCHA (Tea-leaf olive — green, but not Mint's teal) ---
+  matcha: {
+    label: { en: 'Matcha', ar: 'ماتشا' },
+    isLight: true,
+    ground: '#f3f5ec',
+    surface: '#ffffff',
+    surfaceAlt: '#e2e8d2',
+    accent1: '#4d7c0f',
+    accent2: '#65a30d',
+    fab: '#4d7c0f',
+    buttonText: '#ffffff',
+    textPrimary: '#1a2410',
+    textSecondary: '#4a5a36',
+    textTertiary: '#98a585',
+    border: 'rgba(26, 36, 16, 0.09)',
+    borderSoft: 'rgba(26, 36, 16, 0.04)',
+    glow: { a: '77,124,15', b: '101,163,13' },
+    chromeTint: '226,232,210',
+    cardShadow: 'rgba(26, 36, 16, 0.06)',
+  },
+
+  // --- 16. LIGHT GRAPHITE (Neutral paper & charcoal — the one colorless theme) ---
+  graphite: {
+    label: { en: 'Graphite', ar: 'جرافيت' },
+    isLight: true,
+    ground: '#f4f4f5',
+    surface: '#ffffff',
+    surfaceAlt: '#e4e4e7',
+    accent1: '#27272a',
+    accent2: '#52525b',
+    fab: '#27272a',
+    buttonText: '#ffffff',
+    textPrimary: '#18181b',
+    textSecondary: '#52525b',
+    textTertiary: '#a1a1aa',
+    border: 'rgba(24, 24, 27, 0.09)',
+    borderSoft: 'rgba(24, 24, 27, 0.04)',
+    glow: { a: '39,39,42', b: '82,82,91' },
+    chromeTint: '228,228,231',
+    cardShadow: 'rgba(24, 24, 27, 0.06)',
+  },
 } as const;
 
 export type ThemeId = keyof typeof THEMES;

@@ -97,7 +97,8 @@ export function MoneyAmount({
   const decimalSize = Math.max(MIN_DECIMAL_SIZE, Math.round(size * DECIMAL_RATIO));
 
   if (parts.symbol === RIYAL_SYMBOL) {
-    const justifyContent = align === 'center' ? 'center' : align === 'right' ? 'flex-end' : 'flex-start';
+    const justifyContent =
+      align === 'center' ? 'center' : align === 'right' ? 'flex-end' : 'flex-start';
     const riyalSize = Math.round(size * RIYAL_RATIO);
     return (
       <View

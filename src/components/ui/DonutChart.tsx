@@ -92,9 +92,7 @@ export function DonutChart({
           growing past the ring for a large number of digits. Paired with
           MoneyAmount's `shrinkToFit`, big numbers shrink to stay inside
           instead of spilling outside it. */}
-      <View
-        style={{ position: 'absolute', width: size - strokeWidth * 2, alignItems: 'center' }}
-      >
+      <View style={{ position: 'absolute', width: size - strokeWidth * 2, alignItems: 'center' }}>
         {children}
       </View>
     </View>

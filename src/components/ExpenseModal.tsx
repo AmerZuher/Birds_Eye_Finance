@@ -126,7 +126,7 @@ export function ExpenseModal({
 }: ExpenseModalProps) {
   const { theme } = useTheme();
   const { t } = useLanguage();
-  const { currencies, baseCurrency, convertToBase, recordCurrencyUsage } = useCurrency();
+  const { currencyOptions, baseCurrency, convertToBase, recordCurrencyUsage } = useCurrency();
   const { expenses, addExpense, updateExpense } = useFinance();
 
   const { watch, setValue, reset, handleSubmit } = useForm<FormValues>({
@@ -285,7 +285,6 @@ export function ExpenseModal({
     setFormError(t(`expenseModal.error.${key}`) || t('expenseModal.error.generic'));
   };
 
-  const currencyOptions = currencies.map((c) => ({ label: c.code, value: c.code }));
   const periodOptions = PERIODS.map((p) => ({ label: t(`expenses.period.${p}`), value: p }));
 
   const inputStyle = useTextFieldStyle();
@@ -317,7 +316,7 @@ export function ExpenseModal({
           clearError();
         }}
         searchable
-        searchPlaceholder={t('settings.baseCurrency')}
+        searchPlaceholder={t('settings.searchCurrency')}
         sheetTitle={t('settings.baseCurrency')}
         open={currencyPickerOpen}
         onOpenChange={setCurrencyPickerOpen}

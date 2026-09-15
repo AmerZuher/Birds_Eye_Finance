@@ -55,6 +55,9 @@ const ENSURE_VISIBLE_DELAY_MS = 60;
 // screens and sheets move on one motion language rather than two.
 const SHEET_TIMING = { duration: 350, easing: Easing.bezier(0.22, 1, 0.36, 1) };
 const BACKDROP_TIMING = { duration: 300, easing: Easing.ease };
+// The resting open state as plain React styles — see `settled` below.
+const SETTLED_SHEET = { transform: [{ translateY: 0 }] };
+const SETTLED_BACKDROP = { opacity: 1 };
 
 interface GlassModalProps {
   visible: boolean;
@@ -97,6 +100,17 @@ export function GlassModal({
   // Set when an open is armed but the sheet hasn't been laid out yet; the
   // sheet's own onLayout is what actually starts the travel. See below.
   const openPending = useRef(false);
+  // True while the sheet rests fully open. Its position and the backdrop's
+  // opacity are then ordinary React styles instead of Reanimated-driven ones:
+  // coming back from another Activity (the photo picker) and re-rendering the
+  // sheet left the values Reanimated had applied on the UI thread replaced by
+  // their start values — the sheet offscreen, the backdrop transparent — until
+  // the next touch ran a Reanimated frame. Edit Person looked closed after a
+  // photo was picked, and a tap on the invisible backdrop really closed it.
+  // Travel (open, close, drag) still animates on the UI thread.
+  const [settled, setSettled] = useState(false);
+
+  const settle = useCallback(() => setSettled(true), []);
 
   useEffect(() => {
     if (visible && !mounted) {
@@ -118,18 +132,22 @@ export function GlassModal({
       translateY.value = SCREEN_HEIGHT;
       backdropOpacity.value = 0;
       openPending.current = true;
+      setSettled(false);
       setMounted(true);
     } else if (visible) {
       // Already on screen — reopened mid-close, so the view is real and
       // there's nothing to wait for.
       openPending.current = false;
-      translateY.value = withTiming(0, SHEET_TIMING);
+      translateY.value = withTiming(0, SHEET_TIMING, (finished) => {
+        if (finished) runOnJS(settle)();
+      });
       backdropOpacity.value = withTiming(1, BACKDROP_TIMING);
     } else if (mounted) {
       // Unmount is gated on the *sheet*, not the backdrop — the sheet is now
       // the longer of the two (350ms vs 300ms), so hanging it off the
       // backdrop would cut the slide-out short by its last 50ms.
       openPending.current = false;
+      setSettled(false);
       translateY.value = withTiming(SCREEN_HEIGHT, SHEET_TIMING, (finished) => {
         if (finished) runOnJS(setMounted)(false);
       });
@@ -147,7 +165,9 @@ export function GlassModal({
   const onSheetLayout = () => {
     if (!openPending.current) return;
     openPending.current = false;
-    translateY.value = withTiming(0, SHEET_TIMING);
+    translateY.value = withTiming(0, SHEET_TIMING, (finished) => {
+      if (finished) runOnJS(settle)();
+    });
     backdropOpacity.value = withTiming(1, BACKDROP_TIMING);
   };
 
@@ -165,8 +185,13 @@ export function GlassModal({
   }, [visible, onClose]);
 
   const closeNow = () => onClose();
+  const unsettle = () => setSettled(false);
 
   const pan = Gesture.Pan()
+    // A drag hands the position back to Reanimated until the sheet rests again.
+    .onStart(() => {
+      runOnJS(unsettle)();
+    })
     .onUpdate((e) => {
       if (e.translationY > 0) translateY.value = e.translationY;
     })
@@ -180,7 +205,9 @@ export function GlassModal({
         });
         backdropOpacity.value = withTiming(0, BACKDROP_TIMING);
       } else {
-        translateY.value = withTiming(0, SHEET_TIMING);
+        translateY.value = withTiming(0, SHEET_TIMING, (finished) => {
+          if (finished) runOnJS(settle)();
+        });
       }
     });
 
@@ -264,11 +291,14 @@ export function GlassModal({
     scrollOffset.current = e.nativeEvent.contentOffset.y;
   };
 
-  const sheetStyle = useAnimatedStyle(() => {
+  const travelStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: translateY.value }],
+  }));
+
+  const liftStyle = useAnimatedStyle(() => {
     // Sign-agnostic: only the keyboard's magnitude matters here.
     const lift = Math.abs(keyboardHeight.value);
     return {
-      transform: [{ translateY: translateY.value }],
       marginBottom: lift,
       maxHeight: containerHeight * SHEET_MAX_HEIGHT_RATIO - lift,
     };
@@ -284,7 +314,7 @@ export function GlassModal({
         <Animated.View
           style={[
             { position: 'absolute', inset: 0, backgroundColor: themeGlass.overlay },
-            backdropStyle,
+            settled ? SETTLED_BACKDROP : backdropStyle,
           ]}
         >
           <Pressable style={{ flex: 1 }} onPress={onClose} />
@@ -309,7 +339,8 @@ export function GlassModal({
               overflow: 'hidden',
               backgroundColor: theme.surface,
             },
-            sheetStyle,
+            liftStyle,
+            settled ? SETTLED_SHEET : travelStyle,
           ]}
         >
           {/* Same glass material as the header/navbar (rule 8): a real

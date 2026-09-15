@@ -1,6 +1,8 @@
 import React from 'react';
 import { Pressable, Text, View } from 'react-native';
+import type { LucideIcon } from 'lucide-react-native';
 
+import { IconTile } from '@/components/ui/IconTile';
 import { useTheme } from '@/context/ThemeContext';
 import { RADII } from '@/constants/theme';
 
@@ -43,35 +45,62 @@ export function SettingsCard({ title, children }: SettingsCardProps) {
   );
 }
 
+const ROW_TILE_SIZE = 32;
+const ROW_GAP = 12;
+
 interface SettingsRowProps {
-  icon: React.ReactNode;
+  icon: LucideIcon;
   label: string;
+  /** A second, muted line under the label — a status or a short explanation. */
+  subtitle?: string;
   value?: React.ReactNode;
+  /** Extra content under the row, spanning the card's full width (e.g. a status panel). */
+  footer?: React.ReactNode;
   onPress?: () => void;
   showTopBorder?: boolean;
 }
 
-/** icon tile + label + trailing value/control — one row inside a SettingsCard. */
-export function SettingsRow({ icon, label, value, onPress, showTopBorder }: SettingsRowProps) {
+/** Accent icon tile + label (+ subtitle) + trailing value/control — one row inside a SettingsCard. */
+export function SettingsRow({
+  icon: Icon,
+  label,
+  subtitle,
+  value,
+  footer,
+  onPress,
+  showTopBorder,
+}: SettingsRowProps) {
   const { theme } = useTheme();
   const Wrapper = onPress ? Pressable : View;
   return (
-    <Wrapper
-      onPress={onPress}
+    <View
       style={{
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        paddingVertical: 9,
+        paddingVertical: 12,
         borderTopWidth: showTopBorder ? 1 : 0,
         borderTopColor: theme.borderSoft,
       }}
     >
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 9 }}>
-        {icon}
-        <Text style={{ fontSize: 12, fontWeight: '600', color: theme.textPrimary }}>{label}</Text>
-      </View>
-      {value}
-    </Wrapper>
+      <Wrapper
+        onPress={onPress}
+        style={{ flexDirection: 'row', alignItems: 'center', gap: ROW_GAP }}
+      >
+        <IconTile size={ROW_TILE_SIZE}>
+          <Icon size={16} color={theme.accent2} strokeWidth={2.2} />
+        </IconTile>
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <Text style={{ fontSize: 13, fontWeight: '600', color: theme.textPrimary }}>{label}</Text>
+          {subtitle ? (
+            <Text
+              numberOfLines={2}
+              style={{ fontSize: 11, color: theme.textTertiary, marginTop: 2 }}
+            >
+              {subtitle}
+            </Text>
+          ) : null}
+        </View>
+        {value}
+      </Wrapper>
+      {footer ? <View style={{ marginTop: 12 }}>{footer}</View> : null}
+    </View>
   );
 }

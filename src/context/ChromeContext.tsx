@@ -14,6 +14,13 @@ import type { View } from 'react-native';
 // route Stack in one `BlurTargetView` using this ref, shared by both the
 // header's and navbar's BlurView so either can blur "whatever's on screen".
 
+/** A person's photo recovered after Android restarted the app mid-pick (src/lib/avatars.ts). */
+export interface PersonPhotoRequest {
+  personId: number;
+  /** Already saved into app storage — the value to store in `people.avatar`. */
+  avatar: string;
+}
+
 interface ChromeContextValue {
   headerHeight: number;
   navbarHeight: number;
@@ -29,6 +36,10 @@ interface ChromeContextValue {
    * Debts first and can't just call that screen's already-registered handler. */
   requestDebtCreate: () => void;
   consumeDebtCreateRequest: () => boolean;
+  /** Queues a recovered photo for the Debts screen, which reopens that person's
+   * Edit Person sheet with it once it gains focus (same pattern as above). */
+  requestPersonPhoto: (request: PersonPhotoRequest) => void;
+  consumePersonPhotoRequest: () => PersonPhotoRequest | null;
 }
 
 // Reasonable pre-measurement defaults (safe-area + bar + margin) so content
@@ -44,6 +55,7 @@ export function ChromeProvider({ children }: { children: React.ReactNode }) {
   const blurTarget = useRef<View>(null);
   const fabHandlerRef = useRef<(() => void) | null>(null);
   const pendingDebtCreateRef = useRef(false);
+  const pendingPersonPhotoRef = useRef<PersonPhotoRequest | null>(null);
 
   const setHeaderHeight = useCallback((height: number) => {
     setHeaderHeightState((prev) => (Math.abs(prev - height) > 0.5 ? height : prev));
@@ -71,6 +83,16 @@ export function ChromeProvider({ children }: { children: React.ReactNode }) {
     return pending;
   }, []);
 
+  const requestPersonPhoto = useCallback((request: PersonPhotoRequest) => {
+    pendingPersonPhotoRef.current = request;
+  }, []);
+
+  const consumePersonPhotoRequest = useCallback(() => {
+    const pending = pendingPersonPhotoRef.current;
+    pendingPersonPhotoRef.current = null;
+    return pending;
+  }, []);
+
   const value = useMemo<ChromeContextValue>(
     () => ({
       headerHeight,
@@ -82,6 +104,8 @@ export function ChromeProvider({ children }: { children: React.ReactNode }) {
       triggerFab,
       requestDebtCreate,
       consumeDebtCreateRequest,
+      requestPersonPhoto,
+      consumePersonPhotoRequest,
     }),
     [
       headerHeight,
@@ -93,6 +117,8 @@ export function ChromeProvider({ children }: { children: React.ReactNode }) {
       triggerFab,
       requestDebtCreate,
       consumeDebtCreateRequest,
+      requestPersonPhoto,
+      consumePersonPhotoRequest,
     ],
   );
 

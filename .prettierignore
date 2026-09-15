@@ -3,6 +3,7 @@ node_modules
 dist
 src/db/migrations
 src/constants/brandIcons.ts
+src/constants/currencyTable.ts
 CLAUDE.md
 BOOTSTRAP_PROMPT.md
 theme-studio.html

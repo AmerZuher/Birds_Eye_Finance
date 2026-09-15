@@ -1,8 +1,33 @@
-import React, { createContext, useCallback, useContext, useMemo, useState } from 'react';
+import React, {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
+import { AppState } from 'react-native';
 
-import { CURRENCIES, DEFAULT_CURRENCY_CODE, getCurrency } from '@/constants/currencies';
-import { getJSON, setJSON, storage, StorageKeys } from '@/lib/mmkv';
+import type { CustomSelectOption } from '@/components/ui/CustomSelect';
+import {
+  BUILT_IN_RATES_DATE,
+  CURRENCIES,
+  DEFAULT_CURRENCY_CODE,
+  getCurrency,
+} from '@/constants/currencies';
 import { useLanguage } from '@/context/LanguageContext';
+import {
+  cacheRates,
+  downloadRates,
+  isRefreshDue,
+  markRefreshAttempt,
+  readCachedRates,
+  readOnlineRatesEnabled,
+  writeOnlineRatesEnabled,
+} from '@/lib/exchangeRates';
+import type { RateSource, RatesSnapshot } from '@/lib/exchangeRates';
+import { getJSON, setJSON, storage, StorageKeys } from '@/lib/mmkv';
 
 export function readInitialBaseCurrency(): string {
   const stored = storage.getString(StorageKeys.baseCurrency);
@@ -12,6 +37,12 @@ export function readInitialBaseCurrency(): string {
 function readInitialUsage(): Record<string, number> {
   return getJSON<Record<string, number>>(StorageKeys.currencyUsage) ?? {};
 }
+
+/** Local midnight of the built-in table's market date. */
+const BUILT_IN_RATES_TIME = (() => {
+  const [year, month, day] = BUILT_IN_RATES_DATE.split('-').map(Number);
+  return new Date(year, month - 1, day).getTime();
+})();
 
 const CODE_LIKE = /^[A-Za-z]+$/;
 
@@ -41,6 +72,16 @@ export interface MoneyParts {
   symbolFirst: boolean;
 }
 
+export interface ExchangeRatesStatus {
+  /** Where the rates in use come from — `built-in` until the device has downloaded any. */
+  source: RateSource | 'built-in';
+  /** When the rates in use were downloaded (ms), or local midnight of the built-in table's market date. */
+  updatedAt: number;
+  /** Whether the app downloads rates (Settings toggle, on by default). */
+  online: boolean;
+  refreshing: boolean;
+}
+
 interface CurrencyContextValue {
   baseCurrency: string;
   setBaseCurrency: (code: string) => void;
@@ -50,10 +91,15 @@ interface CurrencyContextValue {
    * currencies someone actually uses surface at the top of the list instead
    * of staying buried behind an alphabetical/static ordering. */
   currencies: typeof CURRENCIES;
+  /** `currencies` as picker options: the code as the label, the name in the
+   * app's language as the description, so a picker can be searched by either. */
+  currencyOptions: CustomSelectOption<string>[];
   /** Call when the user picks a currency anywhere (debt/expense/balance/
    * income/base-currency) — the only input `currencies`' ordering above is
    * derived from. */
   recordCurrencyUsage: (code: string) => void;
+  /** Converts between any two currencies with the rates in use (downloaded, else built-in). */
+  convert: (amount: number, fromCurrency: string, toCurrency: string) => number;
   convertToBase: (amount: number, fromCurrency: string) => number;
   formatMoney: (amount: number, currencyCode?: string) => string;
   formatOriginalMoney: (amount: number, currencyCode: string) => string;
@@ -63,6 +109,10 @@ interface CurrencyContextValue {
   /** A whole-number percentage, localized — Arabic uses Arabic-Indic digits,
    * English uses Latin digits. Callers append the "%" glyph themselves. */
   formatPercent: (value: number) => string;
+  exchangeRates: ExchangeRatesStatus;
+  setOnlineRates: (enabled: boolean) => void;
+  /** Downloads rates now, however recent the current ones are. Resolves true on success. */
+  refreshRates: () => Promise<boolean>;
 }
 
 const CurrencyContext = createContext<CurrencyContextValue | null>(null);
@@ -71,6 +121,10 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
   const { language } = useLanguage();
   const [baseCurrency, setBaseCurrencyState] = useState<string>(readInitialBaseCurrency);
   const [usageCounts, setUsageCounts] = useState<Record<string, number>>(readInitialUsage);
+  const [ratesSnapshot, setRatesSnapshot] = useState<RatesSnapshot | undefined>(readCachedRates);
+  const [onlineRates, setOnlineRatesState] = useState<boolean>(readOnlineRatesEnabled);
+  const [refreshing, setRefreshing] = useState(false);
+  const refreshInFlight = useRef<Promise<boolean> | null>(null);
 
   const setBaseCurrency = useCallback((code: string) => {
     storage.set(StorageKeys.baseCurrency, code);
@@ -92,13 +146,72 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
     [usageCounts],
   );
 
-  const convertToBase = useCallback(
-    (amount: number, fromCurrency: string) => {
-      const from = getCurrency(fromCurrency);
-      const base = getCurrency(baseCurrency);
-      return (amount * from.rate) / base.rate;
+  const currencyOptions = useMemo(
+    () =>
+      sortedCurrencies.map((c) => ({
+        label: c.code,
+        value: c.code,
+        description: language === 'ar' ? c.nameAr : c.nameEn,
+      })),
+    [sortedCurrencies, language],
+  );
+
+  const refreshRates = useCallback((): Promise<boolean> => {
+    // A second call while one is running shares its result instead of starting another.
+    if (refreshInFlight.current) return refreshInFlight.current;
+    const run = (async () => {
+      setRefreshing(true);
+      markRefreshAttempt();
+      try {
+        setRatesSnapshot(cacheRates(await downloadRates()));
+        return true;
+      } catch (error) {
+        console.warn('[rates] download failed', error);
+        return false;
+      } finally {
+        refreshInFlight.current = null;
+        setRefreshing(false);
+      }
+    })();
+    refreshInFlight.current = run;
+    return run;
+  }, []);
+
+  // At most one download a day, checked on launch and whenever the app returns to
+  // the foreground (FEATURE_SPEC 0.5). Never awaited — conversions keep using the
+  // rates already in hand until a new table arrives.
+  useEffect(() => {
+    if (!onlineRates) return;
+    const refreshIfDue = () => {
+      if (isRefreshDue()) void refreshRates();
+    };
+    refreshIfDue();
+    const subscription = AppState.addEventListener('change', (state) => {
+      if (state === 'active') refreshIfDue();
+    });
+    return () => subscription.remove();
+  }, [onlineRates, refreshRates]);
+
+  const setOnlineRates = useCallback((enabled: boolean) => {
+    writeOnlineRatesEnabled(enabled);
+    setOnlineRatesState(enabled);
+  }, []);
+
+  const convert = useCallback(
+    (amount: number, fromCurrency: string, toCurrency: string) => {
+      // A downloaded rate when there is one, otherwise the built-in rate.
+      const rateOf = (code: string) => {
+        const currency = getCurrency(code);
+        return ratesSnapshot?.rates[currency.code] ?? currency.rate;
+      };
+      return (amount * rateOf(fromCurrency)) / rateOf(toCurrency);
     },
-    [baseCurrency],
+    [ratesSnapshot],
+  );
+
+  const convertToBase = useCallback(
+    (amount: number, fromCurrency: string) => convert(amount, fromCurrency, baseCurrency),
+    [convert, baseCurrency],
   );
 
   const formatMoneyIn = useCallback(
@@ -112,7 +225,13 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
       });
       const formatted = numberFormatter.format(abs);
       const fallback = PLAIN_TEXT_SYMBOL_FALLBACK[currency.code];
-      const symbol = fallback ? (isAr ? fallback.ar : fallback.en) : isAr ? currency.symbolAr : currency.symbolEn;
+      const symbol = fallback
+        ? isAr
+          ? fallback.ar
+          : fallback.en
+        : isAr
+          ? currency.symbolAr
+          : currency.symbolEn;
       const isNegative = amount < 0;
 
       if (isAr) {
@@ -183,28 +302,48 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
     [language],
   );
 
+  const exchangeRates = useMemo<ExchangeRatesStatus>(
+    () => ({
+      source: ratesSnapshot?.source ?? 'built-in',
+      updatedAt: ratesSnapshot ? Date.parse(ratesSnapshot.fetchedAt) : BUILT_IN_RATES_TIME,
+      online: onlineRates,
+      refreshing,
+    }),
+    [ratesSnapshot, onlineRates, refreshing],
+  );
+
   const value = useMemo<CurrencyContextValue>(
     () => ({
       baseCurrency,
       setBaseCurrency,
       currencies: sortedCurrencies,
+      currencyOptions,
       recordCurrencyUsage,
+      convert,
       convertToBase,
       formatMoney,
       formatOriginalMoney,
       formatMoneyParts,
       formatPercent,
+      exchangeRates,
+      setOnlineRates,
+      refreshRates,
     }),
     [
       baseCurrency,
       setBaseCurrency,
       sortedCurrencies,
+      currencyOptions,
       recordCurrencyUsage,
+      convert,
       convertToBase,
       formatMoney,
       formatOriginalMoney,
       formatMoneyParts,
       formatPercent,
+      exchangeRates,
+      setOnlineRates,
+      refreshRates,
     ],
   );
 

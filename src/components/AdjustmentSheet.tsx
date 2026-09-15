@@ -11,6 +11,7 @@ import { SavedAttachmentsField, StagedAttachmentsField } from '@/components/Debt
 import { FormField, TextField } from '@/components/FormField';
 import { AmountInput } from '@/components/ui/AmountInput';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
+import { CustomSelect } from '@/components/ui/CustomSelect';
 import { GlassModal } from '@/components/ui/GlassModal';
 import { GradientButton } from '@/components/ui/GradientButton';
 import { InlineBanner } from '@/components/ui/InlineBanner';
@@ -39,6 +40,7 @@ const formSchema = z.object({
     },
     { message: 'amount' },
   ),
+  currency: z.string(),
   date: z.string().refine(isValidDateStr, { message: 'date' }),
   note: z.string(),
 });
@@ -59,8 +61,10 @@ interface AdjustmentSheetProps {
 /**
  * Record or edit one ledger entry against a debt (FEATURE_SPEC 1.10). The sign
  * rule never changes — "reduce" always lowers what's outstanding — only the
- * label follows the debt's type ("I paid" vs "They paid me"). Always in the
- * debt's own currency; overpaying is rejected.
+ * label follows the debt's type ("I paid" vs "They paid me"). The amount starts
+ * in the debt's own currency and can be entered in any other; it's converted
+ * into the debt's currency at the rates in use and recorded that way, with the
+ * typed amount kept beside it. Overpaying is rejected.
  */
 export function AdjustmentSheet({
   visible,
@@ -72,18 +76,21 @@ export function AdjustmentSheet({
 }: AdjustmentSheetProps) {
   const { t } = useLanguage();
   const { theme } = useTheme();
-  const { formatOriginalMoney } = useCurrency();
+  const { convert, currencyOptions, formatOriginalMoney, recordCurrencyUsage } = useCurrency();
   const { addAdjustment, updateAdjustment, deleteAdjustment, addAttachments } = useDebts();
 
   const { watch, setValue, reset, handleSubmit } = useForm<FormValues>({
     resolver: zodResolver(formSchema),
-    defaultValues: { direction: 'reduce', amount: '', date: '', note: '' },
+    defaultValues: { direction: 'reduce', amount: '', currency: 'SAR', date: '', note: '' },
   });
   const values = watch();
 
   const [error, setError] = useState('');
   const [staged, setStaged] = useState<StagedFile[]>([]);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [currencyPickerOpen, setCurrencyPickerOpen] = useState(false);
+
+  const debtCurrency = debt?.currency ?? 'SAR';
 
   useEffect(() => {
     if (!visible) return;
@@ -91,23 +98,49 @@ export function AdjustmentSheet({
       editing
         ? {
             direction: editing.amount < 0 ? 'reduce' : 'increase',
-            amount: String(Math.abs(editing.amount)),
+            amount: String(editing.enteredAmount ?? Math.abs(editing.amount)),
+            currency: editing.enteredCurrency ?? debtCurrency,
             date: editing.date,
             note: editing.note ?? '',
           }
-        : { direction: initialDirection, amount: '', date: todayStr(), note: '' },
+        : {
+            direction: initialDirection,
+            amount: '',
+            currency: debtCurrency,
+            date: todayStr(),
+            note: '',
+          },
     );
     setError('');
     setStaged([]);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visible, editing?.id]);
 
-  const currency = debt?.currency ?? 'SAR';
   // Outstanding without the entry being edited — the baseline this entry applies to.
   const baseline = debt ? debt.amount + debt.adjustmentSum - (editing?.amount ?? 0) : 0;
+  const foreign = values.currency !== debtCurrency;
+
+  /** A typed amount as the unsigned value to record, in the debt's own currency. */
+  const inDebtCurrency = (typed: number, direction: AdjustmentDirection): number => {
+    if (!foreign) return typed;
+    // Editing without touching the amount or currency keeps the rate it was recorded at.
+    if (editing && editing.enteredCurrency === values.currency && editing.enteredAmount === typed) {
+      return Math.abs(editing.amount);
+    }
+    const converted = convert(typed, values.currency, debtCurrency);
+    // Paying the whole balance in another currency: within one cent of that
+    // currency counts as exactly the outstanding, so the debt settles.
+    const oneCent = convert(0.01, values.currency, debtCurrency);
+    if (direction === 'reduce' && baseline > 0 && Math.abs(converted - baseline) < oneCent) {
+      return baseline;
+    }
+    return converted;
+  };
+
   const parsed = parseFloat(values.amount);
   const hasAmount = !Number.isNaN(parsed) && parsed > 0;
-  const after = baseline + (hasAmount ? (values.direction === 'reduce' ? -parsed : parsed) : 0);
+  const recorded = hasAmount ? inDebtCurrency(parsed, values.direction) : 0;
+  const after = baseline + (values.direction === 'reduce' ? -recorded : recorded);
   const settles = hasAmount && after <= MONEY_EPSILON && after >= -MONEY_EPSILON;
 
   const close = () => {
@@ -118,17 +151,30 @@ export function AdjustmentSheet({
 
   const onValid: SubmitHandler<FormValues> = (submitted) => {
     if (!debt) return;
-    const amount = parseFloat(submitted.amount);
+    const typed = parseFloat(submitted.amount);
+    const amount = inDebtCurrency(typed, submitted.direction);
     const signedAmount = submitted.direction === 'reduce' ? -amount : amount;
     const result = baseline + signedAmount;
     if (result < -MONEY_EPSILON) {
+      const outstanding = Math.max(baseline, 0);
       setError(
-        t('adjustment.error.overpay', {
-          amount: formatOriginalMoney(Math.max(baseline, 0), currency),
-        }),
+        foreign
+          ? t('adjustment.error.overpayForeign', {
+              amount: formatOriginalMoney(outstanding, debtCurrency),
+              converted: formatOriginalMoney(
+                convert(outstanding, debtCurrency, submitted.currency),
+                submitted.currency,
+              ),
+            })
+          : t('adjustment.error.overpay', {
+              amount: formatOriginalMoney(outstanding, debtCurrency),
+            }),
       );
       return;
     }
+    const entered = foreign
+      ? { enteredAmount: typed, enteredCurrency: submitted.currency }
+      : { enteredAmount: null, enteredCurrency: null };
     const wasOpen = debt.status !== 'settled';
 
     try {
@@ -138,6 +184,7 @@ export function AdjustmentSheet({
           amount: signedAmount,
           date: submitted.date,
           note: submitted.note,
+          ...entered,
         });
         adjustmentId = editing.id;
       } else {
@@ -146,6 +193,7 @@ export function AdjustmentSheet({
           amount: signedAmount,
           date: submitted.date,
           note: submitted.note,
+          ...entered,
         });
       }
       if (staged.length > 0) {
@@ -235,9 +283,30 @@ export function AdjustmentSheet({
                 setValue('amount', v);
                 setError('');
               }}
-              currencyCode={currency}
+              currencyCode={values.currency}
+              onPressCurrency={() => setCurrencyPickerOpen(true)}
               tint={values.direction === 'reduce' ? 'positive' : 'negative'}
             />
+            <CustomSelect
+              value={values.currency}
+              options={currencyOptions}
+              onChange={(v) => {
+                setValue('currency', v);
+                recordCurrencyUsage(v);
+                setError('');
+              }}
+              searchable
+              searchPlaceholder={t('settings.searchCurrency')}
+              sheetTitle={t('adjustment.currencyTitle')}
+              open={currencyPickerOpen}
+              onOpenChange={setCurrencyPickerOpen}
+              hideTrigger
+            />
+            {foreign && hasAmount ? (
+              <Text style={{ fontSize: 11.5, color: theme.textSecondary }}>
+                {t('adjustment.converted', { amount: formatOriginalMoney(recorded, debtCurrency) })}
+              </Text>
+            ) : null}
 
             <FormField label={t('adjustment.dateLabel')}>
               <TextField
@@ -274,7 +343,7 @@ export function AdjustmentSheet({
             ) : (
               <Text style={{ textAlign: 'center', fontSize: 12, color: theme.textSecondary }}>
                 {t('adjustment.preview', {
-                  amount: formatOriginalMoney(Math.max(after, 0), currency),
+                  amount: formatOriginalMoney(Math.max(after, 0), debtCurrency),
                 })}
               </Text>
             )}

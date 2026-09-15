@@ -1,6 +1,6 @@
 import React from 'react';
 import { Pressable, Text } from 'react-native';
-import type { ViewStyle } from 'react-native';
+import type { TextStyle, ViewStyle } from 'react-native';
 import type { LucideIcon } from 'lucide-react-native';
 
 import { useTheme } from '@/context/ThemeContext';
@@ -23,13 +23,15 @@ interface SecondaryButtonProps {
    */
   color?: string;
   /**
-   * 'outline' (default): full-width button — a neutral ghost alongside GradientButton
-   * (e.g. Cancel), or a tinted action when `color` is set.
+   * 'outline' (default): full-width button — a theme-tinted secondary action alongside
+   * GradientButton (e.g. Cancel), or a meaning-colored action when `color` is set.
    * 'link': borderless, content-width text action ("Change", "Delete Debt").
+   * 'caption': a small, muted, start-aligned text link for fine print — e.g. a
+   * data provider's attribution.
    * 'pill': full-width rounded pill — the About page's contact, support and
    * repository buttons.
    */
-  variant?: 'outline' | 'link' | 'pill';
+  variant?: 'outline' | 'link' | 'caption' | 'pill';
   /** Pill only, when no `color` is set: 'accent' (default) tints it with the theme accent; 'neutral' is a quiet surface pill. */
   tone?: 'accent' | 'neutral';
   accessibilityLabel?: string;
@@ -38,14 +40,17 @@ interface SecondaryButtonProps {
 interface Look {
   container: ViewStyle;
   foreground: string;
+  /** The leading icon's color when it differs from the label's. */
+  iconColor?: string;
   trailingColor: string;
   iconSize: number;
   iconStroke?: number;
   trailingSize: number;
   fontSize: number;
+  fontWeight?: TextStyle['fontWeight'];
 }
 
-/** Outline, link and pill buttons — one implementation for every secondary action in the app. */
+/** Outline, link, caption and pill buttons — one implementation for every secondary action in the app. */
 export function SecondaryButton({
   label,
   onPress,
@@ -77,6 +82,18 @@ export function SecondaryButton({
       iconStroke: 2.4,
       trailingSize: 13,
       fontSize: 12.5,
+    };
+  } else if (variant === 'caption') {
+    const foreground = color ?? theme.textTertiary;
+    look = {
+      container: { ...row, alignSelf: 'flex-start', gap: 3, opacity },
+      foreground,
+      trailingColor: foreground,
+      iconSize: 11,
+      iconStroke: 2.2,
+      trailingSize: 10,
+      fontSize: 10.5,
+      fontWeight: '500',
     };
   } else if (variant === 'pill' && (color || tone === 'accent')) {
     // A soft wash of the tint with a matching hairline. Without an explicit
@@ -123,9 +140,12 @@ export function SecondaryButton({
       fontSize: 13,
     };
   } else {
-    // Outline. Neutral: a faint wash of the theme's text color, a ghost button on
-    // dark and light surfaces alike. Tinted: a soft wash of the meaning color with
-    // a matching border — same recipe as the large SegmentedControl's selected option.
+    // Outline. Without `color`: a light wash and hairline of the theme's own glow
+    // color with an accent icon — the same material as IconButton's tinted variant,
+    // so a plain secondary action (Cancel, Import from Contacts) carries the theme.
+    // It used to be a colorless white wash, which read as flat grey on every colored
+    // theme. With `color`: a soft wash of the meaning color with a matching border —
+    // same recipe as the large SegmentedControl's selected option.
     const foreground = color ?? theme.textPrimary;
     look = {
       container: {
@@ -134,14 +154,13 @@ export function SecondaryButton({
         gap: 8,
         paddingVertical: 14,
         borderRadius: RADII.field,
-        backgroundColor: color
-          ? withAlpha(color, 0.1)
-          : withAlpha(theme.textPrimary, theme.isLight ? 0.03 : 0.05),
+        backgroundColor: color ? withAlpha(color, 0.1) : `rgba(${theme.glow.a},0.1)`,
         borderWidth: 1,
-        borderColor: color ? withAlpha(color, 0.35) : theme.border,
+        borderColor: color ? withAlpha(color, 0.35) : `rgba(${theme.glow.a},0.28)`,
         opacity,
       },
       foreground,
+      iconColor: color ?? theme.accent2,
       trailingColor: foreground,
       iconSize: 15,
       iconStroke: 2.4,
@@ -150,21 +169,34 @@ export function SecondaryButton({
     };
   }
 
+  const textLink = variant === 'link' || variant === 'caption';
+
   return (
     <Pressable
       onPress={onPress}
       disabled={disabled}
-      accessibilityRole="button"
+      accessibilityRole={variant === 'caption' ? 'link' : 'button'}
       accessibilityLabel={accessibilityLabel ?? label}
       accessibilityState={{ disabled: !!disabled }}
-      hitSlop={variant === 'link' ? 6 : undefined}
+      hitSlop={textLink ? 8 : undefined}
       style={look.container}
     >
       {leading ??
         (Icon ? (
-          <Icon size={look.iconSize} color={look.foreground} strokeWidth={look.iconStroke} />
+          <Icon
+            size={look.iconSize}
+            color={look.iconColor ?? look.foreground}
+            strokeWidth={look.iconStroke}
+          />
         ) : null)}
-      <Text style={{ color: look.foreground, fontWeight: '700', fontSize: look.fontSize }}>
+      <Text
+        numberOfLines={variant === 'caption' ? 1 : undefined}
+        style={{
+          color: look.foreground,
+          fontWeight: look.fontWeight ?? '700',
+          fontSize: look.fontSize,
+        }}
+      >
         {label}
       </Text>
       {TrailingIcon ? <TrailingIcon size={look.trailingSize} color={look.trailingColor} /> : null}

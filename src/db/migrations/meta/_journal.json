@@ -36,6 +36,13 @@
       "when": 1789446721733,
       "tag": "0004_debt_attachments",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1789476866294,
+      "tag": "0005_adjustment_entered_currency",
+      "breakpoints": true
     }
   ]
 }

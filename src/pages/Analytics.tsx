@@ -83,17 +83,6 @@ export default function Analytics() {
   const expenseRatio =
     totalMonthlyIncomeBase > 0 ? Math.min(1, totalExpenses / totalMonthlyIncomeBase) : 0;
 
-  const topExpenses = useMemo(() => {
-    return expenses
-      .filter((e) => e.amount > 0)
-      .map((e) => ({
-        expense: e,
-        monthly: convertToBase(monthlyAmount(e), e.currency ?? 'SAR'),
-      }))
-      .sort((a, b) => b.monthly - a.monthly)
-      .slice(0, 5);
-  }, [expenses, convertToBase]);
-
   const hasData = expenses.length > 0;
 
   return (

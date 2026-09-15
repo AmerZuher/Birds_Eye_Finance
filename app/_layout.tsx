@@ -6,6 +6,7 @@ import { BackHandler, View } from 'react-native';
 import { Stack, usePathname, useNavigationContainerRef } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { BlurTargetView } from 'expo-blur';
+import { NavigationBar } from 'expo-navigation-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
@@ -31,12 +32,15 @@ import { ChromeProvider, useChrome } from '@/context/ChromeContext';
 import { ModalPortalProvider, ModalPortalOutlet } from '@/context/ModalPortalContext';
 import { Header } from '@/components/Header';
 import { Navbar } from '@/components/Navbar';
+import { PendingPhotoRecovery } from '@/components/PendingPhotoRecovery';
 import { THEMES } from '@/constants/theme';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
 import { DatabaseProvider } from '@/context/DatabaseContext';
 import { DebtsProvider } from '@/context/DebtsContext';
+import { removeRetiredKeys } from '@/lib/mmkv';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
+removeRetiredKeys();
 
 // Rule 2: theme is read synchronously from MMKV before the first paint, so
 // the ground color below is correct on frame one — no flash of wrong colors.
@@ -89,9 +93,13 @@ function RootLayoutInner() {
 
   if (!fontsLoaded) return null;
 
+  // Dark system-bar icons on light themes, light ones on dark themes.
+  const systemBarStyle = theme.isLight ? 'dark' : 'light';
+
   return (
     <View style={{ flex: 1, backgroundColor: theme.ground }}>
       <AndroidBackHandler />
+      <PendingPhotoRecovery />
       {/* On Android, expo-blur's real blur methods need an explicit target to
           sample — they can't automatically blur "whatever's behind" a view
           the way iOS's system blur can. This wraps all route content as that
@@ -131,7 +139,12 @@ function RootLayoutInner() {
           of wherever they're declared in the tree, so they paint above the
           header/navbar too and their BlurView can share `blurTarget`. */}
       <ModalPortalOutlet />
-      <StatusBar style="light" />
+      <StatusBar style={systemBarStyle} />
+      {/* The Android navigation bar stays transparent with no contrast layer
+          (app.json: expo-navigation-bar `enforceContrast: false`) so the tab
+          bar shows through under the gesture handle — MagicOS (Honor) drew a
+          grey band there otherwise. Its icons follow the theme like the status bar. */}
+      <NavigationBar style={systemBarStyle} />
     </View>
   );
 }

@@ -11,6 +11,8 @@ import { HIDDEN_SCROLLBARS } from '@/lib/scroll';
 export interface CustomSelectOption<T extends string> {
   label: string;
   value: T;
+  /** Secondary line under the label (e.g. a currency's name) — also matched by search. */
+  description?: string;
 }
 
 interface CustomSelectProps<T extends string> {
@@ -23,7 +25,7 @@ interface CustomSelectProps<T extends string> {
   /** Controlled open state — omit to let CustomSelect manage its own trigger + open state. */
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
-  /** Suppresses the default label+chevron trigger — for when another element (e.g. AmountInput's currency label) opens this picker instead. */
+  /** Suppresses the default label+chevron trigger — for when another element (e.g. AmountInput's currency button) opens this picker instead. */
   hideTrigger?: boolean;
 }
 
@@ -56,7 +58,9 @@ export function CustomSelect<T extends string>({
   const filtered = useMemo(() => {
     if (!searchable || !query.trim()) return options;
     const q = query.trim().toLowerCase();
-    return options.filter((o) => o.label.toLowerCase().includes(q));
+    return options.filter(
+      (o) => o.label.toLowerCase().includes(q) || !!o.description?.toLowerCase().includes(q),
+    );
   }, [options, query, searchable]);
 
   const close = () => {
@@ -103,14 +107,25 @@ export function CustomSelect<T extends string>({
                   flexDirection: 'row',
                   alignItems: 'center',
                   justifyContent: 'space-between',
+                  gap: 10,
                   paddingVertical: 12,
                   borderBottomWidth: 1,
                   borderBottomColor: theme.borderSoft,
                 }}
               >
-                <Text style={{ fontSize: 13, fontWeight: '600', color: theme.textPrimary }}>
-                  {item.label}
-                </Text>
+                <View style={{ flex: 1, minWidth: 0 }}>
+                  <Text style={{ fontSize: 13, fontWeight: '600', color: theme.textPrimary }}>
+                    {item.label}
+                  </Text>
+                  {item.description ? (
+                    <Text
+                      numberOfLines={1}
+                      style={{ fontSize: 11, color: theme.textTertiary, marginTop: 2 }}
+                    >
+                      {item.description}
+                    </Text>
+                  ) : null}
+                </View>
                 {isSelected ? (
                   <View
                     style={{

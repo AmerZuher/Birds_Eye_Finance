@@ -11,6 +11,7 @@ Android · Arabic & English · 100% offline, nothing ever leaves your phone
 </div>
 
 ---
+
 <img width="1208" height="679" alt="BirdsEyeCover" src="https://github.com/user-attachments/assets/5242c968-3ada-4ea7-91de-c2d6c2399909" />
 
 ## What it is
@@ -67,25 +68,32 @@ Bird's Eye Finance is a personal finance app built around two things most money 
 ## Features
 
 ### 🤝 Debts, done properly
-Track money owed *to* you and money you owe, per person — not just a single running balance. Link a debt straight to someone in your contacts (name, phone, and photo pulled in automatically), and message them their balance on WhatsApp with one tap. Installment plans (monthly payment, start/end date) are tracked separately from one-off amounts, so a loan repayment is never mistaken for discretionary spending in your totals. Deleted debts aren't gone for good — a dedicated history screen keeps them recoverable until you choose to erase them permanently.
+
+Track money owed _to_ you and money you owe, per person — not just a single running balance. Link a debt straight to someone in your contacts (name, phone, and photo pulled in automatically), and message them their balance on WhatsApp with one tap. Installment plans (monthly payment, start/end date) are tracked separately from one-off amounts, so a loan repayment is never mistaken for discretionary spending in your totals. Deleted debts aren't gone for good — a dedicated history screen keeps them recoverable until you choose to erase them permanently.
 
 ### 💳 Expenses that recognize themselves
+
 Pick from a library of common bills and subscriptions (electricity, internet, gym, groceries and more) already set up with the right category and icon, or start typing a custom name and matching brand icons and categories suggest themselves as you type. Every expense has a billing period (daily, weekly, monthly, yearly, or custom), so a small monthly subscription and a once-a-year bill both roll up correctly into one monthly total. Haven't decided the price of something yet? Add it as a placeholder "setup cost" and fill it in later — it won't be forgotten.
 
 ### 📊 Analytics that actually explain your money
-A spending-by-category ring shows where your money goes at a glance, broken down by category with exact amounts and percentages, alongside your net savings — income minus expenses *and* minus debt repayments, since a loan payment isn't optional spending.
+
+A spending-by-category ring shows where your money goes at a glance, broken down by category with exact amounts and percentages, alongside your net savings — income minus expenses _and_ minus debt repayments, since a loan payment isn't optional spending.
 
 ### 🌐 Genuinely bilingual
+
 Full Arabic and English support with real right-to-left layout — not a translated label bolted onto an English-only design. Every screen, every icon, every input mirrors correctly.
 
-### 🎨 Twelve themes, your choice
-Eight dark themes and four light ones — from moody Obsidian and Tokyo Night to bright Porcelain and Goldenrod. Pick the one that fits your taste and every card, chart, and button follows it, instantly.
+### 🎨 Sixteen themes, your choice
+
+Eight dark themes and eight light ones — from moody Obsidian and Tokyo Night to bright Porcelain, Coastal and Matcha. Pick the one that fits your taste and every card, chart, and button follows it, instantly.
 
 ### 🔒 Local-first, always
-No account, no login, no backend. Your debts and expenses live only on your device — nothing is ever uploaded anywhere. Back up to a JSON file whenever you want, restore from one just as easily, and optionally set up automatic local backups on a schedule you choose. The one deliberate exception is a set of copy-paste prompts for importing messy notes via an AI assistant of your choosing — a manual, user-initiated action, never something the app does on its own.
 
-### 💱 20 currencies, one base
-Every amount can be entered in its own original currency and still rolls up correctly into your chosen base currency. The currency picker learns from you — whichever currencies you actually use rise to the top of the list over time.
+No account, no login, no backend. Your debts and expenses live only on your device — nothing about you or your data is ever uploaded anywhere. Export everything to a JSON file whenever you want, and import one just as easily. There are two deliberate exceptions: a set of copy-paste prompts for importing messy notes via an AI assistant of your choosing (a manual, user-initiated action), and a once-a-day download of public exchange rates — a plain request that sends nothing about you, and you can turn it off in Settings.
+
+### 💱 150+ currencies, one base
+
+Every amount can be entered in its own original currency — any of 153 world currencies — and still rolls up correctly into your chosen base currency, using up-to-date daily exchange rates. The currency picker learns from you — whichever currencies you actually use rise to the top of the list over time — and you can search it by code or by name.
 
 ---
 

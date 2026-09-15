@@ -283,10 +283,11 @@ export const debtAttachments = sqliteTable('debt_attachments', {
 
 ## 7. Backups & imports
 
-- `src/utils/autoBackup.ts` snapshots whole tables. Add `people`, `debtAdjustments` and `debtAttachments` (metadata
-  only). Files are not backed up: the snapshot lives in MMKV, and the Data screen must say so. On restore, drop
-  attachment rows whose file doesn't exist.
-- **Restore must remap IDs** because autoincrement assigns new ones. Order: people (old→new id map) → debts
+- `src/utils/autoBackup.ts` — since 2.1.0 `src/utils/dataTransfer.ts`, export/import only; the MMKV auto-backup
+  and Restore were removed — snapshots whole tables. Add `people`, `debtAdjustments` and `debtAttachments`
+  (metadata only). Files are not part of an export, and the Data screen must say so. On import, drop attachment
+  rows whose file doesn't exist.
+- **Import must remap IDs** because autoincrement assigns new ones. Order: people (old→new id map) → debts
   (remap `personId`, build a debt id map) → adjustments (remap `debtId`) → attachments (remap `debtId`/`adjustmentId`).
 - **Old-shape backups and AI-prompt imports** (`src/prompts/debtsPrompt.ts` still emits `phone/email/company` per
   debt — keep it, rule 1's exception is unchanged): run each row through `resolvePerson({ name, phone, contactId })`,

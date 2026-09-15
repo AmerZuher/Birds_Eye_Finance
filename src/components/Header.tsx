@@ -11,7 +11,7 @@ import { useTheme } from '@/context/ThemeContext';
 import { useLanguage } from '@/context/LanguageContext';
 import { useUser } from '@/context/UserContext';
 import { FONTS } from '@/constants/theme';
-
+import { avatarDisplayUri } from '@/lib/avatars';
 
 const SETTINGS_TITLES: Record<string, string> = {
   '/settings': 'settings.title',
@@ -115,7 +115,7 @@ export function Header() {
               IconButton, not 32. */}
           <Avatar
             name={profile.name || 'You'}
-            photoUri={profile.avatar || undefined}
+            photoUri={avatarDisplayUri(profile.avatar)}
             size={34}
             ring={settingsActive ? 'accent' : 'accent'}
           />

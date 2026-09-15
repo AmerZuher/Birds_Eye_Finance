@@ -59,6 +59,12 @@
           "cameraPermission": "Bird's Eye Finance uses your camera to photograph receipts as proof for a debt."
         }
       ],
+      [
+        "expo-navigation-bar",
+        {
+          "enforceContrast": false
+        }
+      ],
       "./plugins/withReleaseApk"
     ]
   }

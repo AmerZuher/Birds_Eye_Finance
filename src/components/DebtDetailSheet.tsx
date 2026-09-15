@@ -334,6 +334,12 @@ export function DebtDetailSheet({ visible, debtId, onClose, onEdit }: DebtDetail
             const reduces = item.amount < 0;
             const tint = reduces ? SEMANTIC.positive : SEMANTIC.negative;
             const Icon = reduces ? Minus : Plus;
+            // Entered in another currency: that amount leads the subtitle, beneath the
+            // converted amount the ledger counts (FEATURE_SPEC 1.10).
+            const entered =
+              item.enteredCurrency && item.enteredAmount != null
+                ? formatOriginalMoney(item.enteredAmount, item.enteredCurrency)
+                : null;
             return (
               <ListCard isLast={index === adjustments.length - 1}>
                 <ListRow
@@ -345,7 +351,7 @@ export function DebtDetailSheet({ visible, debtId, onClose, onEdit }: DebtDetail
                     </IconTile>
                   }
                   title={`${reduces ? '−' : '+'}${formatOriginalMoney(Math.abs(item.amount), currency)}`}
-                  subtitle={item.note ? `${item.date} · ${item.note}` : item.date}
+                  subtitle={[entered, item.date, item.note].filter(Boolean).join(' · ')}
                   trailing={
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                       {attachmentsByAdjustment.has(item.id) ? (

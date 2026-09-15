@@ -86,6 +86,10 @@ export const debtAdjustments = sqliteTable(
     date: text('date').notNull(),
     note: text('note'),
     createdAt: text('created_at').notNull(),
+    // The amount and currency as typed, when the entry was made in another
+    // currency; `amount` above then holds it converted into the debt's currency.
+    enteredAmount: real('entered_amount'),
+    enteredCurrency: text('entered_currency'),
   },
   (t) => [index('debt_adjustments_debt_id_idx').on(t.debtId)],
 );

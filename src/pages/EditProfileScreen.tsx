@@ -1,8 +1,5 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Pressable, Text, TextInput, View } from 'react-native';
-import * as ImagePicker from 'expo-image-picker';
-import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
-import { File, Paths } from 'expo-file-system';
 import { Camera, Coins, Plus, Trash2, Wallet } from 'lucide-react-native';
 import type { LucideIcon } from 'lucide-react-native';
 
@@ -25,6 +22,12 @@ import { useChrome } from '@/context/ChromeContext';
 import { RADII } from '@/constants/theme';
 import type { StartBalance } from '@/constants/initialData';
 import { healthTierColor, withAlpha } from '@/utils/color';
+import {
+  avatarDisplayUri,
+  deleteStoredAvatar,
+  pickAvatarPhoto,
+  saveAvatarImage,
+} from '@/lib/avatars';
 import { HIDDEN_SCROLLBARS } from '@/lib/scroll';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 
@@ -66,95 +69,27 @@ export default function EditProfileScreen() {
     updateProfile({ name: value });
   };
 
-  // Guards against double-processing: the recovery effect below and a
-  // normal pickAvatar call could both end up with the same picked asset in
-  // rare timing cases (see its own comment), and this is the one place
-  // that's cheap to dedupe at.
-  const lastProcessedUri = useRef<string | null>(null);
-
-  // Downscales the picked photo and writes it to a small file instead of
-  // embedding it as a raw base64 data URI in profile state. A
-  // full-resolution photo stored that way turned every profile write —
-  // even a single keystroke in the name field — into a multi-megabyte
-  // JSON.stringify + MMKV write, and forced every Avatar on screen to
-  // decode that full image at once. That's cheap on a dev-build emulator's
-  // generous heap but was enough to crash a release APK right after
-  // picking a photo on real hardware.
-  const applyPickedAsset = async (uri: string) => {
-    if (lastProcessedUri.current === uri) return;
-    lastProcessedUri.current = uri;
-    try {
-      const context = ImageManipulator.manipulate(uri);
-      context.resize({ width: 256, height: 256 });
-      const rendered = await context.renderAsync();
-      const saved = await rendered.saveAsync({ compress: 0.8, format: SaveFormat.JPEG });
-
-      const previousAvatar = profile.avatar;
-      const savedFile = new File(saved.uri);
-      // A fresh filename per pick, not a stable overwritten one — Image
-      // caches are keyed by URI, so reusing the same path would risk
-      // showing the old, now-stale bitmap after an update.
-      await savedFile.move(new File(Paths.document, `profile-avatar-${Date.now()}.jpg`));
-      updateProfile({ avatar: savedFile.uri });
-
-      // Best-effort cleanup of the file the previous avatar pointed to —
-      // only ever one we wrote ourselves (guarded by the document-dir
-      // prefix, since older/synced profiles may still carry a data: URI).
-      if (previousAvatar && previousAvatar.startsWith(Paths.document.uri)) {
-        try {
-          const old = new File(previousAvatar);
-          if (old.exists) old.delete();
-        } catch {
-          // Stale reference to an already-missing file — nothing to clean up.
-        }
-      }
-    } catch {
-      setAvatarError(t('editProfile.avatar.error'));
-    }
-  };
-
-  // Android can kill this screen's host Activity in the background to
-  // reclaim memory while the picker (and, the very first time, the
-  // permission dialog before it) is in the foreground — Expo's own docs
-  // call this out and ship `getPendingResultAsync` specifically to recover
-  // from it (see expo-image-picker's README). Most likely on a cold,
-  // freshly-installed process under memory pressure, which is exactly the
-  // "only the first pick after installing the release APK" pattern this
-  // was chasing — the JS side never got to run its own promise
-  // continuation, so without this recovery the picked photo is just lost
-  // and the screen remounts blank. Runs once on mount; a no-op on
-  // iOS/web, and a no-op on Android whenever there's nothing pending.
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      const pending = await ImagePicker.getPendingResultAsync();
-      if (cancelled || !pending) return;
-      if ('code' in pending) return; // ImagePickerErrorResult — nothing to recover
-      if (pending.canceled) return;
-      const asset = pending.assets[0];
-      if (asset) await applyPickedAsset(asset.uri);
-    })();
-    return () => {
-      cancelled = true;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
+  // Picking, saving (a small file, stored relative) and Android's
+  // destroyed-Activity recovery all live in src/lib/avatars.ts, shared with
+  // Edit Person; a photo recovered after a restart is applied by
+  // PendingPhotoRecovery. A picked photo applies straight away here.
   const pickAvatar = async () => {
     setAvatarError('');
-    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!perm.granted) {
+    try {
+      const picked = await pickAvatarPhoto({ kind: 'profile' });
+      if (picked.kind === 'denied') {
+        setAvatarError(t('editProfile.avatar.error'));
+        return;
+      }
+      if (picked.kind === 'canceled') return;
+      const stored = await saveAvatarImage(picked.uri);
+      const previous = profile.avatar;
+      updateProfile({ avatar: stored });
+      deleteStoredAvatar(previous);
+    } catch (error) {
+      console.warn('[editProfile] picking a photo failed', error);
       setAvatarError(t('editProfile.avatar.error'));
-      return;
     }
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'],
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 0.7,
-    });
-    if (result.canceled) return;
-    await applyPickedAsset(result.assets[0].uri);
   };
 
   const addBalance = (input: { name: string; amount: number; currency: string }) => {
@@ -204,7 +139,7 @@ export default function EditProfileScreen() {
               <View>
                 <Avatar
                   name={name || 'You'}
-                  photoUri={profile.avatar || undefined}
+                  photoUri={avatarDisplayUri(profile.avatar)}
                   size={76}
                   ring="accent"
                 />
@@ -360,14 +295,13 @@ function EntryManager({
 }: EntryManagerProps) {
   const { theme } = useTheme();
   const { t } = useLanguage();
-  const { currencies, baseCurrency, recordCurrencyUsage } = useCurrency();
+  const { currencyOptions, baseCurrency, recordCurrencyUsage } = useCurrency();
 
   const [entryName, setEntryName] = useState('');
   const [amountText, setAmountText] = useState('');
   const [currencyCode, setCurrencyCode] = useState(baseCurrency);
   const [currencyPickerOpen, setCurrencyPickerOpen] = useState(false);
 
-  const currencyOptions = currencies.map((c) => ({ label: c.code, value: c.code }));
   const amountValue = parseFloat(amountText);
   const canAdd =
     entryName.trim().length > 0 &&
@@ -464,7 +398,7 @@ function EntryManager({
             recordCurrencyUsage(v);
           }}
           searchable
-          searchPlaceholder={t('settings.baseCurrency')}
+          searchPlaceholder={t('settings.searchCurrency')}
           sheetTitle={t('settings.baseCurrency')}
           open={currencyPickerOpen}
           onOpenChange={setCurrencyPickerOpen}

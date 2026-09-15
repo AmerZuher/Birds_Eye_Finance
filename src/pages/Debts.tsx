@@ -51,6 +51,7 @@ import { useTheme } from '@/context/ThemeContext';
 import type { ThemeShape } from '@/constants/theme';
 import { FONTS, RADII, SEMANTIC } from '@/constants/theme';
 import type { Debt } from '@/db/schema';
+import { deleteStoredAvatar } from '@/lib/avatars';
 import { formatDebtId, isMoneyZero } from '@/lib/debtStatus';
 import { HIDDEN_SCROLLBARS } from '@/lib/scroll';
 import { withAlpha } from '@/utils/color';
@@ -97,7 +98,8 @@ function TypeTile({ type, size }: { type: Debt['type']; size: number }) {
 
 export default function Debts() {
   const { t } = useLanguage();
-  const { setFabHandler, consumeDebtCreateRequest } = useChrome();
+  const { setFabHandler, consumeDebtCreateRequest, requestPersonPhoto, consumePersonPhotoRequest } =
+    useChrome();
   const { formatMoney, formatOriginalMoney } = useCurrency();
   const {
     groupedDebts,
@@ -127,6 +129,8 @@ export default function Debts() {
   const [detailOpen, setDetailOpen] = useState(false);
   const [editPersonOpen, setEditPersonOpen] = useState(false);
   const [editPersonFocus, setEditPersonFocus] = useState<PersonDetailField | null>(null);
+  // A photo recovered after Android restarted the app mid-pick (PendingPhotoRecovery).
+  const [recoveredAvatar, setRecoveredAvatar] = useState<string | null>(null);
   const [settleAllOpen, setSettleAllOpen] = useState(false);
   const [whatsAppError, setWhatsAppError] = useState('');
   const [banner, setBanner] = useState<{ kind: BannerKind; message: string } | null>(null);
@@ -198,7 +202,29 @@ export default function Debts() {
     useCallback(() => {
       setFabHandler(openCreateModal);
       if (consumeDebtCreateRequest()) openCreateModal();
-    }, [setFabHandler, openCreateModal, consumeDebtCreateRequest]),
+      // A photo recovered after Android restarted the app mid-pick: reopen that
+      // person's Edit Person sheet with it (PendingPhotoRecovery).
+      const photo = consumePersonPhotoRequest();
+      if (photo && peopleById.has(photo.personId)) {
+        setSelectedPersonId(photo.personId);
+        setRecoveredAvatar(photo.avatar);
+        setEditPersonFocus(null);
+        setEditPersonOpen(true);
+      } else if (photo && peopleById.size === 0) {
+        // People haven't loaded yet — queue it again; this re-runs once they do.
+        requestPersonPhoto(photo);
+      } else if (photo) {
+        // That person no longer exists.
+        deleteStoredAvatar(photo.avatar);
+      }
+    }, [
+      setFabHandler,
+      openCreateModal,
+      consumeDebtCreateRequest,
+      consumePersonPhotoRequest,
+      requestPersonPhoto,
+      peopleById,
+    ]),
   );
 
   const openEditModal = (debt: DebtView) => {
@@ -219,6 +245,7 @@ export default function Debts() {
 
   const openEditPerson = (field: PersonDetailField | null) => {
     setEditPersonFocus(field);
+    setRecoveredAvatar(null);
     setEditPersonOpen(true);
   };
 
@@ -336,9 +363,13 @@ export default function Debts() {
 
       <EditPersonSheet
         visible={editPersonOpen}
-        onClose={() => setEditPersonOpen(false)}
+        onClose={() => {
+          setEditPersonOpen(false);
+          setRecoveredAvatar(null);
+        }}
         person={selectedPerson}
         focusField={editPersonFocus}
+        recoveredAvatar={recoveredAvatar}
         onMerged={setSelectedPersonId}
       />
 

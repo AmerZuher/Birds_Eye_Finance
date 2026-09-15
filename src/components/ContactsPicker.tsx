@@ -7,7 +7,7 @@ import React, { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { BackHandler, Dimensions, Text, View } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import { Contact, ContactField, ContactsSortOrder, requestPermissionsAsync } from 'expo-contacts';
-import { ArrowLeft, UserX } from 'lucide-react-native';
+import { ArrowLeft, Users, UserX } from 'lucide-react-native';
 import Animated, {
   Easing,
   runOnJS,
@@ -72,7 +72,9 @@ const SLIDE_TIMING = { duration: 350, easing: Easing.bezier(0.22, 1, 0.36, 1) };
  * window can't reach the app's shared `blurTarget`, so its header couldn't
  * use real glass. Portaling keeps it in the main window, where its
  * `GlassHeader` is the exact same primitive/back-button convention as
- * Header.tsx's own back+title row (rule 8).
+ * Header.tsx's own back+title row (rule 8). The header blurs the app's shared
+ * target — a separate BlurTargetView inside this sliding overlay rendered it
+ * as a flat grey panel on a real device (DEVELOPMENT.md, gotcha 5).
  */
 export function ContactsPicker({ visible, onClose, onSelect }: ContactsPickerProps) {
   const { theme } = useTheme();
@@ -182,6 +184,68 @@ export function ContactsPicker({ visible, onClose, onSelect }: ContactsPickerPro
         slideStyle,
       ]}
     >
+      {state === 'ready' ? (
+        // The search field is the list's header. Always the same list, so
+        // filtering down to nothing never remounts the focused field.
+        <FlashList
+          data={filtered}
+          keyExtractor={(item) => item.id}
+          {...HIDDEN_SCROLLBARS}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
+          contentContainerStyle={{
+            paddingHorizontal: 16,
+            paddingBottom: insets.bottom + 24,
+          }}
+          ListHeaderComponent={
+            <View style={{ paddingTop: headerHeight + 10, paddingBottom: 10 }}>
+              <SearchInput
+                value={query}
+                onChangeText={setQuery}
+                placeholder={t('contactsPicker.search')}
+              />
+            </View>
+          }
+          ListEmptyComponent={<EmptyState caption={t('contactsPicker.empty')} />}
+          renderItem={({ item, index }) => (
+            <ListCard isLast={index === filtered.length - 1}>
+              <ListRow
+                showBottomBorder={false}
+                leading={
+                  <Avatar
+                    name={item.fullName ?? undefined}
+                    photoUri={item.image ?? undefined}
+                    size={40}
+                  />
+                }
+                title={item.fullName ?? t('contactsPicker.unnamed')}
+                subtitle={item.phones[0]?.number}
+                onPress={() => handleSelect(item)}
+              />
+            </ListCard>
+          )}
+        />
+      ) : (
+        <View
+          style={{
+            flex: 1,
+            justifyContent: 'center',
+            gap: 16,
+            paddingTop: headerHeight,
+            paddingHorizontal: 16,
+          }}
+        >
+          {state === 'loading' ? (
+            <EmptyState icon={Users} caption={t('contactsPicker.loading')} />
+          ) : (
+            <>
+              <EmptyState icon={UserX} caption={t('contactsPicker.denied')} />
+              <GradientButton label={t('settings.back')} onPress={onClose} />
+            </>
+          )}
+        </View>
+      )}
+
       <GlassHeader>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
           <IconButton
@@ -196,69 +260,6 @@ export function ContactsPicker({ visible, onClose, onSelect }: ContactsPickerPro
           </Text>
         </View>
       </GlassHeader>
-
-      <View style={{ flex: 1, paddingTop: headerHeight }}>
-        {state === 'ready' ? (
-          <View style={{ paddingHorizontal: 16, paddingTop: 10, paddingBottom: 10 }}>
-            <SearchInput
-              value={query}
-              onChangeText={setQuery}
-              placeholder={t('contactsPicker.search')}
-            />
-          </View>
-        ) : null}
-
-        {state === 'loading' ? (
-          <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-            <Text style={{ color: theme.textTertiary, fontSize: 12 }}>
-              {t('contactsPicker.loading')}
-            </Text>
-          </View>
-        ) : state === 'denied' ? (
-          <View
-            style={{
-              flex: 1,
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 16,
-              padding: 24,
-            }}
-          >
-            <EmptyState icon={UserX} caption={t('contactsPicker.denied')} />
-            <GradientButton label={t('settings.back')} onPress={onClose} />
-          </View>
-        ) : filtered.length === 0 ? (
-          <View style={{ flex: 1, padding: 16 }}>
-            <EmptyState caption={t('contactsPicker.empty')} />
-          </View>
-        ) : (
-          <FlashList
-            data={filtered}
-            keyExtractor={(item) => item.id}
-            {...HIDDEN_SCROLLBARS}
-            keyboardShouldPersistTaps="handled"
-            keyboardDismissMode="on-drag"
-            contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: insets.bottom + 24 }}
-            renderItem={({ item, index }) => (
-              <ListCard isLast={index === filtered.length - 1}>
-                <ListRow
-                  showBottomBorder={false}
-                  leading={
-                    <Avatar
-                      name={item.fullName ?? undefined}
-                      photoUri={item.image ?? undefined}
-                      size={40}
-                    />
-                  }
-                  title={item.fullName ?? t('contactsPicker.unnamed')}
-                  subtitle={item.phones[0]?.number}
-                  onPress={() => handleSelect(item)}
-                />
-              </ListCard>
-            )}
-          />
-        )}
-      </View>
     </Animated.View>
   ) : null;
 
