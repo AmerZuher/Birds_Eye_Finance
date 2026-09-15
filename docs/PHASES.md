@@ -228,7 +228,9 @@ Release steps (full detail in `docs/DEVELOPMENT.md` → Release builds):
 - [ ] After prebuild, on a device: splash logo fully visible on Android 12+; About shows "Version 2.0.1"; About looks exactly as before on a dark and a light theme.
 - Published 2026-09-15. The GitHub Release was first created under tag/title `v2.1.0` while its APK is 2.0.1 (versionName `2.0.1`, versionCode `2`); the user chose to rename it to `v2.0.1` rather than rebuild. The release rule now requires the tag to be exactly `v<version>` (CLAUDE.md rule 17, DEVELOPMENT.md → Release builds).
 
-## Unreleased (next planned: 2.1.0)
+## Release 2.1.0 (2026-09-15)
+Version `2.0.1` → `2.1.0` (`app.json` `expo.version`), `android.versionCode` `2` → `3`. The user commits, pushes and publishes the GitHub Release (tag and title `v2.1.0`); no `v2.1.0` tag existed when the version was bumped. Build with `npm run release:android` (prebuild + release build), then upload `apk/birdsEyeFinance_V2.1.0.apk`. The on-device checklists below are the user's to tick.
+
 - About → Website now opens `https://amer-alreyahi.vercel.app/` (was the GitHub profile). Changed after the 2.0.1 APK was built, so it isn't in 2.0.1.
 
 ### 2.1.0 build (2026-09-15)

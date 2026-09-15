@@ -3,7 +3,7 @@
     "name": "Bird's Eye Finance",
     "slug": "birdseye-finance",
     "scheme": "birdseyefinance",
-    "version": "2.0.1",
+    "version": "2.1.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
@@ -22,7 +22,7 @@
       },
       "predictiveBackGestureEnabled": false,
       "permissions": ["READ_CONTACTS"],
-      "versionCode": 2
+      "versionCode": 3
     },
     "web": {
       "favicon": "./assets/favicon.png"
