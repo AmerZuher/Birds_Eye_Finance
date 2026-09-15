@@ -41,7 +41,7 @@ Local-first Expo/React Native app. Read `docs/FEATURE_SPEC.md` for full screen-b
 
 16. **About screen** has no content spec anywhere — it's only referenced via routing. Build it as a stub: logo, app name, version number, nothing invented.
 
-17. **Releases and version bumps.** Never change the app version on your own. When a release is being prepared, propose the next version (e.g. `2.0.1` → `2.0.2` or `2.1.0`) and **ask the user to confirm it before editing anything**. Once confirmed:
+17. **Releases and version bumps.** Never change the app version on your own. When a release is being prepared, propose the next version and **ask the user to confirm it before editing anything**. Versioning convention (the user's): small updates and fixes bump the **patch** (`2.0.1` → `2.0.2`); bigger feature releases bump the **minor** (`2.0.x` → `2.1.0`) — the user decides which a release is. Once confirmed:
    - `app.json` → `expo.version`: the version users see. The About screen reads it through `expo-constants`, and the release APK is named from it.
    - `app.json` → `expo.android.versionCode`: increase by 1 on every release, even if only `version` changed.
    - Do **not** edit `android/` (generated and gitignored — `versionName`/`versionCode` in `android/app/build.gradle` come from `app.json`) or `package.json`'s `version` (not the app version).

@@ -217,7 +217,7 @@ Release APK output comes from a local config plugin, **`plugins/withReleaseApk.j
 
 **Cutting a release:**
 
-1. **Agree on the version number first** — a Claude session proposes it and waits for confirmation before touching anything (CLAUDE.md rule 17). Then update, in `app.json` only:
+1. **Agree on the version number first** — a Claude session proposes it and waits for confirmation before touching anything (CLAUDE.md rule 17). Convention: small updates and fixes bump the patch (`2.0.1` → `2.0.2`); bigger feature releases bump the minor (`2.0.x` → `2.1.0`). Then update, in `app.json` only:
    - `expo.version` — the version users see (e.g. `2.0.1`). About reads it through `expo-constants`, the generated `android/app/build.gradle` takes `versionName` from it, and the APK filename follows it.
    - `expo.android.versionCode` — increase by 1 on every release (e.g. `1` → `2`), even if only `version` changed.
 
