@@ -17,6 +17,21 @@ const GRADLE_BLOCK = `
 // @generated begin ${TAG} — from plugins/withReleaseApk.js; edit there, not here.
 tasks.register("copyReleaseApkToRoot", Copy) {
     def versionName = android.defaultConfig.versionName
+    def target = rootProject.file("../apk/birdsEyeFinance_V\${versionName}.apk")
+    // Refuse to overwrite an APK that already exists: that means this version was already
+    // built, which almost always means app.json's version wasn't bumped (CLAUDE.md rule 17).
+    // Silently clobbering it once produced a "2.2.0" build stamped 2.1.0 that nearly went
+    // out as a 2.1.0 re-upload.
+    doFirst {
+        if (target.exists()) {
+            throw new GradleException(
+                "Release build stopped: apk/birdsEyeFinance_V\${versionName}.apk already exists.\\n" +
+                "Bump expo.version and expo.android.versionCode in app.json first (CLAUDE.md rule 17), " +
+                "then re-run npm run release:android.\\n" +
+                "If you really mean to rebuild \${versionName}, delete or rename that file."
+            )
+        }
+    }
     from(layout.buildDirectory.dir("outputs/apk/release")) {
         include "app-release.apk"
         rename { "birdsEyeFinance_V\${versionName}.apk" }

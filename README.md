@@ -75,6 +75,14 @@ Track money owed _to_ you and money you owe, per person — not just a single ru
 
 Pick from a library of common bills and subscriptions (electricity, internet, gym, groceries and more) already set up with the right category and icon, or start typing a custom name and matching brand icons and categories suggest themselves as you type. Every expense has a billing period (daily, weekly, monthly, yearly, or custom), so a small monthly subscription and a once-a-year bill both roll up correctly into one monthly total. Haven't decided the price of something yet? Add it as a placeholder "setup cost" and fill it in later — it won't be forgotten.
 
+### 🏠 A home screen that answers "where am I?"
+
+Your balance sits at the top, hidden until you tap it. Below it: what's coming up in the next 30 days — each installment falling due and any plan about to end, with the person and the amount — then this month at a glance (income, minus installments, minus expenses, and what's left, beside a savings-rate ring), and finally who owes you and who you owe. Tap anything to jump straight to it.
+
+### 🔔 Reminders that know what you've already paid
+
+Turn on notifications and the app reminds you before each installment falls due — on the day, a day before, or three days before, whichever you prefer — plus a heads-up a week before a plan ends. Record a payment and that month's reminder simply doesn't arrive. Everything is scheduled on your phone; nothing about your debts leaves it.
+
 ### 📊 Analytics that actually explain your money
 
 A spending-by-category ring shows where your money goes at a glance, broken down by category with exact amounts and percentages, alongside your net savings — income minus expenses _and_ minus debt repayments, since a loan payment isn't optional spending.
@@ -89,7 +97,7 @@ Eight dark themes and eight light ones — from moody Obsidian and Tokyo Night t
 
 ### 🔒 Local-first, always
 
-No account, no login, no backend. Your debts and expenses live only on your device — nothing about you or your data is ever uploaded anywhere. Export everything to a JSON file whenever you want, and import one just as easily. There are two deliberate exceptions: a set of copy-paste prompts for importing messy notes via an AI assistant of your choosing (a manual, user-initiated action), and a once-a-day download of public exchange rates — a plain request that sends nothing about you, and you can turn it off in Settings.
+No account, no login, no backend. Your debts and expenses live only on your device — nothing about you or your data is ever uploaded anywhere. Export everything to a JSON file whenever you want, and import one just as easily. There are three deliberate exceptions, none of which sends anything about you: a set of copy-paste prompts for importing messy notes via an AI assistant of your choosing (a manual, user-initiated action); a download of public exchange rates when the app starts; and a once-a-day check of this repository's releases for a newer version. The last two are plain requests to a fixed address — identical for every user — and both can be turned off in Settings.
 
 ### 💱 150+ currencies, one base
 
@@ -100,6 +108,8 @@ Every amount can be entered in its own original currency — any of 153 world cu
 ## Install
 
 **[⬇ Download the latest release](../../releases/latest)** — grab the APK, transfer it to your Android phone, and open it. You'll need to allow "install from unknown sources" for whichever app you use to open it (Files, a browser, etc.) — Android will prompt you for this the first time.
+
+From 2.2.0 onwards you only have to do that once: the app checks this page for newer versions by itself, and Settings → App updates downloads and installs them for you. It refuses to install anything that isn't this app, signed with the same key, matching the checksum published with the release — and your data is untouched by an update.
 
 Want an older version instead? **[Browse all releases](../../releases)** and pick one.
 

@@ -293,8 +293,10 @@ Tested on a debug build made with `npm run android` without a prebuild.
 
 Note: `docs/ENHANCEMENT_PLAN.md` §7 proposes its own "Phase 6–9" numbering. That plan is not approved yet; renumber it after this phase when it is.
 
-## Unreleased (next planned: 2.2.0)
-The version stays `2.1.0` / versionCode `3` until the release is prepared (CLAUDE.md rule 17); planned: `2.2.0` / `4`.
+## Release 2.2.0 (2026-09-16)
+Version `2.1.0` → `2.2.0` (`app.json` `expo.version`), `android.versionCode` `3` → `4`. Build with `npm run release:android`, then upload `apk/birdsEyeFinance_V2.2.0.apk` to a new GitHub Release whose tag **and** title are exactly `v2.2.0`. The user commits, pushes and publishes.
+
+**Near miss worth remembering (2026-09-16):** a release build was run *before* the version bump, so the APK was stamped `2.1.0` / versionCode `3` and Gradle's copy step overwrote `apk/birdsEyeFinance_V2.1.0.apk` with it. The published v2.1.0 asset was never touched (same size and digest as before), and the user had a backup, but the mislabelled file came close to being uploaded over a shipped release. `plugins/withReleaseApk.js` now fails the build when `apk/birdsEyeFinance_V<version>.apk` already exists, which is exactly the symptom of a forgotten bump. Order is always: bump `app.json` → prebuild → build → tag → upload.
 
 ### Scope and decisions (2026-09-15)
 - **Full backup (ENHANCEMENT_PLAN §8) deferred** to the end of the plan; the research so far is recorded there. Reconciliation, targets and investments (§0–7) stay out (rule 13). Moving off the debug signing key: rejected for now.
@@ -305,7 +307,7 @@ The version stays `2.1.0` / versionCode `3` until the release is prepared (CLAUD
 - **Analytics** documented (FEATURE_SPEC Part 8). Fix: with no expenses it shows two empty states.
 - **CI:** `.github/workflows/ci.yml` runs `npm run check` on every push and pull request. It builds and releases nothing.
 
-Status: rules and specs written; step 1 (Dashboard, Analytics) implemented — reminders and the updater not started.
+Status: code complete — steps 1–3 implemented (Dashboard and Analytics, the text-field fix, installment reminders, the in-app updater), docs updated, `npm run check` and Prettier clean, EN/AR keys 1:1, version bumped to `2.2.0` / `4`. **Not verified on a device** — the checklist below is the user's to tick.
 
 ### Step 1 — Dashboard and Analytics (2026-09-15)
 Checked: `npm run check` (0 errors; the 4 known react-hook-form warnings), Prettier on the changed files, EN/AR keys 358/358 with no literal `t()` key missing, and a logic test of the installment calendar (month-end and leap-year dates, end dates, "already paid", excluded debts) run with `tsx` outside the repo. **Not verified on a device.** No native change — `npm run android`, or reloading a running dev build, is enough.
@@ -383,4 +385,45 @@ On-device checks (release build; a self-update can only be proven once a newer r
 
 **Rates attribution moved to About** (user's call, 2026-09-16). ExchangeRate-API's open-access terms require the "Rates By Exchange Rate API" link to be visible to end users on the pages using the rates — their docs say it cannot be satisfied by a repository README — so it sits discreetly in About's description card, and the Settings rates row is now only the switch.
 
-**Exchange-rate status panel removed** (user's call, 2026-09-16). The working copy had already lost the rates row's status panel — the status dot and "Updated today…" line, the attribution link and the Refresh button — which left ten unused symbols in `Settings.tsx`; the user chose to keep it that way. The dead code is gone (`StatusDot`, the status/colour/source derivations, `describeWhen`/`daysAgo`, the refresh handler and their imports), and the row is now the switch plus the required "Rates By Exchange Rate API ↗" caption link. **There is no manual refresh in the UI any more** — rates download on every launch instead (step 1 follow-up). FEATURE_SPEC 0.5 and 3.2 C updated; CLAUDE.md rule 1 (b) still mentions a manual Refresh and needs its wording settled.
+**Exchange-rate status panel removed** (user's call, 2026-09-16). The working copy had already lost the rates row's status panel — the status dot and "Updated today…" line, the attribution link and the Refresh button — which left ten unused symbols in `Settings.tsx`; the user chose to keep it that way. The dead code is gone (`StatusDot`, the status/colour/source derivations, `describeWhen`/`daysAgo`, the refresh handler and their imports), and the row is now the switch plus the required "Rates By Exchange Rate API ↗" caption link. **There is no manual refresh in the UI any more** — rates download on every launch instead (step 1 follow-up). FEATURE_SPEC 0.5 and 3.2 C updated, and CLAUDE.md rule 1 (b) was reworded to match (user-approved 2026-09-16): no manual Refresh, and the attribution the provider's terms require now lives on the About screen.
+
+### 2.2.0 release checklist — one pass on a device
+Do it in this order; the first half needs only a dev build, the second needs the release APK.
+
+**Prepare:** `npm run prebuild:android`, then `npm run android`.
+
+Dashboard and Analytics (step 1)
+- [ ] With no data: greeting, zero balance, "This month" showing "—" and an "Add income" link that opens Edit Profile; no Coming up or Debts section.
+- [ ] Add an "I owe" debt with a monthly payment and a start date a few days out → it appears under Coming up as "In n days"; tapping it opens that debt's sheet on Debts.
+- [ ] Record a payment covering that installment → it leaves Coming up. A smaller payment leaves it listed.
+- [ ] A plan whose end date is within 30 days shows a "Plan ends" row; more than 5 items shows "+n more".
+- [ ] "This month": the percentage and tier colour match Edit Profile's health badge; tapping the card opens Analytics.
+- [ ] Debts card: the net matches the Debts screen; tapping a person opens them; "See all" opens the list.
+- [ ] Analytics with no expenses shows exactly one empty state.
+
+Text fields (step 1 follow-up)
+- [ ] Backspace into the middle of a word in a debt's name, notes and date, an amount, the Debts and Expenses search, Edit Profile's name, Edit Person, and the Data screen's paste box — nothing is skipped and the caret stays put, in English and Arabic.
+- [ ] Change your name in Edit Profile, leave the screen without tapping elsewhere, come back — it is saved.
+- [ ] Prefills still work: edit an existing debt, clear a search with its X, switch an adjustment's currency.
+
+Exchange rates
+- [ ] Launch online → Settings shows the rates switch on and totals reflect today's rates; launch in airplane mode → nothing hangs. (There is no Refresh button any more; the attribution link is on About.)
+
+Reminders (step 2)
+- [ ] Settings → Notifications: turn the switch on → Android asks for permission. Deny once → the switch stays off with the banner and "Open settings"; then allow it.
+- [ ] Open the Notifications screen: the two reminder kinds, the 9:00 delivery time, the lead-time control, and a "Next reminder" line that changes as you switch the lead time.
+- [ ] Set a debt so a reminder is due at the next 09:00 (or move the phone clock past it) → the reminder arrives with the amount, person and debt ID.
+- [ ] Tapping it opens that debt — with the app closed, backgrounded, and open.
+- [ ] Reboot the phone → scheduled reminders survive. Turn the switch off → nothing arrives.
+- [ ] Arabic: a reminder scheduled after switching language arrives in Arabic.
+
+Updates (step 3)
+- [ ] Settings → App updates shows the installed version; "Check now" says you have the latest while 2.1.0 is newest.
+- [ ] Airplane mode → "Check now" → the connection error; nothing else changes. Turn automatic checks off → relaunch → the last-checked date doesn't move.
+
+Whole app
+- [ ] Arabic on a dark and a light theme: every new screen mirrored, "#0042" readable, minus signs beside the digits.
+
+**Then the release build:** `npm run release:android`, install `apk/birdsEyeFinance_V2.2.0.apk`, and repeat the reminder delivery test plus one full pass of Debts and Expenses on it.
+
+**After 2.2.0 is published** (this is the only way to prove the updater): build a throwaway 2.2.1, publish it, and let the installed 2.2.0 update itself — allow "install unknown apps" once, then confirm the app reopens on 2.2.1 with every debt, proof and setting intact.
