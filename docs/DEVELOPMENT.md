@@ -98,6 +98,7 @@ src/
 
 scripts/            One-off build-time scripts, not part of the app
 docs/               This file, FEATURE_SPEC.md, PHASES.md, gallery/
+modules/            Local native modules (app-installer: installs a downloaded APK)
 android/            Generated native project (gitignored)
 ```
 
@@ -114,6 +115,7 @@ android/            Generated native project (gitignored)
 - **`src/lib/`** — pure logic and device helpers: `mmkv.ts` (the single `react-native-mmkv` instance, typed `StorageKeys`, `getJSON`/`setJSON`, and the launch-time cleanup of retired keys), `exchangeRates.ts` (rate download, validation and cache — CLAUDE.md rule 1's exchange-rate exception), `avatars.ts` (photo picking, storage, and recovery after Android destroys the Activity mid-pick), `attachments.ts`, `people.ts`, `debtStatus.ts`, `dates.ts`, `installments.ts` (the installment calendar behind the Dashboard's Coming up card and the reminders), `notifications.ts` (reminder planning and scheduling), `useMirroredText.ts` (why every text input keeps its own text), `scroll.ts`.
 - **`scripts/`** — one-off build-time scripts (brand icon curation); not part of the shipped app.
 - **`docs/`** — this file, `FEATURE_SPEC.md`, `PHASES.md`, `gallery/` (the README's screenshots).
+- **`modules/`** — local native modules written for this app, each scaffolded with `npx create-expo-module --local` and picked up by autolinking. `app-installer` is the Kotlin module behind the in-app update (FEATURE_SPEC 3.6): hashing, APK inspection and the `PackageInstaller` session. This is hand-written source and **is committed** — unlike `android/`, a clone can't build without it — while each module's `android/build/` output is gitignored. Native changes here need a rebuild (`npm run android`); Fast Refresh doesn't reload them.
 - **`android/`** — the generated native Android project. Gitignored — don't hand-edit it expecting changes to survive `expo prebuild --clean` — nothing in it is hand-edited; the release-APK output step comes from `plugins/withReleaseApk.js` (see [Release builds](#release-builds)).
 
 ## App boot sequence & provider tree

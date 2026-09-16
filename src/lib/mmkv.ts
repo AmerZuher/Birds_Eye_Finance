@@ -21,6 +21,9 @@ export const StorageKeys = {
   remindersEnabled: 'reminders.enabled',
   remindersLead: 'reminders.lead',
   remindersLastHandled: 'reminders.lastHandled',
+  /** App updates: the automatic-check setting and the last check's time and result (FEATURE_SPEC 3.6). */
+  updatesAuto: 'updates.auto',
+  updatesLastCheck: 'updates.lastCheck',
 } as const;
 
 /**

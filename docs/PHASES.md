@@ -359,7 +359,27 @@ On-device checks (dev build after a prebuild, then the release build):
 - [ ] Turn the switch off → nothing arrives. Revoke notifications in Android settings while the app is open → the switch shows off when you come back.
 - [ ] Honor battery saving: confirm reminders still arrive when the app hasn't been opened for a day.
 
+### Step 3 — App updates (2026-09-16)
+FEATURE_SPEC 3.2 C and 3.6; CLAUDE.md rule 1 (c). **Needs a prebuild** — a new local native module and two Android permissions.
+- `modules/app-installer` (local Expo module, Kotlin, scaffolded with `create-expo-module --local`): streams a file's SHA-256, reads an APK's package/versionCode/signing certificates beside the installed app's, reports and opens the "install unknown apps" permission, and installs through a `PackageInstaller` session that asks for no confirmation on Android 12+ (`setRequireUserAction(USER_ACTION_NOT_REQUIRED)`), falling back to Android's own dialog where the system insists.
+- `app.json`: `REQUEST_INSTALL_PACKAGES` and `UPDATE_PACKAGES_WITHOUT_USER_ACTION`.
+- `src/lib/updates.ts`: the GitHub latest-release check (zod-validated, 8 s timeout, tag `v<version>`, asset `birdsEyeFinance_V<version>.apk` with its published digest), the automatic-check setting and last-check record in MMKV, the download (progress, cancel, at least twice the APK size free), the trust check (digest, package, signing certificates, higher versionCode) and the install. Leftover downloads are cleared at launch.
+- `src/context/UpdatesContext.tsx`: the daily check on launch and foreground, the stage machine (checking → available → downloading → verifying → installing) and its errors.
+- `src/pages/UpdatesScreen.tsx` + `app/settings/updates.tsx` (FEATURE_SPEC 3.6), reached from a new Settings row that shows the installed version and "Version x.y.z is available" when there is one.
+- 27 `updates.*` / `settings.updates.*` keys per language; 2 MMKV keys.
+
+On-device checks (release build; a self-update can only be proven once a newer release exists on GitHub):
+- [ ] Settings → App updates: the installed version shows; "Check now" reports "You have the latest version." while 2.2.0 is the newest release.
+- [ ] Airplane mode → "Check now" → the connection error banner; nothing else changes.
+- [ ] After publishing a later release (e.g. 2.2.1): the row's subtitle and the screen both offer it with the right size; Update → confirmation → download progress → install.
+- [ ] First time: Android asks for "install unknown apps" — allow it, tap Update again, and the rest runs without prompts on Android 12+.
+- [ ] Cancel mid-download → back to "available", no file left behind (relaunch and check storage isn't growing).
+- [ ] After the update: the app reopens on the new version with all data, debts, proofs and settings intact.
+- [ ] Turn automatic checks off → relaunch → no check happens (the last-checked date stays put).
+
 **Notifications customization moved to its own screen** (user's call, 2026-09-16), since more options are expected later: `src/pages/NotificationsScreen.tsx` + `app/settings/notifications.tsx` (FEATURE_SPEC 3.5). The Settings hub row keeps the overall on/off switch (and the permission prompt and its denied banner) and gains a chevron that opens the new screen, which holds the per-kind options — today just the reminder lead time, with a warning banner while notifications are off. The header title map and the settings Stack gained the route.
+
+**Notifications screen filled out** (user's call, 2026-09-16): it was one thin card. It now explains what actually arrives — a row per reminder kind (installment due, plan ending) and the 9:00 delivery time — with the lead-time control in its own "Timing" card, under a live line naming the next reminder that would be sent (date, person, debt ID) or saying none is due in 90 days. That line is built from the same `installmentEvents` calendar the scheduler uses, so the page can't promise something different from what arrives.
 
 **Rates attribution moved to About** (user's call, 2026-09-16). ExchangeRate-API's open-access terms require the "Rates By Exchange Rate API" link to be visible to end users on the pages using the rates — their docs say it cannot be satisfied by a repository README — so it sits discreetly in About's description card, and the Settings rates row is now only the switch.
 

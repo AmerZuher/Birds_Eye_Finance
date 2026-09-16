@@ -7,6 +7,7 @@ import {
   ChevronRight,
   Coins,
   CreditCard,
+  Download,
   Globe,
   Moon,
   Shield,
@@ -30,17 +31,20 @@ import { useUser } from '@/context/UserContext';
 import { useFinance } from '@/context/FinanceContext';
 import { useChrome } from '@/context/ChromeContext';
 import { useReminders } from '@/context/RemindersContext';
+import { useUpdates } from '@/context/UpdatesContext';
 import { RADII, THEME_IDS, THEMES } from '@/constants/theme';
 import type { ThemeId } from '@/constants/theme';
 import type { Language } from '@/constants/translations';
 import { avatarDisplayUri } from '@/lib/avatars';
 import { HIDDEN_SCROLLBARS } from '@/lib/scroll';
+import { installedVersion } from '@/lib/updates';
 
 type ThemeGroup = 'dark' | 'light';
 
 export default function Settings() {
   const router = useRouter();
   const reminders = useReminders();
+  const updates = useUpdates();
   const { theme, themeId, setThemeId } = useTheme();
   const { language, setLanguage, t } = useLanguage();
   const {
@@ -172,7 +176,18 @@ export default function Settings() {
               />
             }
           />
-
+          <SettingsRow
+            showTopBorder
+            onPress={() => router.push('/settings/updates')}
+            icon={Download}
+            label={t('settings.updates')}
+            subtitle={
+              updates.release
+                ? t('updates.available', { version: updates.release.version })
+                : t('settings.updates.subtitle')
+            }
+            value={<RowValue label={installedVersion()} />}
+          />
           <SettingsRow
             showTopBorder
             onPress={() => router.push('/settings/data')}
@@ -193,6 +208,8 @@ export default function Settings() {
               />
             }
           />
+
+
 
           <SettingsRow
             showTopBorder

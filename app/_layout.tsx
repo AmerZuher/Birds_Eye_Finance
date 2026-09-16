@@ -35,6 +35,7 @@ import { Navbar } from '@/components/Navbar';
 import { PendingPhotoRecovery } from '@/components/PendingPhotoRecovery';
 import { NotificationRouting } from '@/components/NotificationRouting';
 import { RemindersProvider } from '@/context/RemindersContext';
+import { UpdatesProvider } from '@/context/UpdatesContext';
 import { THEMES } from '@/constants/theme';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
 import { DatabaseProvider } from '@/context/DatabaseContext';
@@ -168,9 +169,11 @@ export default function RootLayout() {
                         <FinanceProvider>
                           <ChromeProvider>
                             <RemindersProvider>
-                              <ModalPortalProvider>
-                                <RootLayoutInner />
-                              </ModalPortalProvider>
+                              <UpdatesProvider>
+                                <ModalPortalProvider>
+                                  <RootLayoutInner />
+                                </ModalPortalProvider>
+                              </UpdatesProvider>
                             </RemindersProvider>
                           </ChromeProvider>
                         </FinanceProvider>

@@ -37,6 +37,11 @@ export const REMINDER_LEADS: ReminderLead[] = ['onDay', 'dayBefore', 'threeDays'
 
 const LEAD_DAYS: Record<ReminderLead, number> = { onDay: 0, dayBefore: 1, threeDays: 3 };
 
+/** How many days before an installment date that lead time fires. */
+export function reminderLeadDays(lead: ReminderLead): number {
+  return LEAD_DAYS[lead];
+}
+
 // Reminders shown while the app is open behave like any other notification.
 setNotificationHandler({
   handleNotification: async () => ({
