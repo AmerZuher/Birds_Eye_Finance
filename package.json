@@ -63,7 +63,8 @@
     "typescript": "~6.0.3"
   },
   "scripts": {
-    "start": "expo start",
+    "start": "expo start --dev-client",
+    "start:clear": "expo start --dev-client --clear",
     "android": "expo run:android",
     "prebuild:android": "expo prebuild --platform android --clean",
     "release:android": "expo prebuild --platform android --clean && expo run:android --variant release",

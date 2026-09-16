@@ -159,21 +159,43 @@ this section would replace that behavior.
 4. **Missed target date** — passive "behind schedule" label on the `TargetProgressCard` only. No
    notification, no auto-close/abandon, no new infra beyond the label state.
 
+### Reconciliation core — approved 2026-09-16, ships as 2.3.0
+§0's blanket gate is lifted **for reconciliation only**: `balance_snapshots` and everything in this
+block are approved. Targets and investments stay blocked until rule 13 is actually replaced.
+
+5. **Home's Current Balance comes from the log.** Once a balance has been logged, Home shows that
+   figure aged forward by net savings, not the sum of the accounts typed in Edit Profile. Those
+   typed accounts stay editable and act as the seed before the first log (and as the per-account
+   detail after it). This is the plan's thesis — logged beats computed.
+6. **A log is one total**, not per account: amount + currency + optional note, dated today by
+   default. Fast enough to repeat monthly; the account breakdown already lives in Edit Profile.
+7. **Expected ages by days**, not whole months: `expected = last logged balance + netSavings ×
+   (days since that log ÷ 30.44)`, the same period math `getMonthlyEquivalent` already uses, so a
+   mid-month check is meaningful. Variance = logged amount − expected.
+8. **The FAB opens Log Balance directly** on Home and Analytics for this release. §5's three-entry
+   quick-action sheet waits until targets and investments exist — today it would have one real entry.
+
+Still to approve before code (same sign-off bar as any rule change): **rule 15**, so Home may show
+the expected-vs-actual variance, and **rule 4**, 26 → 28 primitives for `ReconciliationNudgeCard`
+and `VarianceHistoryChart`. Rule 13 is untouched.
+
 ---
 
 ## 7. Suggested phase sequencing (for PHASES.md once approved)
 
-- **Phase 6 — Reconciliation core.** `balance_snapshots`, expected-vs-actual formula,
+Renumbered 2026-09-16: `PHASES.md`'s Phase 6 is the shipped Debts v2, so this plan starts at 7.
+
+- **Phase 7 — Reconciliation core.** *(Approved; the 2.3.0 release.)* `balance_snapshots`, expected-vs-actual formula,
   `ReconciliationNudgeCard`, FAB "Log Balance" wired on Home + Analytics, `VarianceHistoryChart`.
   (`BalanceRevealCard` already shipped ahead of this phase — see §2/§3.) Foundation everything else
   hooks into.
-- **Phase 7 — Targets.** `targets` + `target_contributions`, `AllocationRow` inside the Log Balance
+- **Phase 8 — Targets.** `targets` + `target_contributions`, `AllocationRow` inside the Log Balance
   flow, `TargetProgressCard` + carousel, target create/detail screens, convert-to-Debt on a
   financed target's completion.
-- **Phase 8 — Investments.** `investments` + `investment_value_snapshots`, `InvestmentSummaryCard`,
+- **Phase 9 — Investments.** `investments` + `investment_value_snapshots`, `InvestmentSummaryCard`,
   aggregate ROI, optional target linkage shown as a separate "could accelerate this" line (never
   blended into the committed-cash projection), staleness nudges.
-- **Phase 9 (stretch) — Supporting data.** Zakat calculator + Hijri-aware reminder (manual Nisab
+- **Phase 10 (stretch) — Supporting data.** Zakat calculator + Hijri-aware reminder (manual Nisab
   price entry, no external API per rule 1), manually-entered annual inflation rate for a
   real/nominal savings-rate view, expense category anomaly flags, debt payoff velocity,
   financial-health history trend.

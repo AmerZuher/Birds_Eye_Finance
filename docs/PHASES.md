@@ -427,3 +427,19 @@ Whole app
 **Then the release build:** `npm run release:android`, install `apk/birdsEyeFinance_V2.2.0.apk`, and repeat the reminder delivery test plus one full pass of Debts and Expenses on it.
 
 **After 2.2.0 is published** (this is the only way to prove the updater): build a throwaway 2.2.1, publish it, and let the installed 2.2.0 update itself — allow "install unknown apps" once, then confirm the app reopens on 2.2.1 with every debt, proof and setting intact.
+
+Published 2026-09-16: tag and title `v2.2.0`, asset `birdsEyeFinance_V2.2.0.apk` with its SHA-256 digest — the shape the in-app updater requires, so 2.3.0 will reach installed users automatically. English release notes only; Arabic may follow later.
+
+## Unreleased (next planned: 2.3.0) — Phase 7, reconciliation core
+Scope and design approved 2026-09-16 (ENHANCEMENT_PLAN §6, decisions 5–8); the version stays `2.2.0` / versionCode `4` until the release is prepared (CLAUDE.md rule 17), planned `2.3.0` / `5`.
+
+- **What it is:** a `balance_snapshots` table (id, date, amount, currency, note?, createdAt) — the user logs "here's what I actually have today", and the app compares it with what it expected.
+- **Expected** = last logged balance + netSavings × (days since that log ÷ 30.44). **Variance** = logged − expected.
+- **Home** shows the latest logged balance (aged forward) instead of the sum of the typed accounts, which stay in Edit Profile as the seed and the per-account detail; a `ReconciliationNudgeCard` appears when the last log is stale (30 days).
+- **Analytics** gains `VarianceHistoryChart` — the expected-vs-actual trend across logged periods.
+- **The FAB** on Home and Analytics opens Log Balance directly (ENHANCEMENT_PLAN §5's three-entry sheet waits for targets/investments).
+- **Not in scope:** targets, investments, reconciliation-driven forecasting beyond the variance line — rule 13 is untouched.
+
+Fix riding along (2026-09-16, reported on 2.2.0): **the logo was cropped top and bottom** on About and in the header's brand tile. `assets/icon.png` is 910×1015, and both rendered it into a square box with `resizeMode="cover"`, which fills the square and slices the wingtip and the wallet's bottom edge. It was cropped on every theme — the cut simply disappeared against a dark tile and showed plainly on a light one (reported on Porcelain, fine-looking on Sapphire). Both now use `resizeMode="contain"`, and About's box grew 80 → 88 so the mark keeps its presence. `BalanceRevealCard`'s watermark and the attachment previews already used `contain`.
+
+Before code: **rule 15** needs rewording (Home may show the expected-vs-actual variance) and **rule 4** needs 26 → 28 primitives. Both were proposed on 2026-09-16 and are still awaiting the user's approval. `lastReconciledDate` on the profile is written in three places and read nowhere — it should derive from `MAX(date)` on the new table or be removed. Next migration number is `0006`.

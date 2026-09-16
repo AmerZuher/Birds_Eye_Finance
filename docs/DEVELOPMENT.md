@@ -31,6 +31,7 @@ Run from the project root. Details for each are further down this guide.
 | Install dependencies (after cloning, or when dependencies changed) | `npm install` |
 | Build and run the dev app on a connected device / emulator | `npm run android` |
 | Start the dev server for an already-installed dev build | `npm start` |
+| Same, but with a cleared bundler cache | `npm run start:clear` |
 | **Build a release APK** — regenerates `android/`, builds, copies the APK to `apk/` | `npm run release:android` |
 | Regenerate `android/` only (after `app.json` or native-dependency changes) | `npm run prebuild:android` |
 | Typecheck + lint — run before calling any change done | `npm run check` |
