@@ -98,8 +98,13 @@ function TypeTile({ type, size }: { type: Debt['type']; size: number }) {
 
 export default function Debts() {
   const { t } = useLanguage();
-  const { setFabHandler, consumeDebtCreateRequest, requestPersonPhoto, consumePersonPhotoRequest } =
-    useChrome();
+  const {
+    setFabHandler,
+    consumeDebtCreateRequest,
+    consumeDebtOpenRequest,
+    requestPersonPhoto,
+    consumePersonPhotoRequest,
+  } = useChrome();
   const { formatMoney, formatOriginalMoney } = useCurrency();
   const {
     groupedDebts,
@@ -202,6 +207,16 @@ export default function Debts() {
     useCallback(() => {
       setFabHandler(openCreateModal);
       if (consumeDebtCreateRequest()) openCreateModal();
+      // A person or debt tapped on the Dashboard (FEATURE_SPEC 7.4, 7.6); null = the person list.
+      const open = consumeDebtOpenRequest();
+      if (open) {
+        setHistoryOpen(false);
+        setSelectedPersonId(open.personId);
+        if (open.debtId != null) {
+          setDetailDebtId(open.debtId);
+          setDetailOpen(true);
+        }
+      }
       // A photo recovered after Android restarted the app mid-pick: reopen that
       // person's Edit Person sheet with it (PendingPhotoRecovery).
       const photo = consumePersonPhotoRequest();
@@ -221,6 +236,7 @@ export default function Debts() {
       setFabHandler,
       openCreateModal,
       consumeDebtCreateRequest,
+      consumeDebtOpenRequest,
       consumePersonPhotoRequest,
       requestPersonPhoto,
       peopleById,

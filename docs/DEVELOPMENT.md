@@ -58,31 +58,21 @@ This is a **bare/prebuilt Expo project** (the `android/` folder is real, generat
 | **A device or emulator** | A physical Android phone with USB debugging on, or an AVD from Android Studio's Device Manager. |
 | **Xcode (macOS only)** | Only if you ever build for iOS — nothing in this repo has been tested on iOS yet, despite `ios`-flavored config existing in `app.json`. |
 
-There is **no `.env` file, no API keys, no backend credentials to configure** — this is a local-first app (see CLAUDE.md rule 1). Its only network use is downloading public exchange rates from key-less endpoints (`src/lib/exchangeRates.ts`). If a build fails, it's almost always a native-toolchain problem (SDK version, JDK version, `ANDROID_HOME`), not a missing secret.
+There is **no `.env` file, no API keys, no backend credentials to configure** — this is a local-first app (see CLAUDE.md rule 1). Its only network use is downloading public exchange rates from key-less endpoints (`src/lib/exchangeRates.ts`) and, from 2.2.0, checking this app's public GitHub releases for updates (`src/lib/updates.ts`). If a build fails, it's almost always a native-toolchain problem (SDK version, JDK version, `ANDROID_HOME`), not a missing secret.
 
 ## Getting started
 
 ```bash
-git clone <this-repo>
-cd Bird_Eye
+git clone https://github.com/AmerZuher/Birds_Eye_Finance.git
+cd Birds_Eye_Finance
 npm install
-npx expo run:android
+npm run prebuild:android
+npm run android
 ```
 
-The first run builds the native Android project (this can take several minutes) and installs a **debug** build on whatever device/emulator `adb` sees. Subsequent runs are much faster since Gradle caches the native build.
+`prebuild:android` generates the native `android/` project from `app.json` and the config plugins; `npm run android` builds it (the first build can take several minutes) and installs a **debug** build on whatever device/emulator `adb` sees. Later runs are much faster since Gradle caches the native build. Run the prebuild again whenever `app.json`, a config plugin or a native dependency changes. Every other script is listed in [Common commands](#common-commands).
 
-Useful scripts already defined in `package.json`:
-
-```bash
-npm run android      # expo run:android
-npm run lint         # eslint .
-npm run typecheck    # tsc --noEmit
-npm run format       # prettier --write .
-npm run db:generate  # drizzle-kit generate (after changing src/db/schema.ts)
-npm run brandicons   # regenerates src/constants/brandIcons.ts from scripts/buildBrandIcons.ts
-```
-
-Run `lint` and `typecheck` before considering any change done — CLAUDE.md rule 11 treats both as a hard gate, not a suggestion.
+Run `npm run check` (typecheck + lint) before considering any change done — CLAUDE.md rule 11 treats both as a hard gate, and the GitHub check workflow runs the same command on every push (see [CI/CD](#cicd)).
 
 ## Project structure
 
@@ -99,7 +89,7 @@ src/
 ├─ pages/           The real screen implementations
 ├─ components/      App-specific composed components
 │  └─ ui/           26 shared, theme-driven primitives
-├─ context/         7 React Contexts
+├─ context/         10 React Contexts
 ├─ db/              Drizzle schema, client, migrations
 ├─ constants/       theme.ts, translations.ts, currencies.ts, ...
 ├─ utils/           dataTransfer, color, expenseIcon, whatsapp
@@ -115,13 +105,13 @@ android/            Generated native project (gitignored)
 
 - **`app/`** — Expo Router routes. Thin: mostly just re-exports a screen component from `src/pages`. `_layout.tsx` is the one exception — it owns the whole provider tree, the route `Stack`, and mounts `Header`/`Navbar` (see [App boot sequence](#app-boot-sequence--provider-tree) below).
 - **`src/pages/`** — the real screen implementations; what `app/`'s routes point at.
-- **`src/components/`** — app-specific composed components (`DebtModal`, `ExpenseModal`, `Header`, `Navbar`, ...). Its `ui/` subfolder holds **26 shared, theme-driven primitives** (CLAUDE.md rule 4) — every screen composes these; nothing hardcodes a color or duplicates another screen's pattern. *(Rule 4's original list names 18 of them; `BalanceRevealCard`, `DonutChart`, `GlowBlob`, `ListCard`, `MoneyAmount`, `ProgressBar`, `RingGauge`, and `StatTile` were added afterward and aren't in that enumeration — the code is the source of truth, not the rule's original list.)*
-- **`src/context/`** — 7 React Contexts; see the provider-tree diagram below for what each one owns.
-- **`src/db/`** — `schema.ts` (Drizzle table definitions: `expenses`, `debts`, `incomeSources`), `client.ts` (expo-sqlite + Drizzle setup), `migrations/` (drizzle-kit-generated SQL — never hand-edit, run `npm run db:generate` instead).
+- **`src/components/`** — app-specific composed components (`DebtModal`, `ExpenseModal`, `Header`, `Navbar`, ...). Its `ui/` subfolder holds **26 shared, theme-driven primitives** (CLAUDE.md rule 4) — every screen composes these; nothing hardcodes a color or duplicates another screen's pattern. Rule 4 lists all 26.
+- **`src/context/`** — 10 React Contexts; see the provider-tree diagram below for what each one owns.
+- **`src/db/`** — `schema.ts` (Drizzle table definitions: `expenses`, `people`, `debts`, `debtAdjustments`, `debtAttachments`, `incomeSources`), `client.ts` (expo-sqlite + Drizzle setup, foreign keys on), `maintenance.ts` (post-migration people backfill and attachment reconcile), `migrations/` (drizzle-kit-generated SQL — never hand-edit, run `npm run db:generate` instead).
 - **`src/constants/`** — `theme.ts` (the 16 locked color palettes, 8 dark and 8 light, + design tokens: `RADII`, `SEMANTIC`, `FONTS`, `GLASS_*`), `translations.ts` (flat key → `{ en, ar }` dictionary), `currencies.ts` (`CurrencyDef`, `getCurrency`, the original 20 `CORE_CURRENCY_CODES`) over `currencyTable.ts` (generated by `npm run currencies` — all 153 currencies with English/Arabic names and symbols and built-in rates; never hand-edit), `brandIcons.ts` (generated — curated icon subset from simple-icons), `initialData.ts` (default `Profile` shape).
 - **`src/utils/`** — `dataTransfer.ts` (export snapshot, tolerant parser, import preview and append — the app keeps no local backups), `color.ts` (`hexToRgb`, chrome-alpha constants for the glass effect), `expenseIcon.ts` (name-autocomplete → icon matching), `whatsapp.ts` (`openWhatsApp()` deep link).
 - **`src/prompts/`** — `debtsPrompt.ts`, `expensesPrompt.ts`: copy-paste prompts for the AI-import workflow (CLAUDE.md rule 1).
-- **`src/lib/`** — pure logic and device helpers: `mmkv.ts` (the single `react-native-mmkv` instance, typed `StorageKeys`, `getJSON`/`setJSON`, and the launch-time cleanup of retired keys), `exchangeRates.ts` (rate download, validation and cache — CLAUDE.md rule 1's exchange-rate exception), `avatars.ts` (photo picking, storage, and recovery after Android destroys the Activity mid-pick), `attachments.ts`, `people.ts`, `debtStatus.ts`, `dates.ts`, `scroll.ts`.
+- **`src/lib/`** — pure logic and device helpers: `mmkv.ts` (the single `react-native-mmkv` instance, typed `StorageKeys`, `getJSON`/`setJSON`, and the launch-time cleanup of retired keys), `exchangeRates.ts` (rate download, validation and cache — CLAUDE.md rule 1's exchange-rate exception), `avatars.ts` (photo picking, storage, and recovery after Android destroys the Activity mid-pick), `attachments.ts`, `people.ts`, `debtStatus.ts`, `dates.ts`, `installments.ts` (the installment calendar behind the Dashboard's Coming up card and the reminders), `notifications.ts` (reminder planning and scheduling), `useMirroredText.ts` (why every text input keeps its own text), `scroll.ts`.
 - **`scripts/`** — one-off build-time scripts (brand icon curation); not part of the shipped app.
 - **`docs/`** — this file, `FEATURE_SPEC.md`, `PHASES.md`, `gallery/` (the README's screenshots).
 - **`android/`** — the generated native Android project. Gitignored — don't hand-edit it expecting changes to survive `expo prebuild --clean` — nothing in it is hand-edited; the release-APK output step comes from `plugins/withReleaseApk.js` (see [Release builds](#release-builds)).
@@ -133,24 +123,32 @@ Everything starts in `app/_layout.tsx`. The provider nesting order is deliberate
 ```mermaid
 flowchart TD
     A[GestureHandlerRootView] --> B[SafeAreaProvider]
-    B --> C[ThemeProvider]
+    B --> K[KeyboardProvider]
+    K --> C[ThemeProvider]
     C --> D[LanguageProvider]
     D --> E[CurrencyProvider]
     E --> F[UserProvider]
-    F --> G[FinanceProvider]
+    F --> DB[DatabaseProvider]
+    DB --> DT[DebtsProvider]
+    DT --> G[FinanceProvider]
     G --> H[ChromeProvider]
-    H --> I[ModalPortalProvider]
+    H --> R[RemindersProvider]
+    R --> I[ModalPortalProvider]
     I --> J[RootLayoutInner]
 ```
 
 What each provider actually owns, outer to inner:
 
+- **KeyboardProvider** — `react-native-keyboard-controller`: gives sheets and screens the live keyboard height so a focused field is never covered (FEATURE_SPEC 0.9). Both system bars are translucent (edge-to-edge).
 - **ThemeProvider** — reads the theme id from MMKV *synchronously* (rule 2: no flash of wrong colors on cold start).
 - **LanguageProvider** — reads language from MMKV; drives `I18nManager`'s native RTL flip.
 - **CurrencyProvider** — reads base currency + per-currency usage counts from MMKV.
 - **UserProvider** — reads the `Profile` blob from MMKV.
-- **FinanceProvider** — owns the live SQLite queries (debts/expenses/income). Needs `CurrencyProvider` above it for `convertToBase()`.
-- **ChromeProvider** — header/navbar heights, the shared `blurTarget` ref, the FAB handler.
+- **DatabaseProvider** — runs the Drizzle migrations (`migrate()` in `src/context/DatabaseContext.tsx`), then `backfillPeople()` and `reconcileAttachmentFiles()` (`src/db/maintenance.ts`). It renders nothing until they finish, so no screen queries a half-migrated schema; the splash screen stays up meanwhile.
+- **DebtsProvider** — people, debts, adjustments and attachments: live queries, every write, `groupedDebts` and `debtsCalculations`. Needs `CurrencyProvider` above it for conversions.
+- **FinanceProvider** — income sources and expenses (live queries and writes) plus the derived `effectiveIncome`, `netSavings`, `savingsRate` and `financialHealth`. Needs `DebtsProvider` above it for `totalNegativeMonthly`.
+- **ChromeProvider** — header/navbar heights, the shared `blurTarget` ref, the FAB handler, and the "open this person/debt" request the Dashboard and a tapped reminder queue for the Debts screen.
+- **RemindersProvider** — the installment-reminder setting and lead time, notification permission, and the rescheduling itself (`src/lib/notifications.ts`, FEATURE_SPEC 1.13). Needs `DebtsProvider` for the debts and payments the plan is built from.
 - **ModalPortalProvider** — the portal every `GlassModal` instance renders into.
 - **RootLayoutInner** — waits on custom fonts, then hides the splash screen.
 
@@ -177,7 +175,7 @@ In practice `@/*` alone covers everything (`@/utils/color`, `@/lib/mmkv`, `@/pag
 
 Two persistence mechanisms, used for two different kinds of data (CLAUDE.md rule 1):
 
-- **Relational data** (debts, expenses, income sources) → `expo-sqlite` via **Drizzle ORM**, typed schema in `src/db/schema.ts`, migrations generated by `drizzle-kit` (`npm run db:generate`) and applied automatically at app start via `drizzle-orm/expo-sqlite/migrator`'s `useMigrations` hook (see `FinanceContext.tsx`). Live-updating queries come from `drizzle-orm/expo-sqlite`'s `useLiveQuery`, so any insert/update/delete anywhere in the app reactively updates every screen reading that table — no manual refetch anywhere.
+- **Relational data** (people, debts, debt adjustments, debt attachments, expenses, income sources) → `expo-sqlite` via **Drizzle ORM**, typed schema in `src/db/schema.ts`, migrations generated by `drizzle-kit` (`npm run db:generate`) and applied at app start by `drizzle-orm/expo-sqlite/migrator`'s `migrate()` in `DatabaseProvider` (`src/context/DatabaseContext.tsx`), before any screen mounts. Live-updating queries come from `drizzle-orm/expo-sqlite`'s `useLiveQuery`, so any insert/update/delete anywhere in the app reactively updates every screen reading that table — no manual refetch anywhere.
 - **Preferences** (theme id, language, base currency, currency usage counts, the Profile blob, active/previous tab, settings sub-screen, the exchange-rate cache with the Live-rates setting and last attempt, and — only while the photo picker is open — who a photo is being picked for) → `react-native-mmkv`, one instance (`src/lib/mmkv.ts`), synchronous reads so theme/language are correct on the very first frame. `StorageKeys` is the single source of truth for every key string used — always add new keys there, never inline a string literal.
 
 **Export / import** (`src/utils/dataTransfer.ts`) funnel through one `BackupSnapshot` shape. The app keeps no local backups of its own:
@@ -203,7 +201,7 @@ interface BackupSnapshot {
 
 ## Theming & the glass effect
 
-- `src/constants/theme.ts` exports `THEMES`, currently **16 palettes** (`obsidian`, `sapphire`, `porcelain`, `sandstone`, `sage`, `tokyoNight`, `emerald`, `amberGlow`, `oledBlack`, `rosePine`, `amethyst`, `goldenrod`, `blush`, `coastal`, `matcha`, `graphite`) — 8 dark, 8 light. CLAUDE.md rule 3 still describes the original 4 from Phase 1 (Platinum/Emerald/Obsidian/Sapphire) — the palette set has grown well past that since; treat `theme.ts` itself as ground truth for what exists, and its own rule-3 status as "frozen once you touch it, not a fixed count."
+- `src/constants/theme.ts` exports `THEMES`, currently **16 palettes** (`obsidian`, `sapphire`, `porcelain`, `sandstone`, `sage`, `tokyoNight`, `emerald`, `amberGlow`, `oledBlack`, `rosePine`, `amethyst`, `goldenrod`, `blush`, `coastal`, `matcha`, `graphite`) — 8 dark, 8 light. Per CLAUDE.md rule 3, `theme.ts` is the source of truth for what exists, and editing it needs the user's sign-off.
 - **The glassmorphism effect** (`GlassHeader`, `Navbar`'s bar, `GlassModal`, and the FAB) is always the same recipe: a real `expo-blur` `BlurView` (`intensity={GLASS_BLUR_INTENSITY}`, `blurMethod={ANDROID_BLUR_METHOD}`, `blurTarget` from `ChromeContext`) layered under a `theme.ground`-at-`CHROME_GROUND_ALPHA` wash (`src/utils/color.ts`). Never approximate this with a flat tinted View — the whole point is that content visibly scrolls/blurs underneath it.
 - **Do not combine a `BlurView` with `overflow: 'hidden'` and Android's `elevation` prop on the same node or its parent** — see [Known gotchas](#known-gotchas--lessons-already-learned) below. This has caused a real native crash twice.
 
@@ -223,9 +221,9 @@ One deliberate exception to RTL mirroring: the FAB stays at a fixed physical scr
 npx expo run:android
 ```
 
-This is a real dev-client build (not Expo Go) — required because the app uses native modules Expo Go doesn't ship (contacts, image manipulation, background tasks). Specifically:
+This is a real dev-client build (not Expo Go) — required because the app uses native modules Expo Go doesn't ship (MMKV, the keyboard controller, image manipulation). Specifically:
 
-> **Notifications and background debt-deadline re-evaluation (CLAUDE.md rule 10) cannot be verified in Expo Go at all**, and are unreliable even in some dev-client scenarios. Test that feature specifically on a real **EAS Development Build** or a from-source `run:android` build, never report it "done" from anything less.
+> **Installment reminders (CLAUDE.md rule 10) must be verified on a development or release build on a real phone** — after a reboot, after an app update, and with battery saver on. Expo Go and the emulator alone don't count.
 
 The emulator is fine for almost everything, but it has a **much larger available heap than most real phones**. Anything that's actually about memory pressure (see the avatar-picker crash below) will pass silently on the emulator and still fail on a real device — don't treat "works on the emulator" as sufficient proof for image-handling or picker-related changes.
 
@@ -260,48 +258,21 @@ Release APK output comes from a local config plugin, **`plugins/withReleaseApk.j
    npx expo run:android --variant release
    ```
    Steps 2 and 3 in one go: `npm run release:android`.
-4. Upload `apk/birdsEyeFinance_V<version>.apk` to a new GitHub Release whose **tag and title are exactly `v<version>`** — the same version as `app.json` and the APK filename (e.g. tag `v2.0.1` for `birdsEyeFinance_V2.0.1.apk`). A mismatched tag misleads users, and would break any future update check that compares the latest tag with the installed version.
+4. Upload `apk/birdsEyeFinance_V<version>.apk` to a new GitHub Release whose **tag and title are exactly `v<version>`** — the same version as `app.json` and the APK filename (e.g. tag `v2.0.1` for `birdsEyeFinance_V2.0.1.apk`). A mismatched tag misleads users and breaks the in-app update check (from 2.2.0, FEATURE_SPEC 3.2 C), which only accepts a release whose tag is exactly `v<version>` and whose APK is named `birdsEyeFinance_V<version>.apk`. The check ignores drafts and pre-releases, so publish a normal release only when it should reach users.
 
 **Things to know:**
 
 - **`android/` is gitignored and fully generated.** Never hand-edit it expecting the change to last — `prebuild --clean` wipes it. Until 2.0.1 the APK rename/copy lived as a direct edit there and was lost to a clean prebuild; it now lives in the plugin. Anything else that must survive belongs in a config plugin too.
-- **Release builds are signed with the debug keystore.** `android/app/build.gradle`'s `release` build type explicitly points `signingConfig signingConfigs.debug` at `android/app/debug.keystore`, with a code comment ("Caution! In production, you need to generate your own keystore file") that's never actually been acted on. This is fine for sideloading APKs the way this project currently distributes them, but **this build is not Play-Store-distributable and not meaningfully more secure than a debug build** — anyone with the (checked-in, well-known) debug keystore could resign an update. Generating a real release keystore and wiring it in is a prerequisite for any distribution channel beyond "hand someone the APK."
-- **`versionCode` lives in `app.json`** (`android.versionCode`, `2` as of 2.0.1). Sideloading doesn't enforce it, but increase it with every release anyway — the Play Store requires it, and `versionName` alone isn't what the Store tracks.
+- **Release builds are signed with the debug keystore.** `android/app/build.gradle`'s `release` build type explicitly points `signingConfig signingConfigs.debug` at `android/app/debug.keystore`, with a code comment ("Caution! In production, you need to generate your own keystore file") that's never actually been acted on. This is fine for sideloading APKs the way this project currently distributes them, but **this build is not Play-Store-distributable and not meaningfully more secure than a debug build** — anyone with the (checked-in, well-known) debug keystore could resign an update. Generating a real release keystore and wiring it in is a prerequisite for any distribution channel beyond "hand someone the APK." The in-app updater (2.2.0) checks that a downloaded APK is signed with the same key as the installed app, but with this public debug key that proves little — its real protection is that it downloads only from this repository's GitHub releases over HTTPS and checks GitHub's SHA-256 digest. Keep the GitHub account secured (two-factor authentication).
+- **`versionCode` lives in `app.json`** (`android.versionCode`, `3` as of 2.1.0). Sideloading doesn't enforce it, but increase it with every release anyway — the Play Store requires it, and `versionName` alone isn't what the Store tracks.
 
 ## CI/CD
 
-**There is currently no CI/CD pipeline at all** — no `.github/workflows`, no `eas.json`, no `eas-build`/hosted build integration of any kind. Every build (dev or release) happens locally on a developer's machine via the commands above. This is worth stating plainly rather than leaving implicit, since it means:
+**`.github/workflows/ci.yml`** (added for 2.2.0) runs `npm ci` and `npm run check` (typecheck + lint) on every push and pull request, and GitHub shows ✓ or ✗ next to the commit. It needs no Android SDK or secrets, and it **builds and releases nothing**: there's no `eas.json` or hosted build, and every release APK is still built locally and uploaded by hand (see [Release builds](#release-builds)). It doesn't run Prettier, and there's no automated test suite (no Jest config, no `__tests__`).
 
-- Nothing currently blocks a broken `lint`/`typecheck` from landing on `master` — CLAUDE.md rule 11's "must pass before any phase is complete" is enforced by convention/discipline only, not by tooling.
-- Every release APK is hand-built locally and hand-uploaded to a GitHub Release by whoever runs `assembleRelease` — there's no automated build-on-tag or build-on-push, and no automated release-asset upload either.
-- There's no automated test suite of any kind in this repo (no Jest config, no `__tests__` directories) to run in CI even if a pipeline existed.
+### If you want more
 
-### If you want to add one
-
-Two independent, additive pieces — neither requires the other:
-
-**1. A lint/typecheck gate on every push/PR** (cheapest, most valuable first step — catches exactly the class of regression CLAUDE.md rule 11 already asks for by hand):
-
-```yaml
-# .github/workflows/ci.yml
-name: CI
-on: [push, pull_request]
-jobs:
-  check:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-      - run: npm ci
-      - run: npm run lint
-      - run: npm run typecheck
-```
-
-This doesn't need Android SDK, an emulator, or any secrets — it's pure Node, and would have caught every TypeScript/ESLint issue introduced during this project's history before it landed.
-
-**2. Automated Android builds via EAS Build**, if hand-running Gradle locally ever becomes a bottleneck. This project has no `eas.json` and has never run `eas build` — adopting it would mean:
+**Automated Android builds via EAS Build**, if hand-running Gradle locally ever becomes a bottleneck. This project has no `eas.json` and has never run `eas build` — adopting it would mean:
 - `npm install -g eas-cli`, `eas login`, `eas build:configure` (generates `eas.json`).
 - A real release keystore uploaded to EAS's credential store (replacing the debug-keystore situation above — EAS Build won't sign a Play-Store-track build with a debug key).
 - Optionally, a GitHub Actions workflow that triggers `eas build --platform android --profile production` on a tag push, and (further optionally) `eas submit` to push straight to the Play Store's internal testing track.

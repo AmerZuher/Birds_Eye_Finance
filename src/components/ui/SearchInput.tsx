@@ -4,6 +4,7 @@ import { Search, X } from 'lucide-react-native';
 
 import { useTheme } from '@/context/ThemeContext';
 import { RADII } from '@/constants/theme';
+import { useMirroredText } from '@/lib/useMirroredText';
 
 interface SearchInputProps {
   value: string;
@@ -14,6 +15,8 @@ interface SearchInputProps {
 /** Icon + placeholder + clear — one implementation, reused everywhere search appears. */
 export function SearchInput({ value, onChangeText, placeholder }: SearchInputProps) {
   const { theme } = useTheme();
+  // Local text, so filtering a long list can't make the field lose characters (src/lib/useMirroredText.ts).
+  const { text, handleChangeText } = useMirroredText(value, onChangeText);
 
   return (
     <View
@@ -31,14 +34,18 @@ export function SearchInput({ value, onChangeText, placeholder }: SearchInputPro
     >
       <Search size={16} color={theme.textTertiary} />
       <TextInput
-        value={value}
-        onChangeText={onChangeText}
+        value={text}
+        onChangeText={handleChangeText}
         placeholder={placeholder}
         placeholderTextColor={theme.textTertiary}
         style={{ flex: 1, color: theme.textPrimary, fontSize: 13, padding: 0 }}
       />
-      {value.length > 0 && (
-        <Pressable onPress={() => onChangeText('')} hitSlop={8} accessibilityLabel="Clear search">
+      {text.length > 0 && (
+        <Pressable
+          onPress={() => handleChangeText('')}
+          hitSlop={8}
+          accessibilityLabel="Clear search"
+        >
           <X size={15} color={theme.textTertiary} />
         </Pressable>
       )}

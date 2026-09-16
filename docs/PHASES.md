@@ -292,3 +292,75 @@ Tested on a debug build made with `npm run android` without a prebuild.
 - [ ] Rates panel: equal left and right gaps to the card edge, in English and Arabic.
 
 Note: `docs/ENHANCEMENT_PLAN.md` §7 proposes its own "Phase 6–9" numbering. That plan is not approved yet; renumber it after this phase when it is.
+
+## Unreleased (next planned: 2.2.0)
+The version stays `2.1.0` / versionCode `3` until the release is prepared (CLAUDE.md rule 17); planned: `2.2.0` / `4`.
+
+### Scope and decisions (2026-09-15)
+- **Full backup (ENHANCEMENT_PLAN §8) deferred** to the end of the plan; the research so far is recorded there. Reconciliation, targets and investments (§0–7) stay out (rule 13). Moving off the debug signing key: rejected for now.
+- **Docs sync.** CLAUDE.md rule 3 (16 palettes, 8 dark and 8 light; `theme.ts` is the source of truth) and rule 4 (26 primitives) reworded, user-approved. FEATURE_SPEC 0.1 (four tabs, the FAB on every tab), 0.3, 0.8 and the source-file list; DEVELOPMENT.md (Getting started, provider tree, migrations in `DatabaseContext`, versionCode, CI); README tagline.
+- **Installment reminders** (FEATURE_SPEC 1.13 and 3.2 C; rule 10 reworded, user-approved). Local notifications scheduled ahead: installment due (Settings lead time: on the day / 1 day before (default) / 3 days before, at 9:00) and plan ending (7 days before). A month's reminder is skipped when payments recorded since the previous installment date cover the monthly payment. 90-day horizon, re-synced inside the app; no background task — `expo-background-fetch` and `expo-task-manager` are removed.
+- **App updates** (FEATURE_SPEC 3.2 C; rule 1 exception (c), user-approved). Settings checks this app's GitHub releases at most once a day plus "Check now". After the user confirms, the APK is downloaded, verified (SHA-256 digest from GitHub, package name, signing key, higher versionCode) and installed — without Android's confirmation on Android 12+ where Android allows it. Needs a local native module and the `REQUEST_INSTALL_PACKAGES` and `UPDATE_PACKAGES_WITHOUT_USER_ACTION` permissions.
+- **Dashboard** (FEATURE_SPEC Part 7; rule 15 reworded, user-approved): greeting and Current balance → Coming up (next 30 days) → This month (savings-rate ring with income − installments − expenses = net savings, replacing the four tiles) → Debts (totals and the top 3 people).
+- **Analytics** documented (FEATURE_SPEC Part 8). Fix: with no expenses it shows two empty states.
+- **CI:** `.github/workflows/ci.yml` runs `npm run check` on every push and pull request. It builds and releases nothing.
+
+Status: rules and specs written; step 1 (Dashboard, Analytics) implemented — reminders and the updater not started.
+
+### Step 1 — Dashboard and Analytics (2026-09-15)
+Checked: `npm run check` (0 errors; the 4 known react-hook-form warnings), Prettier on the changed files, EN/AR keys 358/358 with no literal `t()` key missing, and a logic test of the installment calendar (month-end and leap-year dates, end dates, "already paid", excluded debts) run with `tsx` outside the repo. **Not verified on a device.** No native change — `npm run android`, or reloading a running dev build, is enough.
+- `src/lib/installments.ts` (new): the installment calendar the reminders will share — `installmentEvents(debts, payments, from, to)`, `hasInstallmentPlan`, `addDays`, `daysBetween`.
+- `DebtsContext` exposes `payments` (a live query of − adjustments) for the "already paid" check.
+- `ChromeContext.requestDebtOpen` / `consumeDebtOpenRequest`: the Dashboard queues a person (or the person list) and optionally one debt; Debts opens it when it gains focus, closing History first.
+- **Dashboard** (FEATURE_SPEC Part 7): greeting and Current balance as before; **Coming up** (next 30 days, up to 5 rows plus "+n more", a quiet line when nothing is due, hidden without installment plans); **This month** (savings-rate ring in the health tier's color with its label; income, −installments, −expenses and net savings; an "Add income" link when there's no income; tapping opens Analytics) replacing the four stat tiles; **Debts** (owed to me / I owe / net, the top 3 people, See all). Composed from SettingsCard, ListCard, ListRow, Avatar, MoneyAmount, RingGauge, SecondaryButton's link variant and SectionLabel.
+- **Analytics:** the page-level duplicate EmptyState is gone (FEATURE_SPEC 8.5).
+- Translations: 14 `dashboard.*` keys per language; the unused `dashboard.balances`, `dashboard.balancesEmpty` and `analytics.topExpenses` removed.
+
+On-device checks:
+- [ ] Dashboard with no data: greeting, zero balance, This month with "—" and "Add income" (opens Edit Profile); no Coming up or Debts section.
+- [ ] An "I owe" debt with a monthly payment and a start date a few days ahead → Coming up shows it ("In n days"); tapping it opens Debts on that person with the debt's sheet open.
+- [ ] Record a payment of at least the monthly payment → that installment leaves Coming up; a smaller payment leaves it listed.
+- [ ] A plan whose end date is within 30 days shows a "Plan ends" row with the outstanding amount.
+- [ ] More than 5 items → "+n more"; a plan with nothing due in 30 days → the quiet line.
+- [ ] This month: the percentage and tier color match Edit Profile's health badge; tapping the card opens Analytics.
+- [ ] Debts: the net matches the Debts screen; the top 3 people by amount; tapping a person opens them; See all opens the person list (also when a person was left open on Debts).
+- [ ] Analytics with no expenses: exactly one empty state.
+- [ ] Arabic on a dark and a light theme: mirrored layout, "#0042" readable in Coming up rows, minus signs next to the digits.
+
+### Step 1 follow-up — text fields and rates on launch (2026-09-16)
+- **Every text field dropped characters while deleting** (user report: the caret skips and several characters disappear when backspacing to correct a word). Cause: every input was plainly controlled — its text came from React state that lands a render *after* the keystroke, so Android's native edit was overwritten by the late echo. Deleting is the worst case because backspace repeats fast and the keyboard rewrites the word being edited. Two amplifiers here: Edit Profile's name wrote the whole profile to MMKV on every keystroke (DEVELOPMENT.md gotcha 4), and DebtModal/ExpenseModal re-render all ~13 fields per keystroke through react-hook-form's `watch()`.
+  - Fix: `src/lib/useMirroredText.ts` — the field renders from local state committed in the same pass as the keystroke and adopts the caller's value only when the caller genuinely changes it (prefill, reset, the clear button). A caller that transforms the text (filtering digits, normalizing a phone) still wins on the next render. Used by `TextField`, `SearchInput` and `AmountInput`, which covers every input in the app.
+  - The profile name is now saved on blur and when the screen loses focus, not per keystroke.
+  - Edit Profile's entry-name field and the Data screen's paste box use the shared `TextField` (CLAUDE.md rule 5) instead of their own copies of its styling; both gain the themed cursor and selection colors.
+- **Live exchange rates now refresh on every app launch** (user's call), instead of only when the rates in use are a day old. While the app keeps running, a return to the foreground — and turning the setting back on — still downloads only when due, with the same 30-minute retry gap after a failure. CLAUDE.md rule 1 (b) and FEATURE_SPEC 0.5 and Part 6 updated.
+
+On-device checks:
+- [ ] Backspace mid-word in: a debt's name, date and notes, an amount field, the Debts and Expenses search, Edit Profile's name and a balance row, Edit Person's fields, and the Data screen's paste box — nothing is skipped and the caret stays where it should, in English and Arabic.
+- [ ] Edit Profile: change the name, leave the screen without tapping anything else, come back — the new name is saved.
+- [ ] Prefills still work: edit an existing debt, Quick Add an expense, clear a search with its X, switch an adjustment's currency.
+- [ ] Settings → rates: launch with a connection → "Updated today, …"; launch in airplane mode → the status line doesn't change and nothing blocks the UI.
+
+### Step 2 — Installment reminders (2026-09-16)
+FEATURE_SPEC 1.13 and 3.2 C; CLAUDE.md rule 10. **Needs a prebuild before testing** — `expo-background-fetch` and `expo-task-manager` are gone from `package.json`: `npm run prebuild:android`, then `npm run android`.
+- `src/lib/notifications.ts`: the reminder plan and its scheduling. `planReminders(events, lead, content)` turns the step 1 installment calendar into notifications — one per installment at the chosen lead time, one per plan end 7 days before, at 09:00, skipping anything already past. `syncScheduledReminders` replaces every reminder the app has scheduled (it schedules nothing else). Each is a one-time `DATE` trigger on its own exact date, never a repeating monthly trigger, which can't express "the month's last day". Also the Android channel, the permission request (the channel is created first — Android 13 shows no prompt without one), and the foreground behavior.
+- `src/context/RemindersContext.tsx`: the setting, the lead time, the permission, and the rescheduling. It reschedules whenever debts, payments, a person's name, the setting, the lead time or the language changes, and turns itself off if notifications are revoked in system settings while the app wasn't looking.
+- `src/components/NotificationRouting.tsx` (mounted at the root, like PendingPhotoRecovery): tapping a reminder opens that debt on Debts, including when the tap launched the app cold — the target is queued through `ChromeContext.requestDebtOpen`, and the launch response is acted on once (its identifier is remembered).
+- Settings → Notifications is real: the switch asks for permission, a refusal shows an error banner with "Open settings", and while on, a lead-time control offers On the day / 1 day before (default) / 3 days before.
+- 13 `reminders.*` and `settings.notifications.*` keys per language; 3 MMKV keys.
+
+On-device checks (dev build after a prebuild, then the release build):
+- [ ] Settings → Notifications on → Android asks for permission. Allow → the lead-time control appears. Deny → the switch stays off with the banner, and "Open settings" opens the app's settings page.
+- [ ] With a debt whose installment is due tomorrow and the lead set to "1 day before": a reminder arrives at 09:00 with the amount, person and debt id. (To test quickly, set an installment start date so the next installment lands tomorrow.)
+- [ ] Tapping the reminder opens that debt's sheet — with the app closed, in the background, and open.
+- [ ] Record a payment covering that installment → no reminder for it; the Dashboard's Coming up agrees.
+- [ ] A plan ending within a week gives one "plan ends" reminder.
+- [ ] Turn Arabic on → later reminders arrive in Arabic.
+- [ ] Reboot the phone and reinstall over the top (`npm run android` again): reminders still arrive.
+- [ ] Turn the switch off → nothing arrives. Revoke notifications in Android settings while the app is open → the switch shows off when you come back.
+- [ ] Honor battery saving: confirm reminders still arrive when the app hasn't been opened for a day.
+
+**Notifications customization moved to its own screen** (user's call, 2026-09-16), since more options are expected later: `src/pages/NotificationsScreen.tsx` + `app/settings/notifications.tsx` (FEATURE_SPEC 3.5). The Settings hub row keeps the overall on/off switch (and the permission prompt and its denied banner) and gains a chevron that opens the new screen, which holds the per-kind options — today just the reminder lead time, with a warning banner while notifications are off. The header title map and the settings Stack gained the route.
+
+**Rates attribution moved to About** (user's call, 2026-09-16). ExchangeRate-API's open-access terms require the "Rates By Exchange Rate API" link to be visible to end users on the pages using the rates — their docs say it cannot be satisfied by a repository README — so it sits discreetly in About's description card, and the Settings rates row is now only the switch.
+
+**Exchange-rate status panel removed** (user's call, 2026-09-16). The working copy had already lost the rates row's status panel — the status dot and "Updated today…" line, the attribution link and the Refresh button — which left ten unused symbols in `Settings.tsx`; the user chose to keep it that way. The dead code is gone (`StatusDot`, the status/colour/source derivations, `describeWhen`/`daysAgo`, the refresh handler and their imports), and the row is now the switch plus the required "Rates By Exchange Rate API ↗" caption link. **There is no manual refresh in the UI any more** — rates download on every launch instead (step 1 follow-up). FEATURE_SPEC 0.5 and 3.2 C updated; CLAUDE.md rule 1 (b) still mentions a manual Refresh and needs its wording settled.

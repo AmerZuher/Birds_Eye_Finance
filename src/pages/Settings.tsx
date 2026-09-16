@@ -3,14 +3,12 @@ import { Linking, Pressable, ScrollView, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import {
   ArrowLeftRight,
-  ArrowUpRight,
   Bell,
   ChevronRight,
   Coins,
   CreditCard,
   Globe,
   Moon,
-  RefreshCw,
   Shield,
   Sun,
 } from 'lucide-react-native';
@@ -19,7 +17,6 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { PageTransition } from '@/components/PageTransition';
 import { Avatar } from '@/components/ui/Avatar';
 import { CustomSelect } from '@/components/ui/CustomSelect';
-import { IconButton } from '@/components/ui/IconButton';
 import { InlineBanner } from '@/components/ui/InlineBanner';
 import { MoneyAmount } from '@/components/ui/MoneyAmount';
 import { SecondaryButton } from '@/components/ui/SecondaryButton';
@@ -32,42 +29,18 @@ import { useCurrency } from '@/context/CurrencyContext';
 import { useUser } from '@/context/UserContext';
 import { useFinance } from '@/context/FinanceContext';
 import { useChrome } from '@/context/ChromeContext';
-import { RADII, SEMANTIC, THEME_IDS, THEMES } from '@/constants/theme';
+import { useReminders } from '@/context/RemindersContext';
+import { RADII, THEME_IDS, THEMES } from '@/constants/theme';
 import type { ThemeId } from '@/constants/theme';
 import type { Language } from '@/constants/translations';
 import { avatarDisplayUri } from '@/lib/avatars';
-import { RATE_SOURCE_NAMES, RATES_ATTRIBUTION_URL } from '@/lib/exchangeRates';
 import { HIDDEN_SCROLLBARS } from '@/lib/scroll';
-import { withAlpha } from '@/utils/color';
 
 type ThemeGroup = 'dark' | 'light';
-type Translate = (key: string, vars?: Record<string, string | number>) => string;
-
-const DAY_MS = 24 * 60 * 60 * 1000;
-/** Rates older than this read as stale (amber) — providers publish daily. */
-const STALE_AFTER_DAYS = 2;
-
-/** Whole calendar days between a timestamp and today. */
-function daysAgo(timestamp: number): number {
-  const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
-  return Math.round((startOfDay(new Date()) - startOfDay(new Date(timestamp))) / DAY_MS);
-}
-
-/** "today, 15:42" / "yesterday" / "3 days ago" — how long ago the rates in use are from. */
-function describeWhen(timestamp: number, withTime: boolean, t: Translate): string {
-  const days = daysAgo(timestamp);
-  if (days <= 0) {
-    if (!withTime) return t('settings.rates.today');
-    const date = new Date(timestamp);
-    const time = `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
-    return t('settings.rates.todayAt', { time });
-  }
-  if (days === 1) return t('settings.rates.yesterday');
-  return t('settings.rates.daysAgo', { n: days });
-}
 
 export default function Settings() {
   const router = useRouter();
+  const reminders = useReminders();
   const { theme, themeId, setThemeId } = useTheme();
   const { language, setLanguage, t } = useLanguage();
   const {
@@ -77,7 +50,6 @@ export default function Settings() {
     recordCurrencyUsage,
     exchangeRates,
     setOnlineRates,
-    refreshRates,
   } = useCurrency();
   const { profile } = useUser();
   const { totalMonthlyIncomeBase } = useFinance();
@@ -86,39 +58,11 @@ export default function Settings() {
   const [themeGroup, setThemeGroup] = useState<ThemeGroup>(() =>
     theme.isLight ? 'light' : 'dark',
   );
-  const [ratesError, setRatesError] = useState('');
 
   const languageOptions: { label: string; value: Language }[] = [
     { label: 'English', value: 'en' },
     { label: 'العربية', value: 'ar' },
   ];
-
-  const builtInRates = exchangeRates.source === 'built-in';
-  const ratesWhen = describeWhen(exchangeRates.updatedAt, !builtInRates, t);
-  const ratesStatus = exchangeRates.refreshing
-    ? t('settings.rates.updating')
-    : !exchangeRates.online
-      ? t('settings.rates.off', { when: ratesWhen })
-      : builtInRates
-        ? t('settings.rates.builtIn', { when: ratesWhen })
-        : t('settings.rates.updated', { when: ratesWhen });
-  // Green while live rates are fresh, amber for built-in or old ones, muted while paused.
-  const ratesStatusColor = !exchangeRates.online
-    ? theme.textTertiary
-    : builtInRates || daysAgo(exchangeRates.updatedAt) > STALE_AFTER_DAYS
-      ? SEMANTIC.warning
-      : SEMANTIC.positive;
-  // The fallback provider is named too; the attribution stays — the built-in rates come from ExchangeRate-API.
-  const ratesSourceLine =
-    exchangeRates.source === 'currency-api'
-      ? `${RATE_SOURCE_NAMES['currency-api']} · ${t('settings.rates.attribution')}`
-      : t('settings.rates.attribution');
-
-  // A successful refresh speaks for itself through the status panel; only a failure needs a message.
-  const handleRefreshRates = async () => {
-    setRatesError('');
-    if (!(await refreshRates())) setRatesError(t('settings.rates.refreshError'));
-  };
 
   return (
     <PageTransition>
@@ -231,75 +175,6 @@ export default function Settings() {
 
           <SettingsRow
             showTopBorder
-            icon={ArrowLeftRight}
-            label={t('settings.rates.title')}
-            subtitle={t('settings.rates.subtitle')}
-            value={
-              <ToggleSwitch
-                value={exchangeRates.online}
-                onValueChange={setOnlineRates}
-                accessibilityLabel={t('settings.rates.title')}
-              />
-            }
-            footer={
-              <View style={{ gap: 10 }}>
-                {/* The status panel — recessed like Edit Profile's entry rows. */}
-                <View
-                  style={{
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    gap: 12,
-                    paddingVertical: 10,
-                    paddingStart: 12,
-                    paddingEnd: 8,
-                    borderRadius: RADII.field,
-                    backgroundColor: theme.surfaceAlt,
-                    borderWidth: 1,
-                    borderColor: theme.border,
-                  }}
-                >
-                  <StatusDot color={ratesStatusColor} />
-                  <View style={{ flex: 1, minWidth: 0, gap: 3 }}>
-                    <Text
-                      numberOfLines={1}
-                      style={{ fontSize: 12.5, fontWeight: '600', color: theme.textPrimary }}
-                    >
-                      {ratesStatus}
-                    </Text>
-                    {/* ExchangeRate-API's terms require this link; discreet is allowed. */}
-                    <SecondaryButton
-                      variant="caption"
-                      trailingIcon={ArrowUpRight}
-                      label={ratesSourceLine}
-                      onPress={() => void Linking.openURL(RATES_ATTRIBUTION_URL)}
-                    />
-                  </View>
-                  {exchangeRates.online ? (
-                    <IconButton
-                      icon={RefreshCw}
-                      variant="tinted"
-                      size={34}
-                      iconSize={15}
-                      spinning={exchangeRates.refreshing}
-                      accessibilityLabel={t('settings.rates.refresh')}
-                      onPress={() => void handleRefreshRates()}
-                    />
-                  ) : null}
-                </View>
-                {ratesError ? (
-                  <InlineBanner
-                    kind="error"
-                    message={ratesError}
-                    onDismiss={() => setRatesError('')}
-                    autoDismissMs={4000}
-                  />
-                ) : null}
-              </View>
-            }
-          />
-
-          <SettingsRow
-            showTopBorder
             onPress={() => router.push('/settings/data')}
             icon={Shield}
             label={t('settings.backupData')}
@@ -308,10 +183,49 @@ export default function Settings() {
 
           <SettingsRow
             showTopBorder
+            icon={ArrowLeftRight}
+            label={t('settings.rates.title')}
+            value={
+              <ToggleSwitch
+                value={exchangeRates.online}
+                onValueChange={setOnlineRates}
+                accessibilityLabel={t('settings.rates.title')}
+              />
+            }
+          />
+
+          <SettingsRow
+            showTopBorder
+            onPress={() => router.push('/settings/notifications')}
             icon={Bell}
             label={t('settings.notifications')}
-            // Decorative placeholder until the notification engine lands (CLAUDE.md rule 10).
-            value={<ToggleSwitch value={true} accessibilityLabel={t('settings.notifications')} />}
+            value={
+              // The switch owns notifications as a whole; the row itself opens the
+              // customization screen (FEATURE_SPEC 3.5).
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                <ToggleSwitch
+                  value={reminders.enabled}
+                  onValueChange={reminders.setEnabled}
+                  accessibilityLabel={t('settings.notifications')}
+                />
+              </View>
+            }
+            footer={
+              reminders.permissionDenied ? (
+                <View style={{ gap: 8 }}>
+                  <InlineBanner
+                    kind="error"
+                    message={t('settings.notifications.denied')}
+                    onDismiss={reminders.dismissPermissionDenied}
+                  />
+                  <SecondaryButton
+                    variant="link"
+                    label={t('settings.notifications.openSettings')}
+                    onPress={() => Linking.openSettings()}
+                  />
+                </View>
+              ) : undefined
+            }
           />
         </SettingsCard>
       </ScrollView>
@@ -319,20 +233,13 @@ export default function Settings() {
   );
 }
 
-/** A solid status dot inside a soft halo of the same color. */
-function StatusDot({ color }: { color: string }) {
+/** The chevron a row that opens a sub-screen ends with — direction follows the language. */
+function RowChevron() {
+  const { theme } = useTheme();
+  const { isRTL } = useLanguage();
   return (
-    <View
-      style={{
-        width: 16,
-        height: 16,
-        borderRadius: 8,
-        backgroundColor: withAlpha(color, 0.2),
-        alignItems: 'center',
-        justifyContent: 'center',
-      }}
-    >
-      <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: color }} />
+    <View style={isRTL ? { transform: [{ scaleX: -1 }] } : undefined}>
+      <ChevronRight size={13} color={theme.textTertiary} />
     </View>
   );
 }
@@ -340,13 +247,10 @@ function StatusDot({ color }: { color: string }) {
 /** A row's trailing text + chevron, matching CustomSelect's own trigger. */
 function RowValue({ label }: { label: string }) {
   const { theme } = useTheme();
-  const { isRTL } = useLanguage();
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
       <Text style={{ fontSize: 11.5, color: theme.textTertiary }}>{label}</Text>
-      <View style={isRTL ? { transform: [{ scaleX: -1 }] } : undefined}>
-        <ChevronRight size={13} color={theme.textTertiary} />
-      </View>
+      <RowChevron />
     </View>
   );
 }

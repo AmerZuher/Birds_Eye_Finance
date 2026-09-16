@@ -177,17 +177,21 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
     return run;
   }, []);
 
-  // At most one download a day, checked on launch and whenever the app returns to
-  // the foreground (FEATURE_SPEC 0.5). Never awaited — conversions keep using the
+  // Fresh rates on every app launch; after that, a return to the foreground downloads
+  // only when the rates in use are a day old, and turning the setting back on downloads
+  // only when one is due (FEATURE_SPEC 0.5). Never awaited — conversions keep using the
   // rates already in hand until a new table arrives.
+  const launchRefreshed = useRef(false);
   useEffect(() => {
     if (!onlineRates) return;
-    const refreshIfDue = () => {
-      if (isRefreshDue()) void refreshRates();
-    };
-    refreshIfDue();
+    if (!launchRefreshed.current) {
+      launchRefreshed.current = true;
+      void refreshRates();
+    } else if (isRefreshDue()) {
+      void refreshRates();
+    }
     const subscription = AppState.addEventListener('change', (state) => {
-      if (state === 'active') refreshIfDue();
+      if (state === 'active' && isRefreshDue()) void refreshRates();
     });
     return () => subscription.remove();
   }, [onlineRates, refreshRates]);

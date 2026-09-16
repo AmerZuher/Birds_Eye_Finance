@@ -21,7 +21,11 @@
         "foregroundImage": "./assets/android-icon-foreground.png"
       },
       "predictiveBackGestureEnabled": false,
-      "permissions": ["READ_CONTACTS"],
+      "permissions": [
+        "READ_CONTACTS",
+        "android.permission.REQUEST_INSTALL_PACKAGES",
+        "android.permission.UPDATE_PACKAGES_WITHOUT_USER_ACTION"
+      ],
       "versionCode": 3
     },
     "web": {

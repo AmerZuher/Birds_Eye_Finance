@@ -1,0 +1,19 @@
+# Typecheck + lint on every push and pull request (CLAUDE.md rule 11).
+# Builds and releases nothing — release APKs stay manual (docs/DEVELOPMENT.md → Release builds).
+name: Check
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run check

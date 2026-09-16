@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Pressable, Text, TextInput, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 import { File, Paths } from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import * as DocumentPicker from 'expo-document-picker';
@@ -7,6 +7,7 @@ import * as Clipboard from 'expo-clipboard';
 import { Check, Copy, Download, Shield, Upload } from 'lucide-react-native';
 
 import { PageTransition } from '@/components/PageTransition';
+import { TextField } from '@/components/FormField';
 import { SettingsCard } from '@/components/ui/SettingsCard';
 import { InlineBanner } from '@/components/ui/InlineBanner';
 import type { BannerKind } from '@/components/ui/InlineBanner';
@@ -203,24 +204,14 @@ export default function DataScreen() {
         </SettingsCard>
 
         <SettingsCard title={t('data.paste.title')}>
-          <TextInput
+          <TextField
             value={pasteText}
             onChangeText={setPasteText}
             placeholder={t('data.paste.placeholder')}
-            placeholderTextColor={theme.textTertiary}
             multiline
             numberOfLines={6}
             textAlignVertical="top"
-            style={{
-              fontSize: 12,
-              color: theme.textPrimary,
-              backgroundColor: theme.surfaceAlt,
-              borderRadius: RADII.field,
-              borderWidth: 1,
-              borderColor: theme.border,
-              padding: 12,
-              minHeight: 110,
-            }}
+            style={{ fontSize: 12, paddingHorizontal: 12, paddingVertical: 12, minHeight: 110 }}
           />
           <View style={{ marginTop: 10 }}>
             <GradientButton

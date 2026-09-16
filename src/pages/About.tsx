@@ -25,6 +25,7 @@ import { SettingsCard } from '@/components/ui/SettingsCard';
 import { BrandGlyph } from '@/components/BrandGlyph';
 import { SecondaryButton } from '@/components/ui/SecondaryButton';
 import { FONTS, RADII, SUPPORT_TINTS } from '@/constants/theme';
+import { RATES_ATTRIBUTION_URL } from '@/lib/exchangeRates';
 import { HIDDEN_SCROLLBARS } from '@/lib/scroll';
 
 // Developer contact details — confirmed by the developer (2026-09-15).
@@ -217,6 +218,26 @@ export default function About() {
               />
 
               <InlineBanner kind="success" message={t('about.dataSafe')} />
+
+              {/* ExchangeRate-API's open-access terms require this link to be shown somewhere in
+                  the app; it lives here rather than on the rates setting itself. Set apart as a
+                  centered footnote under a hairline so it reads as fine print, not a stray line. */}
+              <View
+                style={{
+                  borderTopWidth: 1,
+                  borderTopColor: theme.border,
+                  paddingTop: 12,
+                  marginTop: 2,
+                }}
+              >
+                <SecondaryButton
+                  variant="caption"
+                  align="center"
+                  trailingIcon={ExternalLink}
+                  label={t('settings.rates.attribution')}
+                  onPress={() => Linking.openURL(RATES_ATTRIBUTION_URL)}
+                />
+              </View>
             </View>
           </SettingsCard>
         </Animated.View>

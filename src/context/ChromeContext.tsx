@@ -21,6 +21,12 @@ export interface PersonPhotoRequest {
   avatar: string;
 }
 
+/** What the Debts screen should show: a person (null = the person list) and, optionally, one debt's detail sheet. */
+export interface DebtOpenRequest {
+  personId: number | null;
+  debtId?: number;
+}
+
 interface ChromeContextValue {
   headerHeight: number;
   navbarHeight: number;
@@ -40,6 +46,10 @@ interface ChromeContextValue {
    * Edit Person sheet with it once it gains focus (same pattern as above). */
   requestPersonPhoto: (request: PersonPhotoRequest) => void;
   consumePersonPhotoRequest: () => PersonPhotoRequest | null;
+  /** Queues "show this person / debt" for the Debts screen — from the Dashboard's rows
+   * (FEATURE_SPEC 7.4, 7.6) — picked up once it gains focus (same pattern as above). */
+  requestDebtOpen: (request: DebtOpenRequest) => void;
+  consumeDebtOpenRequest: () => DebtOpenRequest | null;
 }
 
 // Reasonable pre-measurement defaults (safe-area + bar + margin) so content
@@ -56,6 +66,7 @@ export function ChromeProvider({ children }: { children: React.ReactNode }) {
   const fabHandlerRef = useRef<(() => void) | null>(null);
   const pendingDebtCreateRef = useRef(false);
   const pendingPersonPhotoRef = useRef<PersonPhotoRequest | null>(null);
+  const pendingDebtOpenRef = useRef<DebtOpenRequest | null>(null);
 
   const setHeaderHeight = useCallback((height: number) => {
     setHeaderHeightState((prev) => (Math.abs(prev - height) > 0.5 ? height : prev));
@@ -93,6 +104,16 @@ export function ChromeProvider({ children }: { children: React.ReactNode }) {
     return pending;
   }, []);
 
+  const requestDebtOpen = useCallback((request: DebtOpenRequest) => {
+    pendingDebtOpenRef.current = request;
+  }, []);
+
+  const consumeDebtOpenRequest = useCallback(() => {
+    const pending = pendingDebtOpenRef.current;
+    pendingDebtOpenRef.current = null;
+    return pending;
+  }, []);
+
   const value = useMemo<ChromeContextValue>(
     () => ({
       headerHeight,
@@ -106,6 +127,8 @@ export function ChromeProvider({ children }: { children: React.ReactNode }) {
       consumeDebtCreateRequest,
       requestPersonPhoto,
       consumePersonPhotoRequest,
+      requestDebtOpen,
+      consumeDebtOpenRequest,
     }),
     [
       headerHeight,
@@ -119,6 +142,8 @@ export function ChromeProvider({ children }: { children: React.ReactNode }) {
       consumeDebtCreateRequest,
       requestPersonPhoto,
       consumePersonPhotoRequest,
+      requestDebtOpen,
+      consumeDebtOpenRequest,
     ],
   );
 

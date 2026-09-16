@@ -1,9 +1,11 @@
-import React, { useMemo, useState } from 'react';
-import { Pressable, Text, TextInput, View } from 'react-native';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Pressable, Text, View } from 'react-native';
+import { useFocusEffect } from 'expo-router';
 import { Camera, Coins, Plus, Trash2, Wallet } from 'lucide-react-native';
 import type { LucideIcon } from 'lucide-react-native';
 
 import { PageTransition } from '@/components/PageTransition';
+import { TextField } from '@/components/FormField';
 import { Avatar } from '@/components/ui/Avatar';
 import { SettingsCard } from '@/components/ui/SettingsCard';
 import { CustomSelect } from '@/components/ui/CustomSelect';
@@ -64,10 +66,18 @@ export default function EditProfileScreen() {
     [profile.startBalances, convertToBase],
   );
 
-  const commitName = (value: string) => {
-    setName(value);
-    updateProfile({ name: value });
-  };
+  // updateProfile re-serializes the whole profile into MMKV, so the name is saved when the field
+  // loses focus or the screen does — never on every keystroke (DEVELOPMENT.md gotcha 4).
+  const commitName = useCallback(() => {
+    if (name !== profile.name) updateProfile({ name });
+  }, [name, profile.name, updateProfile]);
+
+  // Leaving the screen without tapping elsewhere first still saves the name.
+  const commitNameRef = useRef(commitName);
+  useEffect(() => {
+    commitNameRef.current = commitName;
+  });
+  useFocusEffect(useCallback(() => () => commitNameRef.current(), []));
 
   // Picking, saving (a small file, stored relative) and Android's
   // destroyed-Activity recovery all live in src/lib/avatars.ts, shared with
@@ -163,18 +173,21 @@ export default function EditProfileScreen() {
               </View>
             </Pressable>
 
-            <TextInput
+            <TextField
               value={name}
-              onChangeText={commitName}
+              onChangeText={setName}
+              onBlur={commitName}
               placeholder={t('editProfile.name.placeholder')}
-              placeholderTextColor={theme.textTertiary}
               style={{
                 fontSize: 17,
                 fontWeight: '700',
                 color: theme.textPrimary,
                 textAlign: 'center',
                 minWidth: 160,
-                padding: 0,
+                paddingHorizontal: 0,
+                paddingVertical: 0,
+                backgroundColor: 'transparent',
+                borderWidth: 0,
               }}
             />
 
@@ -366,22 +379,7 @@ function EntryManager({
       )}
 
       <View style={{ marginTop: 12, gap: 8 }}>
-        <TextInput
-          value={entryName}
-          onChangeText={setEntryName}
-          placeholder={namePlaceholder}
-          placeholderTextColor={theme.textTertiary}
-          style={{
-            fontSize: 13,
-            color: theme.textPrimary,
-            backgroundColor: theme.surfaceAlt,
-            borderRadius: RADII.field,
-            borderWidth: 1,
-            borderColor: theme.border,
-            paddingHorizontal: 12,
-            paddingVertical: 10,
-          }}
-        />
+        <TextField value={entryName} onChangeText={setEntryName} placeholder={namePlaceholder} />
 
         <AmountInput
           value={amountText}

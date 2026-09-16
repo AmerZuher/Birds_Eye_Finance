@@ -17,6 +17,10 @@ export const StorageKeys = {
   ratesLastAttempt: 'rates.lastAttempt',
   /** Who a photo is being picked for while the picker is open (src/lib/avatars.ts). */
   pendingPhotoPick: 'avatars.pendingPick',
+  /** Installment reminders: the Settings switch, the lead time, and the last tapped reminder (FEATURE_SPEC 1.13). */
+  remindersEnabled: 'reminders.enabled',
+  remindersLead: 'reminders.lead',
+  remindersLastHandled: 'reminders.lastHandled',
 } as const;
 
 /**

@@ -34,6 +34,8 @@ interface SecondaryButtonProps {
   variant?: 'outline' | 'link' | 'caption' | 'pill';
   /** Pill only, when no `color` is set: 'accent' (default) tints it with the theme accent; 'neutral' is a quiet surface pill. */
   tone?: 'accent' | 'neutral';
+  /** Caption only: where the line sits (default 'start') — 'center' for a centered footnote, e.g. About's rates attribution. */
+  align?: 'start' | 'center';
   accessibilityLabel?: string;
 }
 
@@ -61,6 +63,7 @@ export function SecondaryButton({
   color,
   variant = 'outline',
   tone = 'accent',
+  align = 'start',
   accessibilityLabel,
 }: SecondaryButtonProps) {
   const { theme } = useTheme();
@@ -86,7 +89,12 @@ export function SecondaryButton({
   } else if (variant === 'caption') {
     const foreground = color ?? theme.textTertiary;
     look = {
-      container: { ...row, alignSelf: 'flex-start', gap: 3, opacity },
+      container: {
+        ...row,
+        alignSelf: align === 'center' ? 'center' : 'flex-start',
+        gap: 3,
+        opacity,
+      },
       foreground,
       trailingColor: foreground,
       iconSize: 11,

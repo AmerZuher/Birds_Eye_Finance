@@ -17,6 +17,7 @@ const SETTINGS_TITLES: Record<string, string> = {
   '/settings': 'settings.title',
   '/settings/edit-profile': 'settings.editProfile',
   '/settings/data': 'settings.backupData',
+  '/settings/notifications': 'settings.notifications',
 };
 
 /**

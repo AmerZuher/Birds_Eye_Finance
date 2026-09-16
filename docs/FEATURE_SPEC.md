@@ -1,28 +1,28 @@
 BirdsEye Finance — Feature Documentation
 
-Screens: Dashboard (minimal placeholder, see CLAUDE.md rule 15) · Debts · Expenses · Settings · About (stub, see CLAUDE.md rule 16)
+Screens: Dashboard (Part 7, CLAUDE.md rule 15) · Analytics (Part 8) · Expenses · Debts · Settings · About (stub, see CLAUDE.md rule 16)
 
 Source files (src/ unless noted):
 
-pages/Debts.tsx, pages/Expenses.tsx, pages/Settings.tsx
-components/DebtModal.tsx, components/ExpenseModal.tsx, components/ContactsPicker.tsx, components/ui/* (the 18 shared primitives), components/Navbar.tsx, components/Header.tsx
+pages/Dashboard.tsx, pages/Analytics.tsx, pages/Debts.tsx, pages/Expenses.tsx, pages/Settings.tsx
+components/DebtModal.tsx, components/ExpenseModal.tsx, components/ContactsPicker.tsx, components/ui/* (the 26 shared primitives), components/Navbar.tsx, components/Header.tsx
 Sub-screens: pages/EditProfileScreen.tsx, pages/DataScreen.tsx (Phase 2)
-Contexts: context/FinanceContext.tsx, context/UserContext.tsx, context/CurrencyContext.tsx, context/ThemeContext.tsx
+Contexts: context/DatabaseContext.tsx, context/DebtsContext.tsx, context/FinanceContext.tsx, context/UserContext.tsx, context/CurrencyContext.tsx, context/ThemeContext.tsx
 Utils/constants: utils/dataTransfer.ts, lib/exchangeRates.ts, lib/avatars.ts, constants/theme.ts, constants/currencies.ts (+ the generated constants/currencyTable.ts), constants/brandIcons.ts, constants/initialData.ts, prompts/debtsPrompt.ts, prompts/expensesPrompt.ts
 
 PART 0 — SHARED INFRASTRUCTURE (applies to all screens)
 
 0.1 Screen chrome (Header + Navbar + FAB)
 Header — built from the shared GlassHeader primitive. Floating glassmorphic bar pinned to top, respects safe-area insets. Left: app logo tile + "BirdsEye Finance" title → tapping navigates to About. Right: user avatar pill → tapping navigates to Settings; gets a visible accent-colored border when Settings is already active. Hidden on the Settings and About screens, which render their own header (back button + title) in the same GlassHeader slot instead.
-Navbar (components/Navbar.tsx) — bottom glassmorphic tab bar with 3 items: Dashboard (Home icon), Expenses (CreditCard icon), Debts (Wallet icon). Active item takes the theme's accent color, thicker stroke, bolder label; inactive items are muted. Light haptic feedback on every tab press. Tab switching preserves state — it does not reset the Debts person-detail view, and Settings sub-screen state survives tab switches.
+Navbar (components/Navbar.tsx) — bottom glassmorphic tab bar with 4 items: Dashboard (House icon), Analytics (ChartPie icon), Expenses (CreditCard icon), Debts (Wallet icon). Icons only — each tab's name is its accessibility label (CLAUDE.md rule 12). The active item takes the theme's accent color; inactive items are muted. Light haptic feedback on every tab press. Tab switching preserves state — it does not reset the Debts person-detail view, and Settings sub-screen state survives tab switches.
 System bars (Android): the navigation bar is transparent with no system contrast layer, so the tab bar shows through under the gesture handle on every device (MagicOS drew a grey band otherwise). Navigation-bar and status-bar icons are dark on light themes and light on dark themes.
-Floating Action Button (FAB, inside Navbar) — rendered only on the Expenses and Debts tabs, positioned clear above the navbar (not overlapping it). Background = theme fabColor, white Plus icon. On press: opens the correct GlassModal-based form (Debts tab → new debt; Expenses tab → new expense).
+Floating Action Button (FAB, inside Navbar) — shown on every tab, sitting in the tab bar's notch at a fixed physical position (CLAUDE.md rule 9). Plus icon on the theme's FAB color. On press: Expenses tab → new expense (ExpenseModal); Debts tab → new debt (DebtModal); Dashboard and Analytics → switches to Debts and opens a new debt there.
 
 0.2 Android hardware-back hierarchy
 Intercepted in order: a modal is open → the modal's own close handler consumes it. Settings sub-screen open → return to Settings main hub. On Settings or About → jump to previousTab (the exact tab the user came from). On Debts tab with an open person detail → return to person list. Dashboard root → back press swallowed (prevents accidental exit).
 
 0.3 Theming
-Governed entirely by the locked design tokens (CLAUDE.md rule 3: Platinum / Emerald / Obsidian / Sapphire) and the approved design preview. Theme selection persists to MMKV. Theme affects: card surfaces, category chips (active state), submit buttons, FAB, sheet borders/handles, dropdown selected checkmark, header overlays.
+Governed entirely by the locked design tokens (CLAUDE.md rule 3: 16 palettes in `theme.ts`, 8 dark and 8 light) and the approved design preview. Theme selection persists to MMKV. Theme affects: card surfaces, category chips (active state), submit buttons, FAB, sheet borders/handles, dropdown selected checkmark, header overlays.
 
 0.4 Language / RTL
 Languages: Arabic (ar, RTL) and English (en, LTR); persists to MMKV. Every screen reads { dir, t, language }; isRTL = dir === 'rtl'. Consistent patterns used everywhere: flexDirection reverses for RTL, text alignment flips, arrow icons flip direction by language, root containers set direction for NativeWind logical properties. t(key, vars) supports {{var}} interpolation (used for the WhatsApp message, import counts, etc.).
@@ -30,10 +30,10 @@ Languages: Arabic (ar, RTL) and English (en, LTR); persists to MMKV. Every scree
 0.5 Money handling
 Currencies — every ISO 4217 currency that both rate providers quote (153 today, excluding ones a provider still lists but nobody can hold: ANG, HRK, SLL, XDR, ZWL). Generated by `npm run currencies` (scripts/buildCurrencies.ts) into src/constants/currencyTable.ts with code, English and Arabic name, English and Arabic symbol, and a built-in rate. The app's original 20 (SAR, USD, EUR, GBP, AED, KWD, BHD, QAR, OMR, EGP, JOD, TRY, INR, PKR, PHP, CNY, JPY, CAD, AUD, CHF) keep their hand-picked names and symbols and come first; the rest follow by code. Every currency is treated the same everywhere: pickable for debts, expenses, balances, income and the base currency, converted with the same formula, formatted with two decimals. Currency pickers search by code or by name in the app's language, and put the most-used currencies first.
 Rates — a rate is the value of 1 unit in SAR; conversion formula: (amount × rateFrom) / rateBase. They are daily market reference rates, not bank rates, so base-currency totals move a little from day to day; that's intended.
-- Download (src/lib/exchangeRates.ts — CLAUDE.md rule 1's exchange-rate exception): checked on launch and whenever the app returns to the foreground; runs only when the rates in use are missing or at least 24 hours old, and at most once per 30 minutes after a failed attempt. Never blocks the UI; each request times out after 6 seconds. Providers, in order: ExchangeRate-API open access (open.er-api.com/v6/latest/SAR), currency-api on jsDelivr, the same currency-api data on Cloudflare (latest.currency-api.pages.dev). All quote units per 1 SAR, so every quote is inverted before use. The request is a fixed URL, the same for every user — nothing about the user is sent.
+- Download (src/lib/exchangeRates.ts — CLAUDE.md rule 1's exchange-rate exception): runs on every app launch, whatever the age of the rates in use. While the app keeps running, a return to the foreground — and turning the setting back on — downloads only when the rates in use are missing or at least 24 hours old, and at most once per 30 minutes after a failed attempt. Never blocks the UI; each request times out after 6 seconds. Providers, in order: ExchangeRate-API open access (open.er-api.com/v6/latest/SAR), currency-api on jsDelivr, the same currency-api data on Cloudflare (latest.currency-api.pages.dev). All quote units per 1 SAR, so every quote is inverted before use. The request is a fixed URL, the same for every user — nothing about the user is sent.
 - Validation (zod): a response is accepted only when all 20 original currencies are present and every quote is a positive number; otherwise the next provider is tried and, if none works, nothing changes. Other currencies a response lacks keep their last known rate.
 - Cache: accepted rates are stored in MMKV with the download time and source. A conversion uses a currency's downloaded rate when there is one, otherwise its built-in rate (from the date the table was generated). Offline, the last downloaded rates stay in use.
-- Setting: "Live exchange rates" (3.2 C), on by default. Off stops all downloads; the last downloaded rates stay in use. Refresh downloads immediately.
+- Setting: "Live exchange rates" (3.2 C), on by default. Off stops all downloads; the last downloaded rates stay in use. There is no manual refresh — every launch downloads.
 - Expense quick-add converts its USD default price once, at add time, with the rates in use at that moment (2.3).
 Base currency selection persists to MMKV. formatMoney() is locale-aware via Intl.NumberFormat (Arabic locale uses Arabic-Indic digits and "amount then symbol"; English uses "symbol then amount"). formatOriginalMoney(amount, currency) formats an amount in its original transaction currency, not the base currency. convertToBase(amount, fromCurrency) is used across screens.
 
@@ -42,10 +42,10 @@ getMonthlyEquivalent converts any billing period to a monthly equivalent for tot
 
 0.7 Persistence map
 Relational data — expo-sqlite via Drizzle: expenses, people, debts, debt_adjustments, debt_attachments, income_sources tables. Attachment files and app-picked person and profile photos live in the app's document directory and are referenced by relative file name only.
-Preferences — react-native-mmkv (synchronous reads): theme id, base currency code, currency usage counts, language, profile blob (name, avatar, startBalances, lastReconciledDate — not relational enough to warrant a SQL table), activeTab/previousTab, settingsScreen ('main' | 'edit-profile' | 'data'), the exchange-rate cache ({ rates, fetchedAt, source }) with the "Live exchange rates" setting and the time of the last download attempt, and — only while the photo picker is open — who a photo is being picked for (1.11, 3.3). The app keeps no local backup snapshot; the keys earlier versions used for one, and for the removed font-size setting, are deleted at launch.
+Preferences — react-native-mmkv (synchronous reads): theme id, base currency code, currency usage counts, language, profile blob (name, avatar, startBalances, lastReconciledDate — not relational enough to warrant a SQL table), activeTab/previousTab, settingsScreen ('main' | 'edit-profile' | 'data' | 'notifications'), the exchange-rate cache ({ rates, fetchedAt, source }) with the "Live exchange rates" setting and the time of the last download attempt, and — only while the photo picker is open — who a photo is being picked for (1.11, 3.3), the installment-reminder setting and lead time (1.13), and the app-update setting with the last check's time and result (3.2 C). Scheduled reminders themselves are held by the system's notification scheduler, not app storage. The app keeps no local backup snapshot; the keys earlier versions used for one, and for the removed font-size setting, are deleted at launch.
 
 0.8 Reusable UI components
-See CLAUDE.md rule 4 for the full list of 18 shared primitives and what each covers. Every screen composes these; none of them duplicate Tailwind classes or reimplement a pattern another screen already has.
+See CLAUDE.md rule 4 for the full list of 26 shared primitives and what each covers. Every screen composes these; none of them duplicate Tailwind classes or reimplement a pattern another screen already has.
 
 0.9 Scrolling & keyboard
 No visible scroll indicators anywhere in the app (vertical or horizontal, lists and scroll views alike); scrolling itself is unchanged. A focused text input is never covered by the soft keyboard: bottom sheets lift with the keyboard and scroll the focused field into view with a small margin above the keyboard; full screens (Edit Profile, Data) scroll the focused field into view. In lists with a search field, tapping a result works on the first tap while the keyboard is open, and dragging the list dismisses the keyboard.
@@ -119,6 +119,17 @@ Proofs sheet: "Add proof", then every file as a row — a file-type icon tile (i
 Preview: images full-size with pinch-to-zoom, drag while zoomed, and double-tap to reset; PDFs as a file card. Actions: Open with… (Android: the system chooser of apps that can view the file; iOS: the share sheet, which offers Quick Look and "Open in…" apps), Share (Android only — on iOS Open with… already is the share sheet), and Remove.
 Removing a saved attachment asks for confirmation; a file staged in an unsaved form is simply dropped. Editing an existing adjustment lists only that adjustment's proofs, and proofs added there are linked to it. Files are stored inside the app's private storage. Backups include attachment records but not the files themselves — the Data screen states this.
 
+1.13 Installment reminders (CLAUDE.md rule 10)
+Local notifications about installment plans, off until the user turns them on in Settings (3.2 C). Nothing is sent anywhere — reminders are scheduled on the phone with expo-notifications.
+Which debts: active (neither settled nor deleted, 1.10) "I owe" debts with a monthly payment > 0 and a start date.
+Installment dates: the start date, then the same day of every following month, up to and including the end date (no end date → open-ended). A day a month doesn't have (29–31) falls on that month's last day.
+- Installment due: at 9:00 local time, at the lead time chosen in Settings — on the day, 1 day before (default) or 3 days before. Title "Installment due today" / "tomorrow" / "in 3 days"; body: the monthly payment in the debt's currency, the person's name and the debt ID (e.g. "250.00 SAR to Ahmed · #0042").
+- Skipped when already paid: no reminder for an installment when the − adjustments on that debt dated after the previous installment date (for the first installment: on or after the debt's date) and up to this installment date add up to at least the monthly payment.
+- Plan ending: at 9:00, 7 days before the end date, while the debt is still active — "Installment plan ends in 7 days", body: person · debt ID · outstanding amount.
+- A reminder whose time has already passed is not scheduled.
+Scheduling: every reminder in the next 90 days is scheduled ahead as a one-time notification on its exact date (not a repeating monthly trigger, which can't express "the month's last day"). Reminders are re-synced — all of the app's reminders cancelled and scheduled again — on launch, on return to the foreground, and whenever a debt, payment or person's name, the setting, the lead time or the language changes. Android keeps scheduled reminders across restarts and app updates. If the app isn't opened for 90 days, reminders stop until it is. Android may deliver a reminder a little late when battery saving batches alarms; the app doesn't request exact alarms.
+Text follows the app language at the time of scheduling. Reminders post to an "Installment reminders" notification channel. Tapping one opens Debts on that person with the debt's detail sheet open (1.10).
+
 PART 2 — EXPENSES SCREEN (src/pages/Expenses.tsx)
 
 2.1 Layout skeleton
@@ -144,7 +155,7 @@ Built from GlassModal + react-hook-form/zod. Fields: Name (drives the Quick Add 
 Validation (InlineBanner): name required, amount required. Duplicate detection: same trimmed-lowercase name as another expense (excluding self in edit mode) blocks save with an explanation. Edit mode patches the matched expense by id; create mode prepends a new one. Sentinel handling for quick-add placeholders falls through to create-mode.
 
 PART 3 — SETTINGS SCREEN (src/pages/Settings.tsx)
-Acts as a host container with an internal router. Current sub-screen lifted to app state: settingsScreen ∈ { 'main', 'edit-profile', 'data' }, persisted, survives tab switches and app restarts.
+Acts as a host container with an internal router. Current sub-screen lifted to app state: settingsScreen ∈ { 'main', 'edit-profile', 'data', 'notifications' }, persisted, survives tab switches and app restarts.
 
 3.1 Navigation
 Own GlassHeader instance (back IconButton + title, swapping per sub-screen) replaces the default header while any Settings screen is active. Back behavior: sub-screen → main; main → previousTab (exact originating tab).
@@ -155,9 +166,19 @@ B. Themes card (one title, "Themes"): a large SegmentedControl — Dark (moon ic
 C. General card (title "General"). Each row is a SettingsRow — accent IconTile, label, optional muted subtitle, trailing control — in this order:
 - Language: Globe + CustomSelect (Arabic/English, instant dir/i18n switch). There is no in-app font-size setting — text follows the system font size.
 - Base currency: Coins + searchable CustomSelect listing every currency (0.5) — the code with its name beneath, searchable by either. Changing it re-derives every converted figure app-wide.
-- Live exchange rates: ArrowLeftRight + ToggleSwitch (on by default; behavior in 0.5), subtitle "Converts amounts at today's market rates". Under the row, spanning the card's full width (the same gap to the card's edge on both sides), a recessed status panel: a status dot (green while live rates are at most 2 days old, amber for built-in or older rates, muted while paused); "Updated {when}" ({when} is "today, 15:42", "yesterday" or "3 days ago"), "Built-in rates · {when}", "Paused · rates from {when}" or "Updating rates…"; beneath it a small muted "Rates By Exchange Rate API ↗" link to exchangerate-api.com (required by that provider's terms; prefixed "Currency API · " when the fallback provider supplied the rates); and, while on, a round tinted refresh button whose icon spins during a download. A successful refresh only updates the panel; a failed one shows an error InlineBanner under it.
+- Live exchange rates: ArrowLeftRight + ToggleSwitch (on by default; behavior in 0.5) — the row is the switch, nothing else. The status panel and the manual refresh button were removed in 2.2.0 at the user's request (rates download on every launch instead), and the "Rates By Exchange Rate API ↗" link their terms require is shown on the About screen, which is where rates attribution lives now.
 - Backup & Data: Shield + "Export (JSON) ›" → Data screen.
-- Notifications: Bell + ToggleSwitch — a visual-only placeholder (rendered on, not wired to a real handler) until the notification engine (CLAUDE.md rule 10) is built; do not wire it to fake state.
+- Notifications: Bell + subtitle "Reminders for installment plans", a ToggleSwitch that turns notifications on or off as a whole, and a chevron — tapping the row opens the Notifications screen (3.5), where they are customized. Off by default. Turning it on asks for notification permission (Android 13+); if that is denied the switch stays off and an error InlineBanner under the row offers "Open settings". If permission is later revoked in system settings, the switch shows off on return to the app.
+- App updates: Download icon + ToggleSwitch "Check for updates automatically" (on by default). CLAUDE.md rule 1 (c). The About screen has nothing to do with updates.
+  - Check: on launch and on return to the foreground, at most once per 24 hours while on, the app asks GitHub for this app's latest release. "Check now" runs one immediately, even while automatic checks are off. A release counts only when its tag is exactly `v<version>`, it is newer than the installed version, and it carries an APK named `birdsEyeFinance_V<version>.apk` with a SHA-256 digest; drafts and pre-releases never count.
+  - Status panel under the row (the same recessed panel as the rates row): "Up to date · checked {when}", "Version {v} available · {size}" with an Update button, "Downloading… {n}%" with a ProgressBar and Cancel, "Verifying…", "Installing…", or "Couldn't check · {when}".
+  - Update: a ConfirmModal (Download icon, accent tone) — "Update to {v}? Downloads {size}. The app closes to install it; your data stays." — Cancel / Update. After Update no further taps are needed, wherever Android allows it:
+    1. If "Install unknown apps" isn't allowed for the app yet, a ConfirmModal explains why and opens that system page; returning with it allowed continues automatically.
+    2. Free storage is checked (at least twice the APK size), then the APK downloads into the app's cache, with progress and Cancel.
+    3. Before installing, the file must match GitHub's SHA-256 digest, be package `com.birdseye.finance`, be signed with the same key as the installed app, and have a higher versionCode — otherwise it's deleted and an error banner says why.
+    4. Install: on Android 12+ the app updates itself without a confirmation dialog where Android allows it; on older Android, or when the system still asks, Android's own Update dialog appears. Android closes the app to install it, and the user reopens it.
+  - An in-place update keeps all data (database, files, preferences). A failed or cancelled download or install changes nothing; the downloaded file is deleted, and any leftover is cleared at launch.
+  - Errors (offline, GitHub unavailable, no APK, verification failed, install failed or cancelled) show an error InlineBanner under the panel; the installed app stays as it is.
 
 3.3 EditProfileScreen (Phase 2) — sub-screen
 Profile card: avatar upload (photo library, square crop; downscaled to 256px and stored as a small file in app storage, referenced by relative name like person photos — 1.11), applied immediately; inline name editing. Denied photo access or a failed save shows an error banner. If Android destroys the app while the picker is open, the picked photo is still applied when the app restarts, and Edit Profile opens. Profile photos saved by earlier versions (an absolute file path) are moved to the relative scheme at launch. Income line + financial-health badge (computed from savings rate — four tiers from "excellent" down to "critical", each with its own color).
@@ -170,6 +191,9 @@ Export & Import card: Export builds a JSON snapshot ({ expenses, people, debts, 
 Import flow, identical for a file and for pasted JSON: the data is parsed first — invalid JSON shows an error banner and nothing else; data with nothing to add shows "There is nothing to import in that data." Otherwise a confirmation (ConfirmModal with an Upload icon, accent tone) says what will be added: "Adds {n} expenses, {n} debts, {n} income sources and {n} balances on top of your current data — nothing is replaced. This can't be undone, and importing the same data twice creates duplicates." with Cancel / Import. Nothing is written before Import. Import appends: expenses, incomes and the debt graph are added with ids regenerated and references remapped (people resolve per Part 6). The file's profile never overwrites the current one: its balances are appended; its name is used only when the current profile has no name, and its photo only when the current profile has none and that photo exists on this device. A success banner shows the counts.
 Paste-JSON import: multiline editor; disabled while empty or while an export/import is running; cleared after a successful import.
 AI prompt copier: buttons to copy the debts/expenses prompts (src/prompts/*) to clipboard, with a brief "copied" confirmation state. Caption explains the workflow: paste the prompt + messy notes into an external LLM the user chooses, paste the resulting JSON back into the box above (this is the one deliberate exception to "no external calls" — see CLAUDE.md rule 1).
+
+3.5 NotificationsScreen — sub-screen
+Where notifications are customized; the on/off switch itself stays on the hub row (3.2 C). Its own sub-screen so later notification kinds get a card each. Today it holds one card, "Installment reminders" (1.13): a short description of what arrives and when, and a "When" row whose SegmentedControl picks the lead time — On the day | 1 day before (default) | 3 days before. While notifications are off, a warning InlineBanner says so and points back to Settings; the lead time can still be set, and applies once they are on.
 
 PART 4 — SHARED BOTTOM-SHEET MODAL MECHANICS (GlassModal, used by DebtModal + ExpenseModal + ConfirmModal)
 Mount pattern: component always mounted, early-returns null unless its modal is the active one. Keyboard-avoiding on both platforms. Backdrop tap closes. Sheet: bottom-anchored, max height 90%, rounded top corners per the locked radius token. Decorative themed top-edge border strip + drag-handle pill. Swipe-to-dismiss on the handle area (downward drag past a distance/velocity threshold animates the sheet closed, otherwise springs back). Close always clears the active-modal state and any editing entity. Prefill effect: forms hydrate from the editing entity when editing, or sensible new-record defaults when creating. Validation errors render through the shared InlineBanner, auto-clearing after a few seconds or the moment the offending field is edited again. Submit buttons use GradientButton; labels swap between create/edit variants.
@@ -227,7 +251,7 @@ Per debt (derived, never stored): outstanding = amount + Σ adjustments · statu
 debtsCalculations.totalPositiveAmount / totalNegativeAmount / totalNegativeMonthly — computed from outstanding amounts of active debts only; Debts header net, effective income, and the Debts summary card's installment-total stat (rule 14).
 groupedDebts — per-person groups of active debts, keyed by personId (Debts list).
 effectiveIncome = income − totalNegativeMonthly · netSavings = effectiveIncome − totalExpenses · savingsRate % · financialHealth grade (EditProfile badge).
-Dashboard-related derived values (totalStartBalance / monthsElapsed / calculatedCurrentBalance) exist in the data model but are not wired into any UI yet — see CLAUDE.md rule 15.
+The Dashboard (Part 7) reads these values plus the profile's balances and groupedDebts; it computes no projected or calculated balance (CLAUDE.md rule 15).
 
 PART 6 — NOTABLE BEHAVIORS, QUIRKS & EDGE CASES
 Quick-add duplicate guard is silent — matching an already-added service does nothing.
@@ -236,8 +260,58 @@ Deleting or settling a debt inside a person view updates the view live; when the
 Names are not identity — two people can share a name, and a differently spelled name ("Ahmad" vs "Ahmed") is a different person unless the user picks the existing one or merges them later. No fuzzy matching, by design (1.3).
 Payments never rewrite a debt's original amount — they are adjustments, so status and history can always be recomputed and a settled debt can be reopened.
 WhatsApp country-code assumption: local numbers starting with 0 get Saudi 966 prefix — international users should store full numbers.
-Notifications toggle is currently decorative — no scheduler wired behind it until the notifications work (rule 10) is built.
+Installment reminders are calendar-based (1.13): the app only knows an installment is paid when a payment is recorded on that debt, and reminders stop if the app isn't opened for 90 days.
+App updates come only from this app's own GitHub releases (3.2 C). Android refuses an update signed with a different key; the installed app and its data then stay as they are.
 debtFilter exists in context (positive/negative/all) but has no UI control on the Debts screen today — available for future use.
 Import always appends, after a confirmation — importing the same file twice duplicates debts (ids are regenerated and every reference is remapped). People are the exception: imported rows resolve to existing people by contactId → phone → a single name match (1.3). The imported profile never overwrites the current one (3.4). Attachment files are not part of exports; imported attachment records without a file on this device are dropped.
-Exchange rates are daily market reference rates, downloaded at most once a day (0.5), so base-currency totals shift slightly from day to day. Until a download succeeds, the built-in rates from the date the currency table was generated are used.
+Exchange rates are daily market reference rates, downloaded on every app launch (0.5), so base-currency totals shift slightly from day to day. Until a download succeeds, the built-in rates from the date the currency table was generated are used.
 All list empty-states share one visual language via the shared EmptyState primitive — never reimplemented per-screen.
+
+PART 7 — DASHBOARD (src/pages/Dashboard.tsx)
+CLAUDE.md rule 15: where the user stands and what's next, from logged records only — no forecasts or projected balances.
+
+7.1 Layout
+Same shell as the other tabs: a vertical scroll view padded to clear the glass header and the navbar, direction-aware entrance animation, no scroll indicators (0.9). Top to bottom: Greeting (7.2), Current balance (7.3), Coming up (7.4), This month (7.5), Debts (7.6). The FAB opens a new debt (0.1).
+
+7.2 Greeting
+"Good morning / afternoon / evening" by local hour (before 12, before 18, otherwise), the profile name in the display font (the app's short name when none is set), then a hairline divider.
+
+7.3 Current balance
+BalanceRevealCard: the sum of the profile's current balances (3.3), converted to base currency. Masked on every launch; tap to reveal.
+
+7.4 Coming up
+A card listing what's due in the next 30 days (today included), soonest first, using the same rules as reminders (1.13) — including "skipped when already paid" — whether or not reminders are turned on:
+- Installment rows (ListRow + Avatar): the person's name; "Installment · #0042" with the date as "Today", "Tomorrow", "In 3 days" or the date; trailing the monthly payment in the debt's currency.
+- Plan-ending rows: the same row with "Plan ends · #0042" and the outstanding amount.
+At most 5 rows; when there are more, a muted "+{n} more" caption. Tapping a row opens Debts on that person with the debt's detail sheet open (1.10). When active installment plans exist but nothing is due in 30 days, the card shows one muted line: "Nothing due in the next 30 days." When no active debt has an installment plan, the card is hidden.
+
+7.5 This month
+One card: a RingGauge of the savings rate (clamped to 0–100%, the percentage in its center) in the financial-health tier's color, with the tier label (same tiers and colors as Edit Profile, 3.3), beside a breakdown in base currency:
+Income (all income sources)
+− Installments (totalNegativeMonthly, CLAUDE.md rule 14)
+− Expenses (totalExpenses, monthly-normalized, 0.6)
+= Net savings, colored positive/negative.
+With no income sources, the ring shows no percentage and the card offers an "Add income" link → Edit Profile. Tapping the card anywhere else opens Analytics (Part 8). This card replaces the four stat tiles of 2.1.0.
+
+7.6 Debts
+A card with Owed to me (totalPositiveAmount, positive color), I owe (totalNegativeAmount, negative color) and Net (colored by sign), all from active debts' outstanding amounts in base currency (1.10), then the top 3 people from groupedDebts (largest absolute net first): Avatar with its status ring, name, net outstanding. Tapping a person opens them on Debts (1.4); "See all" opens the Debts tab. Hidden when there are no active debts.
+
+7.7 First run
+With no data at all, the Dashboard shows the greeting, a zero Current balance and This month (with "Add income"); Coming up and Debts are hidden.
+
+PART 8 — ANALYTICS (src/pages/Analytics.tsx)
+
+8.1 Layout
+Same shell as the Dashboard. Title "Analytics" with a subtitle and a hairline divider, then 8.2–8.4. The FAB opens a new debt (0.1).
+
+8.2 Spending by category
+A hero card (theme-tinted border and gradient, GlowBlob corners) with a DonutChart of configured expenses (amount > 0) by category: each expense's monthly equivalent (0.6) in base currency, summed per category. Slice colors come from a ramp spun off the theme's accent with one fixed slot per category (Essential, Personal, Subscriptions, Entertainment, Emergency), so a category always keeps its color. The donut's center shows the total and "monthly spend". A legend lists each category with a color dot, amount, share and a thin ProgressBar. With no configured expenses, the card shows an EmptyState instead of the chart.
+
+8.3 Stat grid
+Four StatTiles: Monthly total (totalExpenses), Installments (totalNegativeMonthly), Net savings (colored by sign), and Unconfigured (the number of expenses with amount 0, which the chart leaves out).
+
+8.4 Expense-to-income
+Shown only when income > 0: expenses as a share of income (capped at 100%), a gradient ProgressBar, and the expense and income amounts beneath.
+
+8.5 Empty
+With no expenses at all, the chart card's EmptyState is the only empty state on the screen (2.2.0 fix — a second, page-level EmptyState used to appear below it).

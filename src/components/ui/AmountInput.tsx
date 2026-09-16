@@ -5,6 +5,7 @@ import { ChevronDown } from 'lucide-react-native';
 import { useTheme } from '@/context/ThemeContext';
 import { useLanguage } from '@/context/LanguageContext';
 import { RADII, SEMANTIC } from '@/constants/theme';
+import { useMirroredText } from '@/lib/useMirroredText';
 import { withAlpha } from '@/utils/color';
 
 interface AmountInputProps {
@@ -37,6 +38,9 @@ export function AmountInput({
   // Pressed state lives in React, not in a `style={({ pressed }) => …}` function: NativeWind's
   // JSX transform drops function styles on Pressable, which left this pill unstyled.
   const [pressed, setPressed] = useState(false);
+  // Local text, so a form re-rendering every field can't make the amount lose characters
+  // (src/lib/useMirroredText.ts).
+  const { text, handleChangeText } = useMirroredText(value, onChangeValue);
   const tintColor = tint ? SEMANTIC[tint] : undefined;
   const currencyColor = tintColor ?? theme.accent2;
 
@@ -104,8 +108,8 @@ export function AmountInput({
           </Text>
         )}
         <TextInput
-          value={value}
-          onChangeText={onChangeValue}
+          value={text}
+          onChangeText={handleChangeText}
           keyboardType="decimal-pad"
           placeholder="0.00"
           placeholderTextColor={theme.textTertiary}

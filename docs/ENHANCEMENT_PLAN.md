@@ -101,9 +101,9 @@ no new gesture idioms, no new chart library, consistent with what's already in `
 
 ## 3. Home (Dashboard) — additions to the existing layout
 
-Current layout (`src/pages/Dashboard.tsx`), **as of `BalanceRevealCard` shipping**: greeting →
-**Current Balance hero (`BalanceRevealCard`)** → financial-health `RingGauge` hero → stat grid
-(income/expenses/installments/netSavings) → itemized balances list.
+Current layout: `FEATURE_SPEC.md` Part 7 (planned for 2.2.0: greeting → Current Balance hero
+(`BalanceRevealCard`) → Coming up → This month → Debts). The insertions below are placed relative to
+that layout.
 
 Remaining proposed insertions (not yet built), in order:
 
@@ -117,8 +117,8 @@ Remaining proposed insertions (not yet built), in order:
 
 ## 4. Analytics — additions to the existing layout
 
-Current layout (`src/pages/Analytics.tsx`): spending-by-category donut → stat grid → expense-to-
-income bar → top expenses.
+Current layout: `FEATURE_SPEC.md` Part 8 (spending-by-category donut → stat grid → expense-to-income
+bar; the top-expenses list was removed in 2.1.0).
 
 Proposed insertion:
 
@@ -141,8 +141,8 @@ Proposed insertion:
   that makes sense there, and it's the one that most directly improves what the screen shows.
 - **Expenses / Debts tabs** — unchanged (Add Expense / Add Debt, as today).
 
-This also fixes the current bug-shaped behavior where Home/Analytics silently inherit whatever
-`ChromeContext` handler Debts last registered, since neither screen currently sets its own.
+Today (FEATURE_SPEC 0.1) the FAB on Home and Analytics switches to Debts and opens a new debt;
+this section would replace that behavior.
 
 ---
 
@@ -185,6 +185,27 @@ This also fixes the current bug-shaped behavior where Home/Analytics silently in
 Separate topic from the reconciliation/targets/investments work above. Added 2026-09-15 from a
 conversation about backups. **Nothing here is decided or built.** The user picks a method here
 before any work starts.
+
+**Deferred (2026-09-15):** at the user's request this is the last item in the plan, built after
+everything else. Research already done (re-check package versions when work starts):
+- Google Drive most likely does not appear in Android's folder picker (`ACTION_OPEN_DOCUMENT_TREE`,
+  which `Directory.pickDirectoryAsync` uses); it does appear in the file picker and the share sheet.
+  Check on a device before relying on a Drive folder.
+- expo-file-system 57 (native source): the folder picker takes a persistable read+write permission;
+  copying a `file://` file into a SAF folder works; `rename` does not work on SAF; `ReadWrite` file
+  handles are not supported on SAF.
+- Zip: `react-native-zip-archive` 9.5.1 (zip4j on Android) streams from disk, supports AES-256,
+  cancel/`AbortSignal` and per-file progress; its config plugin is a no-op. It takes file paths only
+  (build in the cache, then copy out; a restore needs about 2× the backup's size free). Pure-JS
+  options (fflate, JSZip, zip.js) run on the JS thread, are in-memory or slow, and lack AES.
+- `expo-background-fetch` is deprecated in favor of `expo-background-task` (WorkManager, at most every
+  15 min, requires a network connection). A "backup due" check on launch/foreground needs no new module.
+- `android.allowBackup` is a supported `app.json` key (default `true`). Over 25 MB Android keeps the
+  last cloud backup, so a reinstall can restore stale data.
+- The legacy debt contact columns are still read by `backfillPeople()` for installs upgrading from
+  before 2.0.1 (the `people` table arrived in 2.0.1) — dropping them must keep that path working.
+- Moving off the debug signing key forces every user to reinstall; do it only after the full backup
+  exists, or users lose their proofs.
 
 ### Why
 - The app's only way to move data today is a JSON export/import. It carries every record, but **not
@@ -237,5 +258,5 @@ picking that file.
 - Password encryption: yes / no
 - Schedule options: e.g. off / daily / weekly
 - Android Auto Backup: keep / restrict / off
-- Target release: e.g. 2.1.0
+- Target release: last in the plan, after everything else
 

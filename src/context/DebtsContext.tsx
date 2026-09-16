@@ -1,5 +1,5 @@
 import React, { createContext, useCallback, useContext, useMemo, useState } from 'react';
-import { and, asc, desc, eq, inArray, isNotNull, isNull, max, ne, sum } from 'drizzle-orm';
+import { and, asc, desc, eq, inArray, isNotNull, isNull, lt, max, ne, sum } from 'drizzle-orm';
 import { useLiveQuery } from 'drizzle-orm/expo-sqlite';
 
 import { db } from '@/db/client';
@@ -12,6 +12,7 @@ import { avatarDisplayUri } from '@/lib/avatars';
 import { nowIso, todayStr } from '@/lib/dates';
 import { MONEY_EPSILON, getDebtBalance } from '@/lib/debtStatus';
 import type { DebtBalance } from '@/lib/debtStatus';
+import type { PaymentRecord } from '@/lib/installments';
 import { toPersonValues } from '@/lib/people';
 import type { PersonFields } from '@/lib/people';
 
@@ -100,6 +101,8 @@ interface DebtsContextValue {
   debtFilter: DebtFilter;
   setDebtFilter: (filter: DebtFilter) => void;
   debtsCalculations: DebtsCalculations;
+  /** Every recorded payment (− adjustment) — the installment calendar's "already paid" check (src/lib/installments.ts). */
+  payments: PaymentRecord[];
   /** Returns the new debt's id. */
   addDebt: (input: DebtInput, target: DebtPersonTarget) => number;
   updateDebt: (id: number, patch: Partial<DebtInput>) => void;
@@ -151,7 +154,19 @@ export function DebtsProvider({ children }: { children: React.ReactNode }) {
       .groupBy(debtAdjustments.debtId),
   );
 
+  const { data: paymentRows } = useLiveQuery(
+    db
+      .select({
+        debtId: debtAdjustments.debtId,
+        amount: debtAdjustments.amount,
+        date: debtAdjustments.date,
+      })
+      .from(debtAdjustments)
+      .where(lt(debtAdjustments.amount, 0)),
+  );
+
   const peopleSafe = useMemo(() => peopleRows ?? [], [peopleRows]);
+  const payments = useMemo<PaymentRecord[]>(() => paymentRows ?? [], [paymentRows]);
   const peopleById = useMemo(() => new Map(peopleSafe.map((p) => [p.id, p])), [peopleSafe]);
 
   const adjustmentTotals = useMemo(() => {
@@ -482,6 +497,7 @@ export function DebtsProvider({ children }: { children: React.ReactNode }) {
       debtFilter,
       setDebtFilter,
       debtsCalculations,
+      payments,
       addDebt,
       updateDebt,
       moveDebt,
@@ -507,6 +523,7 @@ export function DebtsProvider({ children }: { children: React.ReactNode }) {
       settledCountByPerson,
       debtFilter,
       debtsCalculations,
+      payments,
       addDebt,
       updateDebt,
       moveDebt,

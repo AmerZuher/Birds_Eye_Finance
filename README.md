@@ -6,7 +6,7 @@
 
 **Your finances, clearly seen.**
 
-Android · Arabic & English · 100% offline, nothing ever leaves your phone
+Android · Arabic & English · Local-first — your data never leaves your phone
 
 </div>
 

@@ -1,9 +1,10 @@
-import React, { useMemo } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import { Text, TextInput, View } from 'react-native';
 import type { TextInputProps } from 'react-native';
 
 import { useTheme } from '@/context/ThemeContext';
 import { RADII } from '@/constants/theme';
+import { useMirroredText } from '@/lib/useMirroredText';
 import { withAlpha } from '@/utils/color';
 
 /**
@@ -76,14 +77,28 @@ export function useTextFieldStyle() {
  * cursor and selection colors, so no input can fall back to a platform default
  * color (the default placeholder grey is near-invisible on dark themes). Pass
  * `style` only to extend the field (e.g. minHeight, LTR alignment).
+ *
+ * The text it shows comes from `useMirroredText`, never straight from the
+ * caller's state — see that hook for why a plainly controlled input drops
+ * characters while deleting on Android.
  */
-export function TextField({ style, placeholderTextColor, ...props }: TextInputProps) {
+export function TextField({
+  style,
+  placeholderTextColor,
+  value,
+  onChangeText,
+  ...props
+}: TextInputProps) {
   const { theme } = useTheme();
   const fieldStyle = useTextFieldStyle();
+  const emit = useCallback((next: string) => onChangeText?.(next), [onChangeText]);
+  const { text, handleChangeText } = useMirroredText(value ?? '', emit);
 
   return (
     <TextInput
       {...props}
+      value={text}
+      onChangeText={handleChangeText}
       placeholderTextColor={placeholderTextColor ?? theme.textTertiary}
       cursorColor={theme.accent2}
       selectionColor={withAlpha(theme.accent2, 0.35)}

@@ -33,6 +33,8 @@ import { ModalPortalProvider, ModalPortalOutlet } from '@/context/ModalPortalCon
 import { Header } from '@/components/Header';
 import { Navbar } from '@/components/Navbar';
 import { PendingPhotoRecovery } from '@/components/PendingPhotoRecovery';
+import { NotificationRouting } from '@/components/NotificationRouting';
+import { RemindersProvider } from '@/context/RemindersContext';
 import { THEMES } from '@/constants/theme';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
 import { DatabaseProvider } from '@/context/DatabaseContext';
@@ -100,6 +102,7 @@ function RootLayoutInner() {
     <View style={{ flex: 1, backgroundColor: theme.ground }}>
       <AndroidBackHandler />
       <PendingPhotoRecovery />
+      <NotificationRouting />
       {/* On Android, expo-blur's real blur methods need an explicit target to
           sample — they can't automatically blur "whatever's behind" a view
           the way iOS's system blur can. This wraps all route content as that
@@ -164,9 +167,11 @@ export default function RootLayout() {
                       <DebtsProvider>
                         <FinanceProvider>
                           <ChromeProvider>
-                            <ModalPortalProvider>
-                              <RootLayoutInner />
-                            </ModalPortalProvider>
+                            <RemindersProvider>
+                              <ModalPortalProvider>
+                                <RootLayoutInner />
+                              </ModalPortalProvider>
+                            </RemindersProvider>
                           </ChromeProvider>
                         </FinanceProvider>
                       </DebtsProvider>

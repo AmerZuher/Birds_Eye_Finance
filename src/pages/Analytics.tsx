@@ -83,8 +83,6 @@ export default function Analytics() {
   const expenseRatio =
     totalMonthlyIncomeBase > 0 ? Math.min(1, totalExpenses / totalMonthlyIncomeBase) : 0;
 
-  const hasData = expenses.length > 0;
-
   return (
     <PageTransition>
       <ScrollView
@@ -306,13 +304,6 @@ export default function Analytics() {
                 {t('analytics.expenseToIncomeSuffix')}
               </Text>
             </View>
-          </Animated.View>
-        ) : null}
-
-        {/* Full empty state when there's literally nothing to show */}
-        {!hasData ? (
-          <Animated.View entering={FadeInUp.duration(420).delay(140)}>
-            <EmptyState icon={ReceiptText} caption={t('analytics.empty')} />
           </Animated.View>
         ) : null}
       </ScrollView>
