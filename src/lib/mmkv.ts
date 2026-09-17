@@ -21,6 +21,8 @@ export const StorageKeys = {
   remindersEnabled: 'reminders.enabled',
   remindersLead: 'reminders.lead',
   remindersLastHandled: 'reminders.lastHandled',
+  /** The date the stale-balance nudge was last dismissed — it comes back a week later (FEATURE_SPEC 7.4). */
+  balanceNudgeDismissed: 'balance.nudgeDismissed',
   /** App updates: the automatic-check setting and the last check's time and result (FEATURE_SPEC 3.6). */
   updatesAuto: 'updates.auto',
   updatesLastCheck: 'updates.lastCheck',

@@ -1,5 +1,5 @@
 import { DEFAULT_CURRENCY_CODE } from '@/constants/currencies';
-import { isValidDateStr, localDateStr } from '@/lib/dates';
+import { dateParts, isValidDateStr, localDateStr } from '@/lib/dates';
 import { MONEY_EPSILON } from '@/lib/debtStatus';
 import type { DebtStatus } from '@/lib/debtStatus';
 
@@ -39,24 +39,6 @@ export interface InstallmentEvent {
   /** The monthly payment for an installment; what's still outstanding for a plan end. */
   amount: number;
   currency: string;
-}
-
-function dateParts(date: string): [number, number, number] {
-  const [year, month, day] = date.split('-').map(Number);
-  return [year, month, day];
-}
-
-/** The local date `days` after `date` (negative goes back). */
-export function addDays(date: string, days: number): string {
-  const [year, month, day] = dateParts(date);
-  return localDateStr(new Date(year, month - 1, day + days));
-}
-
-/** Whole calendar days from `from` to `to` — negative when `to` is earlier. */
-export function daysBetween(from: string, to: string): number {
-  const [y1, m1, d1] = dateParts(from);
-  const [y2, m2, d2] = dateParts(to);
-  return Math.round((Date.UTC(y2, m2 - 1, d2) - Date.UTC(y1, m1 - 1, d1)) / 86_400_000);
 }
 
 /** Installment `index` (0 = the start date). A day the month doesn't have falls on its last day. */

@@ -1,14 +1,14 @@
 BirdsEye Finance — Feature Documentation
 
-Screens: Dashboard (Part 7, CLAUDE.md rule 15) · Analytics (Part 8) · Expenses · Debts · Settings · About (stub, see CLAUDE.md rule 16)
+Screens: Dashboard (Part 7, CLAUDE.md rule 15) · Analytics (Part 8) · Expenses · Debts · Settings · About (stub, see CLAUDE.md rule 16). Log Balance (Part 9) is a sheet, reachable from Dashboard and Analytics.
 
 Source files (src/ unless noted):
 
 pages/Dashboard.tsx, pages/Analytics.tsx, pages/Debts.tsx, pages/Expenses.tsx, pages/Settings.tsx
-components/DebtModal.tsx, components/ExpenseModal.tsx, components/ContactsPicker.tsx, components/ui/* (the 26 shared primitives), components/Navbar.tsx, components/Header.tsx
+components/DebtModal.tsx, components/ExpenseModal.tsx, components/LogBalanceSheet.tsx, components/ContactsPicker.tsx, components/ui/* (the 28 shared primitives), components/Navbar.tsx, components/Header.tsx
 Sub-screens: pages/EditProfileScreen.tsx, pages/DataScreen.tsx (Phase 2)
-Contexts: context/DatabaseContext.tsx, context/DebtsContext.tsx, context/FinanceContext.tsx, context/UserContext.tsx, context/CurrencyContext.tsx, context/ThemeContext.tsx
-Utils/constants: utils/dataTransfer.ts, lib/exchangeRates.ts, lib/avatars.ts, constants/theme.ts, constants/currencies.ts (+ the generated constants/currencyTable.ts), constants/brandIcons.ts, constants/initialData.ts, prompts/debtsPrompt.ts, prompts/expensesPrompt.ts
+Contexts: context/DatabaseContext.tsx, context/DebtsContext.tsx, context/BalanceContext.tsx, context/FinanceContext.tsx, context/UserContext.tsx, context/CurrencyContext.tsx, context/ThemeContext.tsx
+Utils/constants: utils/dataTransfer.ts, lib/exchangeRates.ts, lib/reconciliation.ts, lib/avatars.ts, constants/theme.ts, constants/currencies.ts (+ the generated constants/currencyTable.ts), constants/brandIcons.ts, constants/initialData.ts, prompts/debtsPrompt.ts, prompts/expensesPrompt.ts
 
 PART 0 — SHARED INFRASTRUCTURE (applies to all screens)
 
@@ -16,7 +16,7 @@ PART 0 — SHARED INFRASTRUCTURE (applies to all screens)
 Header — built from the shared GlassHeader primitive. Floating glassmorphic bar pinned to top, respects safe-area insets. Left: app logo tile + "BirdsEye Finance" title → tapping navigates to About. Right: user avatar pill → tapping navigates to Settings; gets a visible accent-colored border when Settings is already active. Hidden on the Settings and About screens, which render their own header (back button + title) in the same GlassHeader slot instead.
 Navbar (components/Navbar.tsx) — bottom glassmorphic tab bar with 4 items: Dashboard (House icon), Analytics (ChartPie icon), Expenses (CreditCard icon), Debts (Wallet icon). Icons only — each tab's name is its accessibility label (CLAUDE.md rule 12). The active item takes the theme's accent color; inactive items are muted. Light haptic feedback on every tab press. Tab switching preserves state — it does not reset the Debts person-detail view, and Settings sub-screen state survives tab switches.
 System bars (Android): the navigation bar is transparent with no system contrast layer, so the tab bar shows through under the gesture handle on every device (MagicOS drew a grey band otherwise). Navigation-bar and status-bar icons are dark on light themes and light on dark themes.
-Floating Action Button (FAB, inside Navbar) — shown on every tab, sitting in the tab bar's notch at a fixed physical position (CLAUDE.md rule 9). Plus icon on the theme's FAB color. On press: Expenses tab → new expense (ExpenseModal); Debts tab → new debt (DebtModal); Dashboard and Analytics → switches to Debts and opens a new debt there.
+Floating Action Button (FAB, inside Navbar) — shown on every tab, sitting in the tab bar's notch at a fixed physical position (CLAUDE.md rule 9). Plus icon on the theme's FAB color. On press: Expenses tab → new expense (ExpenseModal); Debts tab → new debt (DebtModal); Dashboard and Analytics → the Log Balance sheet (Part 9), opened in place without leaving the tab. (Up to 2.2.0 those two tabs switched to Debts and opened a new debt; ENHANCEMENT_PLAN §5's three-entry quick-action sheet waits until targets and investments exist, since today it would have one real entry.)
 
 0.2 Android hardware-back hierarchy
 Intercepted in order: a modal is open → the modal's own close handler consumes it. Settings sub-screen open → return to Settings main hub. On Settings or About → jump to previousTab (the exact tab the user came from). On Debts tab with an open person detail → return to person list. Dashboard root → back press swallowed (prevents accidental exit).
@@ -41,11 +41,11 @@ Base currency selection persists to MMKV. formatMoney() is locale-aware via Intl
 getMonthlyEquivalent converts any billing period to a monthly equivalent for totals: daily ×30.44 · weekly ×4.345 · custom ×(30.44/customPeriodDays) · 3months ÷3 · 6months ÷6 · 9months ÷9 · yearly ÷12 · monthly ×1.
 
 0.7 Persistence map
-Relational data — expo-sqlite via Drizzle: expenses, people, debts, debt_adjustments, debt_attachments, income_sources tables. Attachment files and app-picked person and profile photos live in the app's document directory and are referenced by relative file name only.
-Preferences — react-native-mmkv (synchronous reads): theme id, base currency code, currency usage counts, language, profile blob (name, avatar, startBalances, lastReconciledDate — not relational enough to warrant a SQL table), activeTab/previousTab, settingsScreen ('main' | 'edit-profile' | 'data' | 'notifications'), the exchange-rate cache ({ rates, fetchedAt, source }) with the "Live exchange rates" setting and the time of the last download attempt, and — only while the photo picker is open — who a photo is being picked for (1.11, 3.3), the installment-reminder setting and lead time (1.13), and the app-update setting with the last check's time and result (3.2 C). Scheduled reminders themselves are held by the system's notification scheduler, not app storage. The app keeps no local backup snapshot; the keys earlier versions used for one, and for the removed font-size setting, are deleted at launch.
+Relational data — expo-sqlite via Drizzle: expenses, people, debts, debt_adjustments, debt_attachments, income_sources, balance_snapshots tables. Attachment files and app-picked person and profile photos live in the app's document directory and are referenced by relative file name only.
+Preferences — react-native-mmkv (synchronous reads): theme id, base currency code, currency usage counts, language, profile blob (name, avatar, startBalances — not relational enough to warrant a SQL table), activeTab/previousTab, settingsScreen ('main' | 'edit-profile' | 'data' | 'notifications'), the exchange-rate cache ({ rates, fetchedAt, source }) with the "Live exchange rates" setting and the time of the last download attempt, and — only while the photo picker is open — who a photo is being picked for (1.11, 3.3), the installment-reminder setting and lead time (1.13), the app-update setting with the last check's time and result (3.2 C), and when the balance-check nudge was last dismissed (7.4). Scheduled reminders themselves are held by the system's notification scheduler, not app storage. The app keeps no local backup snapshot; the keys earlier versions used for one, and for the removed font-size setting, are deleted at launch, and the profile's unused `lastReconciledDate` (stamped up to 2.2.0, never read) is dropped when the profile is read.
 
 0.8 Reusable UI components
-See CLAUDE.md rule 4 for the full list of 26 shared primitives and what each covers. Every screen composes these; none of them duplicate Tailwind classes or reimplement a pattern another screen already has.
+See CLAUDE.md rule 4 for the full list of 28 shared primitives and what each covers. Every screen composes these; none of them duplicate Tailwind classes or reimplement a pattern another screen already has.
 
 0.9 Scrolling & keyboard
 No visible scroll indicators anywhere in the app (vertical or horizontal, lists and scroll views alike); scrolling itself is unchanged. A focused text input is never covered by the soft keyboard: bottom sheets lift with the keyboard and scroll the focused field into view with a small margin above the keyboard; full screens (Edit Profile, Data) scroll the focused field into view. In lists with a search field, tapping a result works on the first tap while the keyboard is open, and dragging the list dismisses the keyboard.
@@ -184,13 +184,13 @@ One card: a "Check automatically" ToggleSwitch (on by default, "At most once a d
 
 3.3 EditProfileScreen (Phase 2) — sub-screen
 Profile card: avatar upload (photo library, square crop; downscaled to 256px and stored as a small file in app storage, referenced by relative name like person photos — 1.11), applied immediately; inline name editing. Denied photo access or a failed save shows an error banner. If Android destroys the app while the picker is open, the picked photo is still applied when the app restarts, and Edit Profile opens. Profile photos saved by earlier versions (an absolute file path) are moved to the relative scheme at launch. Income line + financial-health badge (computed from savings rate — four tiers from "excellent" down to "critical", each with its own color).
-Current balances manager: add-row (name, amount, searchable currency), add button disabled until both fields filled. Adding or removing a balance stamps lastReconciledDate = now. Rows show name, currency tag, amount, remove button. Footer shows total balances count + converted sum.
+Current balances manager: add-row (name, amount, searchable currency), add button disabled until both fields filled. Rows show name, currency tag, amount, remove button. Footer shows total balances count + converted sum.
 Income sources manager: identical add-row pattern. Rows removable; footer shows source count + total combined income.
 
 3.4 DataScreen — sub-screen
 Export and import only. The app keeps no local backups of its own — the data is always the live data; online backup is planned separately (ENHANCEMENT_PLAN §8). Header card: Shield tile + "Backup & Data" title + description. Status/success/error messages render via the shared InlineBanner (not a bespoke "Flash banner").
-Export & Import card: Export builds a JSON snapshot ({ expenses, people, debts, debtAdjustments, debtAttachments (records only), incomes, profile, currency, theme, exportedAt }), writes a dated file, opens the native share sheet. Import from File (restricted to JSON). A caption says attachment files aren't included, only the debts they belong to.
-Import flow, identical for a file and for pasted JSON: the data is parsed first — invalid JSON shows an error banner and nothing else; data with nothing to add shows "There is nothing to import in that data." Otherwise a confirmation (ConfirmModal with an Upload icon, accent tone) says what will be added: "Adds {n} expenses, {n} debts, {n} income sources and {n} balances on top of your current data — nothing is replaced. This can't be undone, and importing the same data twice creates duplicates." with Cancel / Import. Nothing is written before Import. Import appends: expenses, incomes and the debt graph are added with ids regenerated and references remapped (people resolve per Part 6). The file's profile never overwrites the current one: its balances are appended; its name is used only when the current profile has no name, and its photo only when the current profile has none and that photo exists on this device. A success banner shows the counts.
+Export & Import card: Export builds a JSON snapshot ({ expenses, people, debts, debtAdjustments, debtAttachments (records only), incomes, balanceSnapshots, profile, currency, theme, exportedAt }), writes a dated file, opens the native share sheet. Import from File (restricted to JSON). A caption says attachment files aren't included, only the debts they belong to.
+Import flow, identical for a file and for pasted JSON: the data is parsed first — invalid JSON shows an error banner and nothing else; data with nothing to add shows "There is nothing to import in that data." Otherwise a confirmation (ConfirmModal with an Upload icon, accent tone) says what will be added: "Adds {n} expenses, {n} debts, {n} income sources, {n} balances and {n} balance logs on top of your current data — nothing is replaced. This can't be undone, and importing the same data twice creates duplicates." with Cancel / Import. Nothing is written before Import. Import appends: expenses, incomes, the balance logs and the debt graph are added with ids regenerated and references remapped (people resolve per Part 6). A balance log without a real date and a numeric amount is dropped; one whose date this device already has is still added, and resolves harmlessly (9.4). Files written before 2.3.0 simply carry no logs. The file's profile never overwrites the current one: its balances are appended; its name is used only when the current profile has no name, and its photo only when the current profile has none and that photo exists on this device. A success banner shows the counts.
 Paste-JSON import: multiline editor; disabled while empty or while an export/import is running; cleared after a successful import.
 AI prompt copier: buttons to copy the debts/expenses prompts (src/prompts/*) to clipboard, with a brief "copied" confirmation state. Caption explains the workflow: paste the prompt + messy notes into an external LLM the user chooses, paste the resulting JSON back into the box above (this is the one deliberate exception to "no external calls" — see CLAUDE.md rule 1).
 
@@ -242,10 +242,15 @@ interface DebtAttachment {
 interface Profile {
   name: string; avatar: string;
   startBalances?: { id: number; name: string; amount: number; currency: string }[];
-  lastReconciledDate?: string;
 }
 
 interface IncomeSource { id: number; name: string; amount: number; currency: string; }
+
+interface BalanceSnapshot {                          // the reconciliation log (Part 9)
+  id: number; date: string;                          // local YYYY-MM-DD, one row per date
+  amount: number; currency: string;                  // as typed, never pre-converted (0.5)
+  note?: string; createdAt: string;
+}
 ```
 No Target type, no targets field on Profile, no emergencyBufferMonths — see CLAUDE.md rule 13.
 
@@ -255,7 +260,13 @@ Per debt (derived, never stored): outstanding = amount + Σ adjustments · statu
 debtsCalculations.totalPositiveAmount / totalNegativeAmount / totalNegativeMonthly — computed from outstanding amounts of active debts only; Debts header net, effective income, and the Debts summary card's installment-total stat (rule 14).
 groupedDebts — per-person groups of active debts, keyed by personId (Debts list).
 effectiveIncome = income − totalNegativeMonthly · netSavings = effectiveIncome − totalExpenses · savingsRate % · financialHealth grade (EditProfile badge).
-The Dashboard (Part 7) reads these values plus the profile's balances and groupedDebts; it computes no projected or calculated balance (CLAUDE.md rule 15).
+Reconciliation values (src/lib/reconciliation.ts, exposed by BalanceContext — one source for the hero, the nudge and the chart, so they can never disagree):
+latestSnapshot — the row with the greatest date; ties break on the later createdAt, then the higher id, so a same-day correction or an imported duplicate can't make "latest" ambiguous.
+expectedAt(from, asOf) = convertToBase(from.amount, from.currency) + netSavings × (daysBetween(from.date, asOf) ÷ 30.44) — the 30.44-day month 0.6 already uses.
+currentBalance = expectedAt(latestSnapshot, today) — what Home shows (7.3). Before the first log it falls back to the sum of the profile's balances (3.3).
+variance(snapshot) = convertToBase(snapshot) − expectedAt(previous snapshot, snapshot.date) — defined only from the second log on.
+daysSinceLog / isStale — daysBetween(latestSnapshot.date, today), stale past 30 days (7.4).
+The Dashboard (Part 7) reads these values plus the profile's balances and groupedDebts. The aged-forward balance and the variance are the only forward-derived figures anywhere; nothing else is projected (CLAUDE.md rule 15).
 
 PART 6 — NOTABLE BEHAVIORS, QUIRKS & EDGE CASES
 Quick-add duplicate guard is silent — matching an already-added service does nothing.
@@ -267,29 +278,40 @@ WhatsApp country-code assumption: local numbers starting with 0 get Saudi 966 pr
 Installment reminders are calendar-based (1.13): the app only knows an installment is paid when a payment is recorded on that debt, and reminders stop if the app isn't opened for 90 days.
 App updates come only from this app's own GitHub releases (3.2 C). Android refuses an update signed with a different key; the installed app and its data then stay as they are.
 debtFilter exists in context (positive/negative/all) but has no UI control on the Debts screen today — available for future use.
-Import always appends, after a confirmation — importing the same file twice duplicates debts (ids are regenerated and every reference is remapped). People are the exception: imported rows resolve to existing people by contactId → phone → a single name match (1.3). The imported profile never overwrites the current one (3.4). Attachment files are not part of exports; imported attachment records without a file on this device are dropped.
+Import always appends, after a confirmation — importing the same file twice duplicates debts (ids are regenerated and every reference is remapped). Balance logs travel with an export and are appended the same way; re-importing them is harmless, because a date resolves to its last-written row (9.4), and a log with no valid date or amount is dropped. People are the exception: imported rows resolve to existing people by contactId → phone → a single name match (1.3). The imported profile never overwrites the current one (3.4). Attachment files are not part of exports; imported attachment records without a file on this device are dropped.
 Exchange rates are daily market reference rates, downloaded on every app launch (0.5), so base-currency totals shift slightly from day to day. Until a download succeeds, the built-in rates from the date the currency table was generated are used.
+Expected balances use *today's* net savings, not a historical rate: the app keeps no history of income, installments or expenses, so an interval between two balance logs is aged with the configuration in force right now. Change your income or add an expense and the expected figure — and therefore the variance — for past intervals moves with it. This is why the variance is presented as "what it expected", not as an audited past.
+Home's current balance drifts on its own between logs: aging forward by net savings ÷ 30.44 per day means the figure changes daily without anything being entered (downward when net savings is negative). Logging a balance re-anchors it.
+Logging a balance twice on one day replaces that day's row rather than adding a second (9.4) — a second log the same day is a correction, not new information.
+If the only balance log is removed, Home falls back to the typed accounts (7.3) — a log never overwrites the seed.
 All list empty-states share one visual language via the shared EmptyState primitive — never reimplemented per-screen.
 
 PART 7 — DASHBOARD (src/pages/Dashboard.tsx)
 CLAUDE.md rule 15: where the user stands and what's next, from logged records only — no forecasts or projected balances.
 
 7.1 Layout
-Same shell as the other tabs: a vertical scroll view padded to clear the glass header and the navbar, direction-aware entrance animation, no scroll indicators (0.9). Top to bottom: Greeting (7.2), Current balance (7.3), Coming up (7.4), This month (7.5), Debts (7.6). The FAB opens a new debt (0.1).
+Same shell as the other tabs: a vertical scroll view padded to clear the glass header and the navbar, direction-aware entrance animation, no scroll indicators (0.9). Top to bottom: Greeting (7.2), Current balance (7.3), Balance check (7.4, conditional), Coming up (7.5), This month (7.6), Debts (7.7). The FAB opens the Log Balance sheet (Part 9, 0.1).
 
 7.2 Greeting
 "Good morning / afternoon / evening" by local hour (before 12, before 18, otherwise), the profile name in the display font (the app's short name when none is set), then a hairline divider.
 
 7.3 Current balance
-BalanceRevealCard: the sum of the profile's current balances (3.3), converted to base currency. Masked on every launch; tap to reveal.
+BalanceRevealCard, masked on every launch, tap to reveal — the caption and variance lines below follow the same reveal state, since the card is one unit.
+- **Once a balance has been logged** (Part 9) the figure is that log, converted to base currency and **aged forward**: `logged + netSavings × (days since the log ÷ 30.44)` (Part 5). A caption names its source and age — "Logged today", "Logged yesterday", "Logged {n} days ago" — and from one day old it carries the logged figure itself, so an aged number is never mistaken for one the user typed.
+- **Variance line**, from the second log on: the latest log against what was expected at its own date, computed from the log before it (Part 5). A signed amount in the positive/negative color with "vs expected"; when it rounds to zero at two decimals the line reads "matched what was expected" in the neutral color. Tapping it opens Analytics (Part 8), where the history lives.
+- **Before the first log**: the sum of the profile's current balances (3.3) converted to base, exactly as 2.2.0 showed it — the seed. Caption "From your accounts", and a "Log balance" link (SecondaryButton's `link` variant) opening Part 9. The typed accounts stay in Edit Profile as the per-account detail and are never rewritten by a log.
+- With neither accounts nor a log: zero, with the same caption and link (7.8).
 
-7.4 Coming up
+7.4 Balance check
+ReconciliationNudgeCard, directly under the hero, shown only when the last log is **more than 30 days old**: a warning-toned card in InlineBanner's visual language — icon, one line ("Your last balance check was {n} days ago"), a "Log balance" action opening Part 9, and a dismiss ✕. Dismissing hides it for 7 days (an MMKV timestamp, 0.7); it returns after that if the log is still stale, and goes as soon as a balance is logged. Hidden while the log is fresh, and hidden when nothing has ever been logged — the hero's own link (7.3) is the entry point then, so first run stays quiet (7.8).
+
+7.5 Coming up
 A card listing what's due in the next 30 days (today included), soonest first, using the same rules as reminders (1.13) — including "skipped when already paid" — whether or not reminders are turned on:
 - Installment rows (ListRow + Avatar): the person's name; "Installment · #0042" with the date as "Today", "Tomorrow", "In 3 days" or the date; trailing the monthly payment in the debt's currency.
 - Plan-ending rows: the same row with "Plan ends · #0042" and the outstanding amount.
 At most 5 rows; when there are more, a muted "+{n} more" caption. Tapping a row opens Debts on that person with the debt's detail sheet open (1.10). When active installment plans exist but nothing is due in 30 days, the card shows one muted line: "Nothing due in the next 30 days." When no active debt has an installment plan, the card is hidden.
 
-7.5 This month
+7.6 This month
 One card: a RingGauge of the savings rate (clamped to 0–100%, the percentage in its center) in the financial-health tier's color, with the tier label (same tiers and colors as Edit Profile, 3.3), beside a breakdown in base currency:
 Income (all income sources)
 − Installments (totalNegativeMonthly, CLAUDE.md rule 14)
@@ -297,25 +319,50 @@ Income (all income sources)
 = Net savings, colored positive/negative.
 With no income sources, the ring shows no percentage and the card offers an "Add income" link → Edit Profile. Tapping the card anywhere else opens Analytics (Part 8). This card replaces the four stat tiles of 2.1.0.
 
-7.6 Debts
+7.7 Debts
 A card with Owed to me (totalPositiveAmount, positive color), I owe (totalNegativeAmount, negative color) and Net (colored by sign), all from active debts' outstanding amounts in base currency (1.10), then the top 3 people from groupedDebts (largest absolute net first): Avatar with its status ring, name, net outstanding. Tapping a person opens them on Debts (1.4); "See all" opens the Debts tab. Hidden when there are no active debts.
 
-7.7 First run
-With no data at all, the Dashboard shows the greeting, a zero Current balance and This month (with "Add income"); Coming up and Debts are hidden.
+7.8 First run
+With no data at all, the Dashboard shows the greeting, a zero Current balance with its "Log balance" link, and This month (with "Add income"); Balance check, Coming up and Debts are hidden.
 
 PART 8 — ANALYTICS (src/pages/Analytics.tsx)
 
 8.1 Layout
-Same shell as the Dashboard. Title "Analytics" with a subtitle and a hairline divider, then 8.2–8.4. The FAB opens a new debt (0.1).
+Same shell as the Dashboard. Title "Analytics" with a subtitle and a hairline divider, then 8.2–8.5. The FAB opens the Log Balance sheet (Part 9, 0.1).
 
 8.2 Spending by category
 A hero card (theme-tinted border and gradient, GlowBlob corners) with a DonutChart of configured expenses (amount > 0) by category: each expense's monthly equivalent (0.6) in base currency, summed per category. Slice colors come from a ramp spun off the theme's accent with one fixed slot per category (Essential, Personal, Subscriptions, Entertainment, Emergency), so a category always keeps its color. The donut's center shows the total and "monthly spend". A legend lists each category with a color dot, amount, share and a thin ProgressBar. With no configured expenses, the card shows an EmptyState instead of the chart.
 
-8.3 Stat grid
+8.3 Expected vs actual
+VarianceHistoryChart — how the logged balances have compared with what the app expected (Part 5, Part 9). One row per interval between consecutive logs, newest first, at most 6 plus a muted "+{n} more" caption. Each row: the log's date, a ProgressBar of actual ÷ expected (capped at 100%, so one big overshoot doesn't flatten every other row) in the positive or negative color by the sign of the variance, the logged amount, and the signed variance beneath. Above the rows, one factual line about the latest interval — "{amount} more than expected over {n} days", "{amount} less than expected over {n} days", or "matched what was expected". That line says what happened and stops there: the app cannot know which category caused a gap, so it doesn't guess at one. **Tapping a row** offers to delete that log (ConfirmModal, the standard delete look) — today's log is corrected by logging again (9.2), and this is how an older mistyped one is fixed: delete it and log the right figure. Everything measured against it is recalculated, since every figure is derived. With fewer than two logs the card shows an EmptyState with a "Log balance" action instead of rows, the same pattern 8.2 uses for no expenses.
+
+8.4 Stat grid
 Four StatTiles: Monthly total (totalExpenses), Installments (totalNegativeMonthly), Net savings (colored by sign), and Unconfigured (the number of expenses with amount 0, which the chart leaves out).
 
-8.4 Expense-to-income
+8.5 Expense-to-income
 Shown only when income > 0: expenses as a share of income (capped at 100%), a gradient ProgressBar, and the expense and income amounts beneath.
 
-8.5 Empty
-With no expenses at all, the chart card's EmptyState is the only empty state on the screen (2.2.0 fix — a second, page-level EmptyState used to appear below it).
+8.6 Empty
+With no expenses at all, the spending card's EmptyState is the only empty state below the title (2.2.0 fix — a second, page-level EmptyState used to appear below it). 8.3 has an empty state of its own, on its own condition (fewer than two balance logs), and the two are independent: a brand-new install shows exactly these two, one per card.
+
+PART 9 — LOG BALANCE (src/components/LogBalanceSheet.tsx)
+The reconciliation flow: the user says what they actually have, and the app compares it with what it expected (CLAUDE.md rule 15, docs/ENHANCEMENT_PLAN.md §6 decisions 5–8). A log is one total, not a figure per account — the account breakdown already lives in Edit Profile (3.3), and this has to be quick enough to repeat every month.
+
+9.1 Opening it
+Three entry points, all the same sheet: the FAB on Dashboard and Analytics (0.1), the "Log balance" link on the Current balance hero (7.3), and the Balance check card's action (7.4). Analytics' empty variance card (8.3) offers it too.
+
+9.2 The sheet
+GlassModal bottom sheet with Part 4's mechanics. Title "Log balance" over a one-line subtitle ("What do your accounts add up to right now?"). react-hook-form + zod (CLAUDE.md rule 5):
+- Amount — AmountInput, currency pill defaulting to the base currency, any currency pickable (0.5). Required, numeric, not negative; zero is allowed, because a balance really can be zero.
+- Note — optional single-line TextField ("What changed?").
+- The date is today, shown as a read-only line rather than a field: a log answers "what do I have now". No backdating in 2.3.0.
+When today already has a log, the sheet says so ("This replaces today's log") and saving updates that row instead of adding a second (9.4). Validation errors render through InlineBanner, never per field. Submit is a GradientButton; Cancel dismisses. Success closes the sheet and the Dashboard hero re-anchors immediately (the row is a live query, so nothing is refetched by hand).
+
+9.3 What it writes
+One `balance_snapshots` row: the amount and currency exactly as typed (never pre-converted — 0.5), today's local date from `todayStr()`, the note when given, and `createdAt`. Conversion to the base currency happens at render time, like every other amount in the app, so changing the base currency later re-reads the same history correctly.
+
+9.4 One log per date
+Saving on a date that already has a row updates that row rather than inserting — a second log the same day is a correction, not new information. The read side stays tolerant anyway: "latest" is the greatest `date`, breaking ties on the later `createdAt` and then the higher id, so a duplicate arriving from an import can never make it ambiguous. No unique index on `date` — the tolerance lives in one read helper instead of in a constraint an import could trip over. The variance history collapses a date to its last-written row for the same reason: an imported file can carry a date this device already has, and two rows a day apart would otherwise produce a zero-day interval whose variance means nothing.
+
+9.5 Expected, variance and staleness
+All of it in src/lib/reconciliation.ts, listed with the other derived values in Part 5, so the hero (7.3), the nudge (7.4) and the chart (8.3) share one implementation. netSavings comes from FinanceContext (income − installments − expenses) and is the configuration in force *now*, not a historical rate — see Part 6.

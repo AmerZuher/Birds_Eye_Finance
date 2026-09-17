@@ -104,17 +104,11 @@ export default function EditProfileScreen() {
 
   const addBalance = (input: { name: string; amount: number; currency: string }) => {
     const next: StartBalance = { id: Date.now(), ...input };
-    updateProfile({
-      startBalances: [...(profile.startBalances ?? []), next],
-      lastReconciledDate: new Date().toISOString(),
-    });
+    updateProfile({ startBalances: [...(profile.startBalances ?? []), next] });
   };
 
   const removeBalance = (id: number) => {
-    updateProfile({
-      startBalances: (profile.startBalances ?? []).filter((b) => b.id !== id),
-      lastReconciledDate: new Date().toISOString(),
-    });
+    updateProfile({ startBalances: (profile.startBalances ?? []).filter((b) => b.id !== id) });
   };
 
   const addIncome = (input: { name: string; amount: number; currency: string }) => {

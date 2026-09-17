@@ -11,9 +11,9 @@ import { useDebts } from '@/context/DebtsContext';
 import { useLanguage } from '@/context/LanguageContext';
 import { useReminders } from '@/context/RemindersContext';
 import { useTheme } from '@/context/ThemeContext';
-import { todayStr } from '@/lib/dates';
+import { addDays, todayStr } from '@/lib/dates';
 import { formatDebtId } from '@/lib/debtStatus';
-import { addDays, installmentEvents } from '@/lib/installments';
+import { installmentEvents } from '@/lib/installments';
 import {
   PLAN_END_LEAD_DAYS,
   REMINDER_HORIZON_DAYS,

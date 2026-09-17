@@ -29,3 +29,22 @@ export function isValidDateStr(value: string): boolean {
 export function nowIso(): string {
   return new Date().toISOString();
 }
+
+/** A YYYY-MM-DD split into local calendar numbers — month is 1-based, as written. */
+export function dateParts(date: string): [number, number, number] {
+  const [year, month, day] = date.split('-').map(Number);
+  return [year, month, day];
+}
+
+/** The local date `days` after `date` (negative goes back). */
+export function addDays(date: string, days: number): string {
+  const [year, month, day] = dateParts(date);
+  return localDateStr(new Date(year, month - 1, day + days));
+}
+
+/** Whole calendar days from `from` to `to` — negative when `to` is earlier. */
+export function daysBetween(from: string, to: string): number {
+  const [y1, m1, d1] = dateParts(from);
+  const [y2, m2, d2] = dateParts(to);
+  return Math.round((Date.UTC(y2, m2 - 1, d2) - Date.UTC(y1, m1 - 1, d1)) / 86_400_000);
+}

@@ -1,15 +1,20 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { ScrollView, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
-import { Landmark, ReceiptText, Wallet, Coins } from 'lucide-react-native';
+import { Landmark, ReceiptText, Scale, Wallet, Coins } from 'lucide-react-native';
 
 import { PageTransition } from '@/components/PageTransition';
 import { DonutChart } from '@/components/ui/DonutChart';
 import type { DonutSlice } from '@/components/ui/DonutChart';
 import { ProgressBar } from '@/components/ui/ProgressBar';
 import { StatTile } from '@/components/ui/StatTile';
+import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { SecondaryButton } from '@/components/ui/SecondaryButton';
+import { SettingsCard } from '@/components/ui/SettingsCard';
+import { VarianceHistoryChart } from '@/components/ui/VarianceHistoryChart';
+import type { VarianceRow } from '@/components/ui/VarianceHistoryChart';
 import { MoneyAmount } from '@/components/ui/MoneyAmount';
 import { GlowBlob } from '@/components/ui/GlowBlob';
 import { useTheme } from '@/context/ThemeContext';
@@ -17,17 +22,22 @@ import { useLanguage } from '@/context/LanguageContext';
 import { useCurrency } from '@/context/CurrencyContext';
 import { useFinance } from '@/context/FinanceContext';
 import { useChrome } from '@/context/ChromeContext';
+import { useBalance } from '@/context/BalanceContext';
 import { FONTS, RADII, SEMANTIC } from '@/constants/theme';
 import { categoricalRamp } from '@/utils/color';
 import { getMonthlyEquivalent } from '@/lib/period';
 import type { Period } from '@/lib/period';
 import type { Expense } from '@/db/schema';
 import { HIDDEN_SCROLLBARS } from '@/lib/scroll';
+import { isOnTrack } from '@/lib/reconciliation';
 import { useDebts } from '@/context/DebtsContext';
 
 // The 5 canonical expense categories, in a stable order so the same category
 // always maps to the same slice color regardless of how many are present.
 const CATEGORY_ORDER = ['essential', 'personal', 'subscriptions', 'entertainment', 'emergency'];
+
+/** Balance logs shown in the variance card before it starts counting the rest (FEATURE_SPEC 8.3). */
+const VARIANCE_ROWS = 6;
 
 function monthlyAmount(expense: Expense): number {
   return getMonthlyEquivalent(
@@ -40,8 +50,9 @@ function monthlyAmount(expense: Expense): number {
 export default function Analytics() {
   const { theme } = useTheme();
   const { t, isRTL } = useLanguage();
-  const { headerHeight, navbarHeight } = useChrome();
-  const { formatPercent, convertToBase } = useCurrency();
+  const { headerHeight, navbarHeight, openLogBalance } = useChrome();
+  const { formatPercent, convertToBase, formatMoney } = useCurrency();
+  const { history, deleteSnapshot } = useBalance();
   const { expenses, totalExpenses, totalMonthlyIncomeBase, netSavings } = useFinance();
   const { debtsCalculations } = useDebts();
 
@@ -78,6 +89,45 @@ export default function Analytics() {
   }, [expenses, convertToBase, t, theme.accent1]);
 
   const chartTotal = slices.reduce((sum, s) => sum + s.value, 0);
+
+  // Expected vs actual (FEATURE_SPEC 8.3). `history` is oldest first and its
+  // first entry has nothing to compare against, so it never becomes a row.
+  const varianceRows = useMemo<VarianceRow[]>(
+    () =>
+      history
+        .filter((entry) => entry.variance !== null && entry.expected !== null)
+        .reverse()
+        .slice(0, VARIANCE_ROWS)
+        .map((entry) => ({
+          key: entry.snapshot.id,
+          label: entry.snapshot.date,
+          logged: entry.logged,
+          expected: entry.expected as number,
+          variance: entry.variance as number,
+          expectedLabel: t('analytics.variance.expected', {
+            amount: formatMoney(entry.expected as number),
+          }),
+        })),
+    [history, t, formatMoney],
+  );
+  const comparedCount = history.filter((entry) => entry.variance !== null).length;
+
+  // Today's log is corrected by logging again (FEATURE_SPEC 9.2); an older one
+  // is fixed by removing it here and logging the right figure.
+  const [pendingDelete, setPendingDelete] = useState<VarianceRow | null>(null);
+
+  // One factual line about the latest interval — what happened, and nothing
+  // about why: the app can't know which category caused a gap (8.3).
+  const latest = history.length ? history[history.length - 1] : null;
+  const varianceInsight =
+    !latest || latest.variance === null || latest.days === null
+      ? null
+      : isOnTrack(latest.variance)
+        ? t('analytics.variance.onTrack')
+        : t(latest.variance > 0 ? 'analytics.variance.above' : 'analytics.variance.below', {
+            amount: formatMoney(Math.abs(latest.variance)),
+            n: String(latest.days),
+          });
 
   // Share of income eaten by expenses (only meaningful when income > 0).
   const expenseRatio =
@@ -215,6 +265,38 @@ export default function Analytics() {
           </View>
         </Animated.View>
 
+        {/* Expected vs actual (8.3) */}
+        <Animated.View entering={FadeInUp.duration(420).delay(90)}>
+          <SettingsCard title={t('analytics.variance.title')}>
+            {varianceRows.length ? (
+              <View style={{ gap: 14 }}>
+                {varianceInsight ? (
+                  <Text style={{ fontSize: 12, color: theme.textSecondary }}>
+                    {varianceInsight}
+                  </Text>
+                ) : null}
+                <VarianceHistoryChart
+                  onSelectRow={setPendingDelete}
+                  rows={varianceRows}
+                  moreCount={comparedCount - varianceRows.length}
+                  moreLabel={t('dashboard.moreCount', {
+                    n: String(comparedCount - varianceRows.length),
+                  })}
+                />
+              </View>
+            ) : (
+              <View style={{ gap: 12 }}>
+                <EmptyState icon={Scale} caption={t('analytics.variance.empty')} />
+                <SecondaryButton
+                  variant="link"
+                  label={t('dashboard.logBalance')}
+                  onPress={openLogBalance}
+                />
+              </View>
+            )}
+          </SettingsCard>
+        </Animated.View>
+
         {/* Stat grid */}
         <Animated.View
           entering={FadeInUp.duration(420).delay(120)}
@@ -307,6 +389,23 @@ export default function Analytics() {
           </Animated.View>
         ) : null}
       </ScrollView>
+
+      <ConfirmModal
+        visible={pendingDelete !== null}
+        title={t('analytics.variance.deleteTitle')}
+        subtitle={
+          pendingDelete
+            ? t('analytics.variance.deleteSubtitle', { date: pendingDelete.label })
+            : undefined
+        }
+        onCancel={() => setPendingDelete(null)}
+        onConfirm={() => {
+          if (pendingDelete) void deleteSnapshot(Number(pendingDelete.key));
+          setPendingDelete(null);
+        }}
+        confirmLabel={t('common.delete')}
+        cancelLabel={t('common.cancel')}
+      />
     </PageTransition>
   );
 }

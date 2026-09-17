@@ -207,7 +207,7 @@ export default function Debts() {
     useCallback(() => {
       setFabHandler(openCreateModal);
       if (consumeDebtCreateRequest()) openCreateModal();
-      // A person or debt tapped on the Dashboard (FEATURE_SPEC 7.4, 7.6); null = the person list.
+      // A person or debt tapped on the Dashboard (FEATURE_SPEC 7.5, 7.7); null = the person list.
       const open = consumeDebtOpenRequest();
       if (open) {
         setHistoryOpen(false);

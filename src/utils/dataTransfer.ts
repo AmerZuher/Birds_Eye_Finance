@@ -1,5 +1,6 @@
 import { db } from '@/db/client';
 import {
+  balanceSnapshots,
   debtAdjustments,
   debtAttachments,
   debts,
@@ -8,11 +9,13 @@ import {
   people,
 } from '@/db/schema';
 import type {
+  BalanceSnapshot,
   Debt,
   DebtAdjustment,
   DebtAttachment,
   Expense,
   IncomeSource,
+  NewBalanceSnapshot,
   NewExpense,
   NewIncomeSource,
   Person,
@@ -21,7 +24,7 @@ import { DEFAULT_CURRENCY_CODE } from '@/constants/currencies';
 import type { Profile, StartBalance } from '@/constants/initialData';
 import { duplicateAttachmentFile } from '@/lib/attachments';
 import { isAvatarAvailable } from '@/lib/avatars';
-import { nowIso, todayStr } from '@/lib/dates';
+import { isValidDateStr, nowIso, todayStr } from '@/lib/dates';
 import { resolvePerson, toPersonValues } from '@/lib/people';
 
 /**
@@ -45,6 +48,8 @@ export interface BackupSnapshot {
   /** Attachment records only — files are never part of an export. */
   debtAttachments: DebtAttachment[];
   incomes: IncomeSource[];
+  /** The balance log (FEATURE_SPEC Part 9). Absent from files written before 2.3.0. */
+  balanceSnapshots: BalanceSnapshot[];
   profile: Partial<Profile>;
   currency: string;
   theme: string;
@@ -57,15 +62,23 @@ export async function buildSnapshot(
   currency: string,
   theme: string,
 ): Promise<BackupSnapshot> {
-  const [expenseRows, peopleRows, debtRows, adjustmentRows, attachmentRows, incomeRows] =
-    await Promise.all([
-      db.select().from(expenses),
-      db.select().from(people),
-      db.select().from(debts),
-      db.select().from(debtAdjustments),
-      db.select().from(debtAttachments),
-      db.select().from(incomeSources),
-    ]);
+  const [
+    expenseRows,
+    peopleRows,
+    debtRows,
+    adjustmentRows,
+    attachmentRows,
+    incomeRows,
+    balanceRows,
+  ] = await Promise.all([
+    db.select().from(expenses),
+    db.select().from(people),
+    db.select().from(debts),
+    db.select().from(debtAdjustments),
+    db.select().from(debtAttachments),
+    db.select().from(incomeSources),
+    db.select().from(balanceSnapshots),
+  ]);
 
   return {
     expenses: expenseRows,
@@ -74,6 +87,7 @@ export async function buildSnapshot(
     debtAdjustments: adjustmentRows,
     debtAttachments: attachmentRows,
     incomes: incomeRows,
+    balanceSnapshots: balanceRows,
     profile,
     currency,
     theme,
@@ -104,6 +118,7 @@ export function parseSnapshot(raw: string): BackupSnapshot {
     debtAdjustments: arrayOf<DebtAdjustment>(obj.debtAdjustments),
     debtAttachments: arrayOf<DebtAttachment>(obj.debtAttachments),
     incomes: arrayOf<IncomeSource>(obj.incomes),
+    balanceSnapshots: arrayOf<BalanceSnapshot>(obj.balanceSnapshots),
     profile:
       obj.profile && typeof obj.profile === 'object' ? (obj.profile as Partial<Profile>) : {},
     currency: typeof obj.currency === 'string' ? obj.currency : '',
@@ -122,6 +137,31 @@ function toNewExpenses(items: Expense[]): NewExpense[] {
 
 function toNewIncomes(items: IncomeSource[]): NewIncomeSource[] {
   return items.map(({ id: _id, ...rest }) => rest);
+}
+
+/**
+ * Balance logs an import would add: a real date and a number, nothing else
+ * required. Ids are dropped like every other imported row. A date this device
+ * already has is kept rather than skipped — the reconciliation math collapses
+ * a date to its last-written row (src/lib/reconciliation.ts), so a duplicate
+ * from a re-imported file changes nothing it reads.
+ */
+function toNewBalanceSnapshots(items: BalanceSnapshot[]): NewBalanceSnapshot[] {
+  return items
+    .filter(
+      (row) =>
+        typeof row?.date === 'string' &&
+        isValidDateStr(row.date) &&
+        Number.isFinite(Number(row.amount)),
+    )
+    .map((row) => ({
+      date: row.date,
+      amount: Number(row.amount),
+      currency:
+        typeof row.currency === 'string' && row.currency ? row.currency : DEFAULT_CURRENCY_CODE,
+      note: row.note ?? null,
+      createdAt: row.createdAt || nowIso(),
+    }));
 }
 
 /** Balances an import would add — named, with a positive amount, like Edit Profile's own add row. */
@@ -275,6 +315,7 @@ export interface ImportPreview {
   debts: number;
   incomes: number;
   balances: number;
+  balanceLogs: number;
 }
 
 /** What an import would add — shown in its confirmation before anything is written. */
@@ -288,6 +329,7 @@ export function previewImport(snapshot: BackupSnapshot): ImportPreview {
     debts: debtCount,
     incomes: snapshot.incomes.length,
     balances: importableBalances(snapshot.profile).length,
+    balanceLogs: toNewBalanceSnapshots(snapshot.balanceSnapshots).length,
   };
 }
 
@@ -302,10 +344,7 @@ export function profilePatchForImport(
 ): Partial<Profile> | null {
   const patch: Partial<Profile> = {};
   const balances = importableBalances(incoming);
-  if (balances.length) {
-    patch.startBalances = [...(current.startBalances ?? []), ...balances];
-    patch.lastReconciledDate = new Date().toISOString();
-  }
+  if (balances.length) patch.startBalances = [...(current.startBalances ?? []), ...balances];
   const name = typeof incoming.name === 'string' ? incoming.name.trim() : '';
   if (!current.name?.trim() && name) patch.name = name;
   if (
@@ -322,12 +361,14 @@ export interface ImportCounts {
   expenses: number;
   debts: number;
   incomes: number;
+  balanceLogs: number;
 }
 
 /** Import = append, in one transaction. People resolve to existing ones where identity says so (FEATURE_SPEC Part 6). */
 export async function appendSnapshot(snapshot: BackupSnapshot): Promise<ImportCounts> {
   const newExpenses = toNewExpenses(snapshot.expenses);
   const newIncomes = toNewIncomes(snapshot.incomes);
+  const newBalanceLogs = toNewBalanceSnapshots(snapshot.balanceSnapshots);
 
   // Importing may land on a device still holding the original files, so each
   // attachment gets its own copy rather than sharing one. File copies are async
@@ -343,8 +384,14 @@ export async function appendSnapshot(snapshot: BackupSnapshot): Promise<ImportCo
   const debtCount = db.transaction((tx) => {
     if (newExpenses.length) tx.insert(expenses).values(newExpenses).run();
     if (newIncomes.length) tx.insert(incomeSources).values(newIncomes).run();
+    if (newBalanceLogs.length) tx.insert(balanceSnapshots).values(newBalanceLogs).run();
     return insertDebtGraph(tx, snapshot, (fileName) => copies.get(fileName) ?? null);
   });
 
-  return { expenses: newExpenses.length, debts: debtCount, incomes: newIncomes.length };
+  return {
+    expenses: newExpenses.length,
+    debts: debtCount,
+    incomes: newIncomes.length,
+    balanceLogs: newBalanceLogs.length,
+  };
 }

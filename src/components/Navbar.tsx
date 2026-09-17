@@ -108,7 +108,7 @@ const BAR_PADDING_BOTTOM_MIN = 20;
 export function Navbar() {
   const { theme } = useTheme();
   const { t } = useLanguage();
-  const { setNavbarHeight, blurTarget, triggerFab, requestDebtCreate } = useChrome();
+  const { setNavbarHeight, blurTarget, triggerFab, openLogBalance } = useChrome();
   const pathname = usePathname();
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -139,18 +139,18 @@ export function Navbar() {
     setNavbarHeight(e.nativeEvent.layout.height);
   };
 
-  // The FAB is global now (it sits in the notch on every tab), and defaults
-  // to creating a *debt* — Expenses is the one screen where it creates an
-  // expense instead. From Dashboard/Analytics neither screen owns a handler,
-  // so it routes to Debts and leaves a request for it to open on arrival.
+  // The FAB is global (it sits in the notch on every tab) and means "add the
+  // thing this tab is about": an expense on Expenses, a debt on Debts, and on
+  // Dashboard/Analytics a balance log (FEATURE_SPEC 0.1, Part 9) — which opens
+  // in place, since the sheet is mounted at the root rather than owned by
+  // either screen. Up to 2.2.0 those two tabs jumped to Debts instead.
   const onFabPress = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     if (pathname === '/expenses' || pathname === '/debts') {
       triggerFab();
       return;
     }
-    requestDebtCreate();
-    router.navigate('/debts');
+    openLogBalance();
   };
 
   const renderTab = (tab: TabDef) => {

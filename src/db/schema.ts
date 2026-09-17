@@ -124,6 +124,25 @@ export const incomeSources = sqliteTable('income_sources', {
   currency: text('currency').notNull(),
 });
 
+// The reconciliation log (FEATURE_SPEC Part 9): one user-typed "here's what I
+// actually have" per date. Amount and currency are stored as typed and
+// converted at render time, like every other amount (FEATURE_SPEC 0.5). One
+// row per date is a write-side rule (a same-day log is a correction, so it
+// updates in place), deliberately not a unique index — the read side breaks
+// ties instead, so an imported duplicate can't fail an insert (9.4).
+export const balanceSnapshots = sqliteTable(
+  'balance_snapshots',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    date: text('date').notNull(),
+    amount: real('amount').notNull(),
+    currency: text('currency').notNull(),
+    note: text('note'),
+    createdAt: text('created_at').notNull(),
+  },
+  (t) => [index('balance_snapshots_date_idx').on(t.date)],
+);
+
 export type Expense = typeof expenses.$inferSelect;
 export type NewExpense = typeof expenses.$inferInsert;
 export type Person = typeof people.$inferSelect;
@@ -136,3 +155,5 @@ export type DebtAttachment = typeof debtAttachments.$inferSelect;
 export type NewDebtAttachment = typeof debtAttachments.$inferInsert;
 export type IncomeSource = typeof incomeSources.$inferSelect;
 export type NewIncomeSource = typeof incomeSources.$inferInsert;
+export type BalanceSnapshot = typeof balanceSnapshots.$inferSelect;
+export type NewBalanceSnapshot = typeof balanceSnapshots.$inferInsert;

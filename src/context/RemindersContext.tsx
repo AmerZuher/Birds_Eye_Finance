@@ -4,8 +4,8 @@ import { AppState } from 'react-native';
 import { useCurrency } from '@/context/CurrencyContext';
 import { useDebts } from '@/context/DebtsContext';
 import { useLanguage } from '@/context/LanguageContext';
-import { todayStr } from '@/lib/dates';
-import { addDays, installmentEvents } from '@/lib/installments';
+import { addDays, todayStr } from '@/lib/dates';
+import { installmentEvents } from '@/lib/installments';
 import {
   PLAN_END_LEAD_DAYS,
   REMINDER_HORIZON_DAYS,

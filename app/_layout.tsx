@@ -28,7 +28,9 @@ import { LanguageProvider } from '@/context/LanguageContext';
 import { CurrencyProvider } from '@/context/CurrencyContext';
 import { UserProvider } from '@/context/UserContext';
 import { FinanceProvider } from '@/context/FinanceContext';
+import { BalanceProvider } from '@/context/BalanceContext';
 import { ChromeProvider, useChrome } from '@/context/ChromeContext';
+import { LogBalanceSheet } from '@/components/LogBalanceSheet';
 import { ModalPortalProvider, ModalPortalOutlet } from '@/context/ModalPortalContext';
 import { Header } from '@/components/Header';
 import { Navbar } from '@/components/Navbar';
@@ -104,6 +106,10 @@ function RootLayoutInner() {
       <AndroidBackHandler />
       <PendingPhotoRecovery />
       <NotificationRouting />
+      {/* One instance for the whole app — the FAB (Dashboard/Analytics), the
+          balance hero and the stale-balance nudge all open this same sheet
+          through ChromeContext (FEATURE_SPEC 9.1). */}
+      <LogBalanceSheet />
       {/* On Android, expo-blur's real blur methods need an explicit target to
           sample — they can't automatically blur "whatever's behind" a view
           the way iOS's system blur can. This wraps all route content as that
@@ -167,15 +173,17 @@ export default function RootLayout() {
                     <DatabaseProvider>
                       <DebtsProvider>
                         <FinanceProvider>
-                          <ChromeProvider>
-                            <RemindersProvider>
-                              <UpdatesProvider>
-                                <ModalPortalProvider>
-                                  <RootLayoutInner />
-                                </ModalPortalProvider>
-                              </UpdatesProvider>
-                            </RemindersProvider>
-                          </ChromeProvider>
+                          <BalanceProvider>
+                            <ChromeProvider>
+                              <RemindersProvider>
+                                <UpdatesProvider>
+                                  <ModalPortalProvider>
+                                    <RootLayoutInner />
+                                  </ModalPortalProvider>
+                                </UpdatesProvider>
+                              </RemindersProvider>
+                            </ChromeProvider>
+                          </BalanceProvider>
                         </FinanceProvider>
                       </DebtsProvider>
                     </DatabaseProvider>

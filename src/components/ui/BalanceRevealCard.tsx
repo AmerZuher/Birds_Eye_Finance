@@ -10,8 +10,9 @@ import { useLanguage } from '@/context/LanguageContext';
 import { useCurrency } from '@/context/CurrencyContext';
 import { MoneyAmount } from '@/components/ui/MoneyAmount';
 import { GlowBlob } from '@/components/ui/GlowBlob';
+import { SecondaryButton } from '@/components/ui/SecondaryButton';
 import { RiyalSymbol } from '@/components/RiyalSymbol';
-import { FONTS, RADII } from '@/constants/theme';
+import { FONTS, RADII, SEMANTIC } from '@/constants/theme';
 import { withAlpha } from '@/utils/color';
 
 // Mirrors MoneyAmount's own check — no font ships U+20C1 yet, so it has to
@@ -26,9 +27,25 @@ const RIYAL_SYMBOL = '⃁';
 // text/dots' footprint so it never competes with what's actually being read.
 const APP_ICON = require('../../../assets/icon.png');
 
+/** The expected-vs-actual line under the figure (FEATURE_SPEC 7.3). */
+export interface BalanceVariance {
+  /** Signed, in base currency. Null reads as "matched what was expected" — no number, neutral color. */
+  amount: number | null;
+  label: string;
+  onPress?: () => void;
+}
+
 interface BalanceRevealCardProps {
   label: string;
   amount: number;
+  /** Where the figure comes from — "Logged 3 days ago", "From your accounts" (7.3). */
+  caption?: string;
+  /** The logged figure itself, appended to the caption only once revealed (it's money). */
+  captionDetail?: string;
+  variance?: BalanceVariance | null;
+  /** An inline action in the card's bottom slot, in place of the tap hint — e.g. "Log balance". */
+  actionLabel?: string;
+  onAction?: () => void;
 }
 
 /** A chip-card silhouette — small gradient tile with three contact lines,
@@ -96,7 +113,15 @@ function MaskedDots({ color }: { color: string }) {
  * so re-opening the app never leaves a balance sitting exposed
  * (docs/ENHANCEMENT_PLAN.md §6, decision 1).
  */
-export function BalanceRevealCard({ label, amount }: BalanceRevealCardProps) {
+export function BalanceRevealCard({
+  label,
+  amount,
+  caption,
+  captionDetail,
+  variance,
+  actionLabel,
+  onAction,
+}: BalanceRevealCardProps) {
   const { theme } = useTheme();
   const { t } = useLanguage();
   const { formatMoneyParts } = useCurrency();
@@ -250,17 +275,55 @@ export function BalanceRevealCard({ label, amount }: BalanceRevealCardProps) {
               )}
             </Animated.View>
 
-            <Text
-              style={{
-                fontSize: 10,
-                fontWeight: '600',
-                letterSpacing: 0.5,
-                color: theme.textTertiary,
-                textAlign: 'center',
-              }}
-            >
-              {revealed ? t('dashboard.tapToHide') : t('dashboard.tapToReveal')}
-            </Text>
+            {caption || variance ? (
+              <View style={{ gap: 3, alignItems: 'center' }}>
+                {caption ? (
+                  <Text style={{ fontSize: 11, color: theme.textSecondary, textAlign: 'center' }}>
+                    {revealed && captionDetail ? `${caption} · ${captionDetail}` : caption}
+                  </Text>
+                ) : null}
+                {variance ? (
+                  // The amount follows the card's own reveal state (masked
+                  // dots, not a hidden row) so the card never changes height
+                  // when it's tapped.
+                  <Pressable
+                    onPress={variance.onPress}
+                    disabled={!variance.onPress}
+                    accessibilityRole={variance.onPress ? 'button' : undefined}
+                    style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}
+                  >
+                    {variance.amount === null ? null : (
+                      <MoneyAmount
+                        amount={variance.amount}
+                        size={13}
+                        color={variance.amount >= 0 ? SEMANTIC.positive : SEMANTIC.negative}
+                        masked={!revealed}
+                        numberOfLines={1}
+                      />
+                    )}
+                    <Text style={{ fontSize: 11, color: theme.textTertiary }}>
+                      {variance.label}
+                    </Text>
+                  </Pressable>
+                ) : null}
+              </View>
+            ) : null}
+
+            {actionLabel && onAction ? (
+              <SecondaryButton variant="link" label={actionLabel} onPress={onAction} />
+            ) : (
+              <Text
+                style={{
+                  fontSize: 10,
+                  fontWeight: '600',
+                  letterSpacing: 0.5,
+                  color: theme.textTertiary,
+                  textAlign: 'center',
+                }}
+              >
+                {revealed ? t('dashboard.tapToHide') : t('dashboard.tapToReveal')}
+              </Text>
+            )}
           </View>
         </View>
       </View>

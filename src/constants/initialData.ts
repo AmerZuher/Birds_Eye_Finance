@@ -13,7 +13,6 @@ export interface Profile {
   name: string;
   avatar: string;
   startBalances?: StartBalance[];
-  lastReconciledDate?: string;
 }
 
 export const DEFAULT_PROFILE: Profile = {

@@ -5,7 +5,13 @@ import { migrateLegacyProfileAvatar } from '@/lib/avatars';
 import { getJSON, setJSON, StorageKeys } from '@/lib/mmkv';
 
 function readInitialProfile(): Profile {
-  return getJSON<Profile>(StorageKeys.profile) ?? DEFAULT_PROFILE;
+  const stored = getJSON<Profile & { lastReconciledDate?: string }>(StorageKeys.profile);
+  if (!stored) return DEFAULT_PROFILE;
+  // `lastReconciledDate` was stamped on every balance edit up to 2.2.0 and never read
+  // anywhere; 2.3.0 derives the last reconciliation from the `balance_snapshots` table
+  // instead. Dropped on read so it stops being rewritten — and re-exported — forever.
+  const { lastReconciledDate: _dropped, ...profile } = stored;
+  return profile;
 }
 
 interface UserContextValue {

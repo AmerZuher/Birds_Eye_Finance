@@ -23,3 +23,5 @@ export * from '@/components/ui/StatTile';
 export * from '@/components/ui/MoneyAmount';
 export * from '@/components/ui/GlowBlob';
 export * from '@/components/ui/BalanceRevealCard';
+export * from '@/components/ui/ReconciliationNudgeCard';
+export * from '@/components/ui/VarianceHistoryChart';

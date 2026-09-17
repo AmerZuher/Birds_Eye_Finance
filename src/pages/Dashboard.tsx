@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
@@ -7,6 +7,7 @@ import { SectionLabel } from '@/components/FormField';
 import { PageTransition } from '@/components/PageTransition';
 import { Avatar } from '@/components/ui/Avatar';
 import { BalanceRevealCard } from '@/components/ui/BalanceRevealCard';
+import { ReconciliationNudgeCard } from '@/components/ui/ReconciliationNudgeCard';
 import { ListCard } from '@/components/ui/ListCard';
 import { ListRow } from '@/components/ui/ListRow';
 import { MoneyAmount } from '@/components/ui/MoneyAmount';
@@ -14,6 +15,7 @@ import { RingGauge } from '@/components/ui/RingGauge';
 import { SecondaryButton } from '@/components/ui/SecondaryButton';
 import { SettingsCard } from '@/components/ui/SettingsCard';
 import { useChrome } from '@/context/ChromeContext';
+import { useBalance } from '@/context/BalanceContext';
 import { useCurrency } from '@/context/CurrencyContext';
 import { useDebts } from '@/context/DebtsContext';
 import type { DebtGroup } from '@/context/DebtsContext';
@@ -25,17 +27,22 @@ import { useUser } from '@/context/UserContext';
 import { FONTS, SEMANTIC } from '@/constants/theme';
 import type { Person } from '@/db/schema';
 import { avatarDisplayUri } from '@/lib/avatars';
-import { todayStr } from '@/lib/dates';
+import { addDays, daysBetween, todayStr } from '@/lib/dates';
 import { formatDebtId, isMoneyZero } from '@/lib/debtStatus';
-import { addDays, daysBetween, hasInstallmentPlan, installmentEvents } from '@/lib/installments';
+import { hasInstallmentPlan, installmentEvents } from '@/lib/installments';
+import { getString, storage, StorageKeys } from '@/lib/mmkv';
+import { isOnTrack } from '@/lib/reconciliation';
 import type { InstallmentEvent } from '@/lib/installments';
 import { HIDDEN_SCROLLBARS } from '@/lib/scroll';
 import { healthTierColor } from '@/utils/color';
 
-/** Coming up looks this many days ahead, today included (FEATURE_SPEC 7.4). */
+/** Coming up looks this many days ahead, today included (FEATURE_SPEC 7.5). */
 const COMING_UP_DAYS = 30;
 const COMING_UP_MAX_ROWS = 5;
-/** People listed under the Debts totals (FEATURE_SPEC 7.6). */
+/** A dismissed balance nudge comes back after this long, if the log is still stale (FEATURE_SPEC 7.4). */
+const NUDGE_SNOOZE_DAYS = 7;
+
+/** People listed under the Debts totals (FEATURE_SPEC 7.7). */
 const TOP_PEOPLE = 3;
 
 function greetingKey(hour: number): string {
@@ -54,24 +61,49 @@ export default function Dashboard() {
   const router = useRouter();
   const { theme } = useTheme();
   const { t } = useLanguage();
-  const { headerHeight, navbarHeight, requestDebtOpen } = useChrome();
-  const { convertToBase } = useCurrency();
+  const { headerHeight, navbarHeight, requestDebtOpen, openLogBalance } = useChrome();
+  const { convertToBase, formatMoney } = useCurrency();
   const { profile } = useUser();
   const { totalMonthlyIncomeBase, totalExpenses, netSavings, savingsRate, financialHealth } =
     useFinance();
   const { debtViews, payments, groupedDebts, peopleById, debtsCalculations } = useDebts();
+  const { currentBalance, latest, daysSince, isStale, latestVariance } = useBalance();
 
   const hour = new Date().getHours();
   const today = todayStr();
 
-  const totalBalancesBase = useMemo(
-    () =>
-      (profile.startBalances ?? []).reduce(
-        (sum, b) => sum + convertToBase(b.amount, b.currency),
-        0,
-      ),
-    [profile.startBalances, convertToBase],
+  // Where the hero's figure comes from, and how old it is (7.3).
+  const balanceCaption = !latest
+    ? t('dashboard.fromAccounts')
+    : daysSince === 0
+      ? t('dashboard.loggedToday')
+      : daysSince === 1
+        ? t('dashboard.loggedYesterday')
+        : t('dashboard.loggedDaysAgo', { n: String(daysSince) });
+
+  // Null until a second log exists — one log has nothing to be compared against.
+  const variance =
+    latestVariance === null
+      ? null
+      : {
+          amount: isOnTrack(latestVariance) ? null : latestVariance,
+          label: isOnTrack(latestVariance) ? t('dashboard.onTrack') : t('dashboard.vsExpected'),
+          onPress: () => router.navigate('/analytics'),
+        };
+
+  // Dismissing the nudge snoozes it rather than silencing it for good: the
+  // date is remembered, and it returns a week later if the log is still stale.
+  const [nudgeDismissedOn, setNudgeDismissedOn] = useState<string | null>(
+    () => getString(StorageKeys.balanceNudgeDismissed) ?? null,
   );
+  const snoozed =
+    nudgeDismissedOn !== null && daysBetween(nudgeDismissedOn, today) < NUDGE_SNOOZE_DAYS;
+  const showNudge = isStale && !snoozed;
+
+  const dismissNudge = () => {
+    storage.set(StorageKeys.balanceNudgeDismissed, today);
+    setNudgeDismissedOn(today);
+  };
 
   const hasPlans = useMemo(() => debtViews.some(hasInstallmentPlan), [debtViews]);
   const comingUp = useMemo(
@@ -108,10 +140,36 @@ export default function Dashboard() {
           <View style={{ height: 1, backgroundColor: theme.border, marginVertical: 14 }} />
         </Animated.View>
 
-        {/* Current balance hero */}
+        {/* Current balance hero (FEATURE_SPEC 7.3): the logged balance aged
+            forward once there is one, the typed accounts until then. */}
         <Animated.View entering={FadeInUp.duration(420).delay(60)}>
-          <BalanceRevealCard label={t('dashboard.currentBalance')} amount={totalBalancesBase} />
+          <BalanceRevealCard
+            label={t('dashboard.currentBalance')}
+            amount={currentBalance}
+            caption={balanceCaption}
+            captionDetail={
+              latest && daysSince !== null && daysSince > 0
+                ? formatMoney(convertToBase(latest.amount, latest.currency))
+                : undefined
+            }
+            variance={variance}
+            actionLabel={latest ? undefined : t('dashboard.logBalance')}
+            onAction={latest ? undefined : openLogBalance}
+          />
         </Animated.View>
+
+        {/* Balance check (7.4) — only once a log has gone stale. */}
+        {showNudge && daysSince !== null ? (
+          <Animated.View entering={FadeInUp.duration(420).delay(90)}>
+            <ReconciliationNudgeCard
+              message={t('dashboard.nudgeMessage', { n: String(daysSince) })}
+              actionLabel={t('dashboard.logBalance')}
+              onAction={openLogBalance}
+              onDismiss={dismissNudge}
+              dismissLabel={t('dashboard.nudgeDismiss')}
+            />
+          </Animated.View>
+        ) : null}
 
         {hasPlans ? (
           <Animated.View entering={FadeInUp.duration(420).delay(110)}>
@@ -183,7 +241,7 @@ function SectionHeader({
   );
 }
 
-/** Installments due and plans ending in the next 30 days (FEATURE_SPEC 7.4). */
+/** Installments due and plans ending in the next 30 days (FEATURE_SPEC 7.5). */
 function ComingUp({
   events,
   peopleById,
@@ -269,7 +327,7 @@ interface ThisMonthCardProps {
   onAddIncome: () => void;
 }
 
-/** Savings-rate ring beside income − installments − expenses = net savings (FEATURE_SPEC 7.5). */
+/** Savings-rate ring beside income − installments − expenses = net savings (FEATURE_SPEC 7.6). */
 function ThisMonthCard({
   income,
   installments,
@@ -391,7 +449,7 @@ function BreakdownLine({
   );
 }
 
-/** Owed to me / I owe / net, then the people with the largest balances (FEATURE_SPEC 7.6). */
+/** Owed to me / I owe / net, then the people with the largest balances (FEATURE_SPEC 7.7). */
 function DebtsSummary({
   owedToMe,
   iOwe,

@@ -87,7 +87,14 @@ export default function DataScreen() {
   const stageImport = (raw: string, fromPaste: boolean) => {
     const snapshot = parseSnapshot(raw);
     const preview = previewImport(snapshot);
-    if (preview.expenses + preview.debts + preview.incomes + preview.balances === 0) {
+    if (
+      preview.expenses +
+        preview.debts +
+        preview.incomes +
+        preview.balances +
+        preview.balanceLogs ===
+      0
+    ) {
       showBanner('error', t('data.import.empty'));
       return;
     }
@@ -129,6 +136,7 @@ export default function DataScreen() {
           expenses: counts.expenses,
           debts: counts.debts,
           incomes: counts.incomes,
+          balanceLogs: counts.balanceLogs,
         }),
       );
     } catch {
@@ -252,6 +260,7 @@ export default function DataScreen() {
                   debts: pendingImport.preview.debts,
                   incomes: pendingImport.preview.incomes,
                   balances: pendingImport.preview.balances,
+                  balanceLogs: pendingImport.preview.balanceLogs,
                 })
               : undefined
           }

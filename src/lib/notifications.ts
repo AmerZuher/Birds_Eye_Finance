@@ -10,7 +10,7 @@ import {
   setNotificationHandler,
 } from 'expo-notifications';
 
-import { addDays } from '@/lib/installments';
+import { addDays } from '@/lib/dates';
 import type { InstallmentEvent } from '@/lib/installments';
 import { formatDebtId } from '@/lib/debtStatus';
 import { storage, StorageKeys } from '@/lib/mmkv';

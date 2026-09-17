@@ -43,6 +43,7 @@ yarn-error.*
 # local native modules: the source is committed, Gradle's output is not
 modules/*/android/build/
 modules/*/android/.cxx/
+modules/*/android/.gradle/
 
 # release APKs — attached to GitHub Releases instead of committed (GitHub
 # hard-rejects any file over 100MB, and a 100MB+ binary in git history would

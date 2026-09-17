@@ -43,6 +43,13 @@
       "when": 1789476866294,
       "tag": "0005_adjustment_entered_currency",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1789537015906,
+      "tag": "0006_balance_snapshots",
+      "breakpoints": true
     }
   ]
 }

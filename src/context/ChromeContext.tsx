@@ -47,9 +47,16 @@ interface ChromeContextValue {
   requestPersonPhoto: (request: PersonPhotoRequest) => void;
   consumePersonPhotoRequest: () => PersonPhotoRequest | null;
   /** Queues "show this person / debt" for the Debts screen — from the Dashboard's rows
-   * (FEATURE_SPEC 7.4, 7.6) — picked up once it gains focus (same pattern as above). */
+   * (FEATURE_SPEC 7.5, 7.7) — picked up once it gains focus (same pattern as above). */
   requestDebtOpen: (request: DebtOpenRequest) => void;
   consumeDebtOpenRequest: () => DebtOpenRequest | null;
+  /** The Log Balance sheet (FEATURE_SPEC Part 9). Opened from the FAB on
+   * Dashboard and Analytics, the Current balance hero and the stale-balance
+   * nudge; state lives here because the sheet is mounted once at the root, not
+   * inside whichever screen asked for it. */
+  logBalanceOpen: boolean;
+  openLogBalance: () => void;
+  closeLogBalance: () => void;
 }
 
 // Reasonable pre-measurement defaults (safe-area + bar + margin) so content
@@ -67,6 +74,7 @@ export function ChromeProvider({ children }: { children: React.ReactNode }) {
   const pendingDebtCreateRef = useRef(false);
   const pendingPersonPhotoRef = useRef<PersonPhotoRequest | null>(null);
   const pendingDebtOpenRef = useRef<DebtOpenRequest | null>(null);
+  const [logBalanceOpen, setLogBalanceOpen] = useState(false);
 
   const setHeaderHeight = useCallback((height: number) => {
     setHeaderHeightState((prev) => (Math.abs(prev - height) > 0.5 ? height : prev));
@@ -114,6 +122,9 @@ export function ChromeProvider({ children }: { children: React.ReactNode }) {
     return pending;
   }, []);
 
+  const openLogBalance = useCallback(() => setLogBalanceOpen(true), []);
+  const closeLogBalance = useCallback(() => setLogBalanceOpen(false), []);
+
   const value = useMemo<ChromeContextValue>(
     () => ({
       headerHeight,
@@ -129,6 +140,9 @@ export function ChromeProvider({ children }: { children: React.ReactNode }) {
       consumePersonPhotoRequest,
       requestDebtOpen,
       consumeDebtOpenRequest,
+      logBalanceOpen,
+      openLogBalance,
+      closeLogBalance,
     }),
     [
       headerHeight,
@@ -144,6 +158,9 @@ export function ChromeProvider({ children }: { children: React.ReactNode }) {
       consumePersonPhotoRequest,
       requestDebtOpen,
       consumeDebtOpenRequest,
+      logBalanceOpen,
+      openLogBalance,
+      closeLogBalance,
     ],
   );
 
