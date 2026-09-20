@@ -18,17 +18,44 @@ export function FormField({ label, children }: { label: string; children: React.
 
   return (
     <View style={{ gap: 6 }}>
-      <Text
-        style={{
-          fontSize: 9.5,
-          fontWeight: '700',
-          letterSpacing: 0.6,
-          textTransform: 'uppercase',
-          color: theme.textTertiary,
-        }}
-      >
-        {label}
-      </Text>
+      <Text style={fieldLabelStyle(theme.textTertiary)}>{label}</Text>
+      {children}
+    </View>
+  );
+}
+
+/** The uppercase caption both label styles share — inside a FieldBox, or above a FormField. */
+function fieldLabelStyle(color: string) {
+  return {
+    fontSize: 9.5,
+    fontWeight: '700',
+    letterSpacing: 0.6,
+    textTransform: 'uppercase',
+    color,
+  } as const;
+}
+
+/**
+ * A field whose label sits *inside* the box, which is the shape AmountInput
+ * and DateField already have. Use it wherever a field is a block of its own
+ * rather than one of a labelled pair sharing a row, so a form doesn't mix the
+ * two looks down its length.
+ */
+export function FieldBox({ label, children }: { label: string; children: React.ReactNode }) {
+  const { theme } = useTheme();
+
+  return (
+    <View
+      style={{
+        borderRadius: RADII.field,
+        padding: 12,
+        gap: 2,
+        backgroundColor: theme.surfaceAlt,
+        borderWidth: 1,
+        borderColor: theme.border,
+      }}
+    >
+      <Text style={fieldLabelStyle(theme.textTertiary)}>{label}</Text>
       {children}
     </View>
   );
@@ -81,16 +108,24 @@ export function useTextFieldStyle() {
  * The text it shows comes from `useMirroredText`, never straight from the
  * caller's state — see that hook for why a plainly controlled input drops
  * characters while deleting on Android.
+ *
+ * `bare` drops the box (border, fill, padding) for an input already sitting
+ * inside a `FieldBox`, keeping only the text and caret colors — the same thing
+ * AmountInput's own inner input does.
  */
 export function TextField({
   style,
   placeholderTextColor,
   value,
   onChangeText,
+  bare,
   ...props
-}: TextInputProps) {
+}: TextInputProps & { bare?: boolean }) {
   const { theme } = useTheme();
-  const fieldStyle = useTextFieldStyle();
+  const boxStyle = useTextFieldStyle();
+  const fieldStyle = bare
+    ? ({ fontSize: 13, color: theme.textPrimary, padding: 0, marginTop: 6 } as const)
+    : boxStyle;
   const emit = useCallback((next: string) => onChangeText?.(next), [onChangeText]);
   const { text, handleChangeText } = useMirroredText(value ?? '', emit);
 
@@ -104,5 +139,17 @@ export function TextField({
       selectionColor={withAlpha(theme.accent2, 0.35)}
       style={[fieldStyle, style]}
     />
+  );
+}
+
+/** A text field as a labelled block — `FieldBox` plus a bare `TextField`. */
+export function TextFieldBlock({
+  label,
+  ...props
+}: TextInputProps & { label: string; bare?: never }) {
+  return (
+    <FieldBox label={label}>
+      <TextField bare {...props} />
+    </FieldBox>
   );
 }

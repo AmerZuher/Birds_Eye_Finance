@@ -18,10 +18,11 @@ import {
 import { ContactsPicker } from '@/components/ContactsPicker';
 import type { PickedContact } from '@/components/ContactsPicker';
 import { StagedAttachmentsField } from '@/components/DebtAttachments';
-import { FormField, TextField } from '@/components/FormField';
+import { FormField, TextField, TextFieldBlock } from '@/components/FormField';
 import { AmountInput } from '@/components/ui/AmountInput';
 import { Avatar } from '@/components/ui/Avatar';
 import { CustomSelect } from '@/components/ui/CustomSelect';
+import { DateField } from '@/components/ui/DateField';
 import { GlassModal } from '@/components/ui/GlassModal';
 import { GradientButton } from '@/components/ui/GradientButton';
 import { IconButton } from '@/components/ui/IconButton';
@@ -592,25 +593,28 @@ export function DebtModal({
           hideTrigger
         />
 
-        <FormField label={t('debtModal.dateLabel')}>
-          <TextField
-            value={values.date}
-            onChangeText={(v) => setValue('date', v)}
-            placeholder="YYYY-MM-DD"
-          />
-        </FormField>
+        {/* Its own label, inside the box — the same block AmountInput makes
+            of itself, so the two read as a pair rather than a heavy field
+            followed by a thin one. */}
+        <DateField
+          label={t('debtModal.dateLabel')}
+          value={values.date}
+          onChange={(v) => setValue('date', v)}
+          placeholder={t('dateField.placeholder')}
+          sheetTitle={t('debtModal.dateLabel')}
+          accessibilityLabel={t('debtModal.dateLabel')}
+        />
 
-        <FormField label={t('debtModal.notesLabel')}>
-          <TextField
-            value={values.notes}
-            onChangeText={(v) => setValue('notes', v)}
-            placeholder={t('debtModal.notesPlaceholder')}
-            multiline
-            numberOfLines={3}
-            textAlignVertical="top"
-            style={{ minHeight: 70 }}
-          />
-        </FormField>
+        <TextFieldBlock
+          label={t('debtModal.notesLabel')}
+          value={values.notes}
+          onChangeText={(v) => setValue('notes', v)}
+          placeholder={t('debtModal.notesPlaceholder')}
+          multiline
+          numberOfLines={3}
+          textAlignVertical="top"
+          style={{ minHeight: 70 }}
+        />
 
         {/* Resizes as the installment panel toggles — layout animates it
             instead of the fields below jumping. */}
@@ -658,19 +662,29 @@ export function DebtModal({
                 >
                   <View style={{ flex: 1 }}>
                     <FormField label={t('debtModal.startDateLabel')}>
-                      <TextField
+                      <DateField
+                        compact
                         value={values.startDate}
-                        onChangeText={(v) => setValue('startDate', v)}
-                        placeholder="YYYY-MM-DD"
+                        onChange={(v) => setValue('startDate', v)}
+                        placeholder={t('dateField.placeholder')}
+                        sheetTitle={t('debtModal.startDateLabel')}
+                        accessibilityLabel={t('debtModal.startDateLabel')}
                       />
                     </FormField>
                   </View>
                   <View style={{ flex: 1 }}>
                     <FormField label={t('debtModal.endDateLabel')}>
-                      <TextField
+                      {/* Optional, and never before the plan starts — the
+                          calendar simply can't reach those days. */}
+                      <DateField
+                        compact
                         value={values.endDate}
-                        onChangeText={(v) => setValue('endDate', v)}
-                        placeholder="YYYY-MM-DD"
+                        onChange={(v) => setValue('endDate', v)}
+                        placeholder={t('dateField.placeholder')}
+                        sheetTitle={t('debtModal.endDateLabel')}
+                        accessibilityLabel={t('debtModal.endDateLabel')}
+                        clearable
+                        min={values.startDate || undefined}
                       />
                     </FormField>
                   </View>

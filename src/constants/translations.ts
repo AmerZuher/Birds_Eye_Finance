@@ -181,6 +181,12 @@ export const TRANSLATIONS: Record<Language, Record<string, string>> = {
     'logBalance.error.amount': 'Enter the total you have now.',
     'logBalance.error.save': 'Could not save. Try again.',
 
+    'dateField.placeholder': 'Pick a date',
+    'dateField.today': 'Today',
+    'dateField.clear': 'Clear',
+    'dateField.previousMonth': 'Previous month',
+    'dateField.nextMonth': 'Next month',
+
     'common.comingSoon': 'Coming soon',
     'common.cancel': 'Cancel',
     'common.add': 'Add',
@@ -251,9 +257,9 @@ export const TRANSLATIONS: Record<Language, Record<string, string>> = {
     'debtModal.deleteButton': 'Delete Debt',
     'debtModal.error.name': 'Please enter a name.',
     'debtModal.error.amount': 'Please enter a valid amount.',
-    'debtModal.error.date': 'Please enter a valid date (YYYY-MM-DD).',
-    'debtModal.error.startDate': 'Please enter a valid start date (YYYY-MM-DD).',
-    'debtModal.error.endDate': 'Please enter a valid end date (YYYY-MM-DD).',
+    'debtModal.error.date': 'Please pick a date.',
+    'debtModal.error.startDate': 'Please pick a start date for the installment plan.',
+    'debtModal.error.endDate': 'Please pick a valid end date, or clear it.',
     'debtModal.error.generic': 'Please check the form and try again.',
 
     'contactsPicker.title': 'Select Contact',
@@ -327,7 +333,7 @@ export const TRANSLATIONS: Record<Language, Record<string, string>> = {
     'adjustment.save': 'Save',
     'adjustment.delete': 'Delete Adjustment',
     'adjustment.error.amount': 'Please enter a valid amount.',
-    'adjustment.error.date': 'Please enter a valid date (YYYY-MM-DD).',
+    'adjustment.error.date': 'Please pick a date.',
     'adjustment.error.overpay': "A payment can't be more than what's outstanding ({{amount}}).",
     'adjustment.error.overpayForeign':
       "A payment can't be more than what's outstanding ({{amount}} ≈ {{converted}}).",
@@ -638,6 +644,12 @@ export const TRANSLATIONS: Record<Language, Record<string, string>> = {
     'logBalance.error.amount': 'أدخل المبلغ الذي لديك الآن.',
     'logBalance.error.save': 'تعذّر الحفظ. حاول مرة أخرى.',
 
+    'dateField.placeholder': 'اختر تاريخًا',
+    'dateField.today': 'اليوم',
+    'dateField.clear': 'مسح',
+    'dateField.previousMonth': 'الشهر السابق',
+    'dateField.nextMonth': 'الشهر التالي',
+
     'common.comingSoon': 'قريباً',
     'common.cancel': 'إلغاء',
     'common.add': 'إضافة',
@@ -708,9 +720,9 @@ export const TRANSLATIONS: Record<Language, Record<string, string>> = {
     'debtModal.deleteButton': 'حذف الدين',
     'debtModal.error.name': 'الرجاء إدخال الاسم.',
     'debtModal.error.amount': 'الرجاء إدخال مبلغ صحيح.',
-    'debtModal.error.date': 'الرجاء إدخال تاريخ صحيح (YYYY-MM-DD).',
-    'debtModal.error.startDate': 'الرجاء إدخال تاريخ بدء صحيح (YYYY-MM-DD).',
-    'debtModal.error.endDate': 'الرجاء إدخال تاريخ انتهاء صحيح (YYYY-MM-DD).',
+    'debtModal.error.date': 'الرجاء اختيار تاريخ.',
+    'debtModal.error.startDate': 'الرجاء اختيار تاريخ بدء خطة الأقساط.',
+    'debtModal.error.endDate': 'الرجاء اختيار تاريخ انتهاء صحيح أو مسحه.',
     'debtModal.error.generic': 'الرجاء التحقق من النموذج والمحاولة مرة أخرى.',
 
     'contactsPicker.title': 'اختر جهة اتصال',
@@ -783,7 +795,7 @@ export const TRANSLATIONS: Record<Language, Record<string, string>> = {
     'adjustment.save': 'حفظ',
     'adjustment.delete': 'حذف التعديل',
     'adjustment.error.amount': 'الرجاء إدخال مبلغ صحيح.',
-    'adjustment.error.date': 'الرجاء إدخال تاريخ صحيح (YYYY-MM-DD).',
+    'adjustment.error.date': 'الرجاء اختيار تاريخ.',
     'adjustment.error.overpay': 'لا يمكن أن تتجاوز الدفعة المبلغ المتبقي ({{amount}}).',
     'adjustment.error.overpayForeign':
       'لا يمكن أن تتجاوز الدفعة المبلغ المتبقي ({{amount}} ≈ {{converted}}).',

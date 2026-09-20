@@ -8,10 +8,11 @@ import * as Haptics from 'expo-haptics';
 import { Minus, Plus, Trash2 } from 'lucide-react-native';
 
 import { SavedAttachmentsField, StagedAttachmentsField } from '@/components/DebtAttachments';
-import { FormField, TextField } from '@/components/FormField';
+import { TextFieldBlock } from '@/components/FormField';
 import { AmountInput } from '@/components/ui/AmountInput';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { CustomSelect } from '@/components/ui/CustomSelect';
+import { DateField } from '@/components/ui/DateField';
 import { GlassModal } from '@/components/ui/GlassModal';
 import { GradientButton } from '@/components/ui/GradientButton';
 import { InlineBanner } from '@/components/ui/InlineBanner';
@@ -308,24 +309,24 @@ export function AdjustmentSheet({
               </Text>
             ) : null}
 
-            <FormField label={t('adjustment.dateLabel')}>
-              <TextField
-                value={values.date}
-                onChangeText={(v) => setValue('date', v)}
-                placeholder="YYYY-MM-DD"
-              />
-            </FormField>
+            <DateField
+              label={t('adjustment.dateLabel')}
+              value={values.date}
+              onChange={(v) => setValue('date', v)}
+              placeholder={t('dateField.placeholder')}
+              sheetTitle={t('adjustment.dateLabel')}
+              accessibilityLabel={t('adjustment.dateLabel')}
+            />
 
-            <FormField label={t('adjustment.noteLabel')}>
-              <TextField
-                value={values.note}
-                onChangeText={(v) => setValue('note', v)}
-                placeholder={t('adjustment.notePlaceholder')}
-                multiline
-                textAlignVertical="top"
-                style={{ minHeight: 60 }}
-              />
-            </FormField>
+            <TextFieldBlock
+              label={t('adjustment.noteLabel')}
+              value={values.note}
+              onChangeText={(v) => setValue('note', v)}
+              placeholder={t('adjustment.notePlaceholder')}
+              multiline
+              textAlignVertical="top"
+              style={{ minHeight: 60 }}
+            />
 
             {editing ? (
               // An existing entry's proofs are already saved — changes apply immediately.

@@ -6,6 +6,7 @@ export * from '@/components/ui/IconButton';
 export * from '@/components/ui/SettingsCard';
 export * from '@/components/ui/ListRow';
 export * from '@/components/ui/CustomSelect';
+export * from '@/components/ui/DateField';
 export * from '@/components/ui/Avatar';
 export * from '@/components/ui/IconTile';
 export * from '@/components/ui/SearchInput';
