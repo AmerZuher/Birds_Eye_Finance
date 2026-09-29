@@ -1,6 +1,6 @@
-<div align="center">
+<img src="./Birds_Eye_Finance_poster.png" width="100%" alt="Bird's Eye Finance — your finances, clearly seen." />
 
-<img src="./assets/icon.png" width="96" alt="Bird's Eye Finance icon" />
+<div align="center">
 
 # Bird's Eye Finance
 
@@ -8,24 +8,30 @@
 
 Android · Arabic & English · Local-first — your data never leaves your phone
 
+![Platform: Android](https://img.shields.io/badge/platform-Android-3DDC84?logo=android&logoColor=white)
+![Expo](https://img.shields.io/badge/Expo-React%20Native-000020?logo=expo&logoColor=white)
+![Languages: Arabic & English](https://img.shields.io/badge/languages-Arabic%20%26%20English-blue)
+![Local-first](https://img.shields.io/badge/data-local--first-success)
+[![License](https://img.shields.io/github/license/AmerZuher/Birds_Eye_Finance)](./LICENSE)
+
+[What it is](#what-it-is) · [Gallery](#gallery) · [Features](#features) · [Install](#install) · [Building from source](#building-from-source)
+
 </div>
 
 ---
-
-<img width="1208" height="679" alt="BirdsEyeCover" src="https://github.com/user-attachments/assets/5242c968-3ada-4ea7-91de-c2d6c2399909" />
 
 ## What it is
 
 Bird's Eye Finance is a personal finance app built around two things most money apps get wrong: tracking **informal debts** (who you owe, who owes you) with the same care as your actual expenses, and never sending a single byte of your financial life to a server. Everything — every debt, every expense, every income source — lives only on your device.
 
-## Screenshots
+## Gallery
 
 <div align="center">
 <table>
 <tr>
-<td><img src="docs/gallery/HomePage.jpeg" width="200" alt="Home" /></td>
-<td><img src="docs/gallery/AnalyticsPage.jpeg" width="200" alt="Analytics" /></td>
-<td><img src="docs/gallery/DebtsPage.jpeg" width="200" alt="Debts list" /></td>
+<td><img src="Gallery/HomePage.jpeg" width="200" alt="Home" /></td>
+<td><img src="Gallery/AnalyticsPage.jpeg" width="200" alt="Analytics" /></td>
+<td><img src="Gallery/DebtsPage.jpeg" width="200" alt="Debts list" /></td>
 </tr>
 <tr>
 <td align="center"><sub>Home</sub></td>
@@ -33,9 +39,9 @@ Bird's Eye Finance is a personal finance app built around two things most money 
 <td align="center"><sub>Debts</sub></td>
 </tr>
 <tr>
-<td><img src="docs/gallery/DeptPerPerson.jpeg" width="200" alt="Per-person debt detail" /></td>
-<td><img src="docs/gallery/NewDebtModal.jpeg" width="200" alt="Add a debt" /></td>
-<td><img src="docs/gallery/deletedDepts.jpeg" width="200" alt="Deleted debts history" /></td>
+<td><img src="Gallery/DeptPerPerson.jpeg" width="200" alt="Per-person debt detail" /></td>
+<td><img src="Gallery/NewDebtModal.jpeg" width="200" alt="Add a debt" /></td>
+<td><img src="Gallery/deletedDepts.jpeg" width="200" alt="Deleted debts history" /></td>
 </tr>
 <tr>
 <td align="center"><sub>Person detail</sub></td>
@@ -43,9 +49,9 @@ Bird's Eye Finance is a personal finance app built around two things most money 
 <td align="center"><sub>Deleted debts</sub></td>
 </tr>
 <tr>
-<td><img src="docs/gallery/ExpensesPage.jpeg" width="200" alt="Expenses list" /></td>
-<td><img src="docs/gallery/NewExpenseTemplates.jpeg" width="200" alt="Add expense from templates" /></td>
-<td><img src="docs/gallery/NewExpenseModal.jpeg" width="200" alt="Add a custom expense" /></td>
+<td><img src="Gallery/ExpensesPage.jpeg" width="200" alt="Expenses list" /></td>
+<td><img src="Gallery/NewExpenseTemplates.jpeg" width="200" alt="Add expense from templates" /></td>
+<td><img src="Gallery/NewExpenseModal.jpeg" width="200" alt="Add a custom expense" /></td>
 </tr>
 <tr>
 <td align="center"><sub>Expenses</sub></td>
@@ -53,9 +59,9 @@ Bird's Eye Finance is a personal finance app built around two things most money 
 <td align="center"><sub>Custom expense</sub></td>
 </tr>
 <tr>
-<td><img src="docs/gallery/Settings.jpeg" width="200" alt="Settings" /></td>
-<td><img src="docs/gallery/CurruncyList.jpeg" width="200" alt="Currency picker" /></td>
-<td><img src="docs/gallery/Backup&Data.jpeg" width="200" alt="Backup and data" /></td>
+<td><img src="Gallery/Settings.jpeg" width="200" alt="Settings" /></td>
+<td><img src="Gallery/CurruncyList.jpeg" width="200" alt="Currency picker" /></td>
+<td><img src="Gallery/Backup&Data.jpeg" width="200" alt="Backup and data" /></td>
 </tr>
 <tr>
 <td align="center"><sub>Settings & themes</sub></td>

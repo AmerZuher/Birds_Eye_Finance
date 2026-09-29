@@ -83,7 +83,7 @@ export function Header() {
             borderColor: `rgba(${theme.glow.a},0.3)`,
           }}
         >
-          {/* `contain`, not `cover`: icon.png is 910×1015, so a square box crops the wingtip and
+          {/* `contain`, not `cover`: icon.png is 1099×1214, so a square box crops the wingtip and
               the wallet's bottom edge — invisible on dark themes, obvious on light ones. */}
           <Image source={appLogo} style={{ width: '100%', height: '100%' }} resizeMode="contain" />
         </View>

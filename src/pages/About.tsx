@@ -98,7 +98,7 @@ export default function About() {
                 borderRadius: RADII.logoTile,
               }}
             />
-            {/* `contain`, never `cover`: icon.png is 910×1015, so filling a square box crops the
+            {/* `contain`, never `cover`: icon.png is 1099×1214, so filling a square box crops the
                 wingtip and the wallet's bottom edge. The crop is there on dark themes too — it
                 just hides against the dark tile, and shows plainly on a light one. */}
             <View style={{ width: 88, height: 88 }}>
